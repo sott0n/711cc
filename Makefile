@@ -1,7 +1,11 @@
 CFLAGS=-std=c11 -g -static -fno-common
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
 
-711cc: main.o
-	$(CC) -o $@ $? $(LDFLAGS)
+711cc: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+
+$(OBJS): 711cc.h
 
 test: 711cc
 	./tests/test.sh
