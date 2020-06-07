@@ -9,9 +9,42 @@ static char *reg(int idx) {
     return r[idx];
 }
 
+// Compute the absolute address of a given node.
+// It's an error if a given node does not reside in memory.
+static void gen_addr(Node *node) {
+    if (node->kind == ND_VAR) {
+        int offset = (node->name - 'a' + 1) * 8;
+        offset += 32;   // for callee-saved registers
+        printf("  lea -%d(%%rbp), %s\n", offset, reg(top++));
+        return;
+    }
+
+    error("not an lvalue");
+}
+
+static void load(void) {
+    printf("  mov (%s), %s\n", reg(top - 1), reg(top - 1));
+}
+
+static void store(void) {
+    printf("  mov %s, (%s)\n", reg(top - 2), reg(top - 1));
+    top--;
+}
+
+// Generate code for a given node.
 static void gen_expr(Node *node) {
-    if (node->kind == ND_NUM) {
+    switch (node->kind) {
+    case ND_NUM:
         printf("  mov $%lu, %s\n", node->val, reg(top++));
+        return;
+    case ND_VAR:
+        gen_addr(node);
+        load();
+        return;
+    case ND_ASSIGN:
+        gen_expr(node->rhs);
+        gen_addr(node->lhs);
+        store();
         return;
     }
 
@@ -84,21 +117,27 @@ void codegen(Node *node) {
     printf(".globl main\n");
     printf("main:\n");
 
-    // Save callee-saved registers
-    printf("  push %%r12\n");
-    printf("  push %%r13\n");
-    printf("  push %%r14\n");
-    printf("  push %%r15\n");
+    // Prologue. %r12-15 are callee-saved retisters.
+    printf("  push %%rbp\n");
+    printf("  mov %%rsp, %%rbp\n");
+    printf("  sub $240, %%rsp\n");
+    printf("  mov %%r12, -8(%%rbp)\n");
+    printf("  mov %%r13, -16(%%rbp)\n");
+    printf("  mov %%r14, -24(%%rbp)\n");
+    printf("  mov %%r15, -32(%%rbp)\n");
 
     for (Node *n = node; n; n = n->next) {
         gen_stmt(n);
         assert(top == 0);
     }
 
+    // Epilogue
     printf(".L.return:\n");
-    printf("  pop %%r15\n");
-    printf("  pop %%r14\n");
-    printf("  pop %%r13\n");
-    printf("  pop %%r12\n");
+    printf("  mov -8(%%rbp), %%r12\n");
+    printf("  mov -16(%%rbp), %%r13\n");
+    printf("  mov -24(%%rbp), %%r14\n");
+    printf("  mov -32(%%rbp), %%r15\n");
+    printf("  mov %%rbp, %%rsp\n");
+    printf("  pop %%rbp\n");
     printf("  ret\n");
 }
