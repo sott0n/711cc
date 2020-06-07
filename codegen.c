@@ -2,6 +2,11 @@
 
 static int top;
 
+static int count(void) {
+    static int i = 1;
+    return i++;
+}
+
 static char *reg(int idx) {
     static char *r[] = {"%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
@@ -97,6 +102,26 @@ static void gen_expr(Node *node) {
 
 static void gen_stmt(Node *node) {
     switch (node->kind) {
+    case ND_IF: {
+        int c = count();
+        if (node->els) {
+            gen_expr(node->cond);
+            printf("  cmp $0, %s\n", reg(--top));
+            printf("  je .L.else.%d\n", c);
+            gen_stmt(node->then);
+            printf("  jmp .L.end.%d\n", c);
+            printf(".L.else.%d:\n", c);
+            gen_stmt(node->els);
+            printf(".L.end.%d:\n", c);
+        } else {
+            gen_expr(node->cond);
+            printf("  cmp $0, %s\n", reg(--top));
+            printf("  je .L.end.%d\n", c);
+            gen_stmt(node->then);
+            printf(".L.end.%d:\n", c);
+        }
+        return;
+    }
     case ND_BLOCK:
         for (Node *n = node->body; n; n = n->next)
             gen_stmt(n);
