@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -10,6 +11,7 @@
 // Tokenizer
 //
 
+// Token
 typedef enum {
     TK_RESERVED,    // Keywords or punctuators
     TK_IDENT,       // Identifiers
@@ -37,6 +39,15 @@ Token *tokenize(char *input);
 // Parser
 //
 
+// Local vairble
+typedef struct Var Var;
+struct Var {
+    Var *next;
+    char *name; // Variable name
+    int offset; // Offset from RBP
+};
+
+// AST node
 typedef enum {
     ND_ADD,         // +
     ND_SUB,         // -
@@ -60,14 +71,21 @@ struct Node {
     Node *next;     // Next node
     Node *lhs;      // Left-hand node
     Node *rhs;      // Right-hand node
-    char name;      // Used if kind == ND_VAR
+    Var *var;       // Used if kind == ND_VAR
     long val;       // Used if kind == ND_NUM
 };
 
-Node *parse(Token *tok);
+typedef struct Function Function;
+struct Function {
+    Node *node;
+    Var *locals;
+    int stack_size;
+};
+
+Function *parse(Token *tok);
 
 //
 // Code generator
 //
 
-void codegen(Node *node);
+void codegen(Function *prog);

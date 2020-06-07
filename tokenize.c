@@ -100,8 +100,11 @@ Token *tokenize(char *p) {
         }
 
         // Identifier
-        if ('a' <= *p && *p <= 'z') {
-            cur = new_token(TK_IDENT, cur, p++, 1);
+        if (is_alpha(*p)) {
+            char *q = p++;
+            while (is_alnum(*p))
+                p++;
+            cur = new_token(TK_IDENT, cur, q, p - q);
             continue;
         }
         

@@ -13,9 +13,7 @@ static char *reg(int idx) {
 // It's an error if a given node does not reside in memory.
 static void gen_addr(Node *node) {
     if (node->kind == ND_VAR) {
-        int offset = (node->name - 'a' + 1) * 8;
-        offset += 32;   // for callee-saved registers
-        printf("  lea -%d(%%rbp), %s\n", offset, reg(top++));
+        printf("  lea -%d(%%rbp), %s\n", node->var->offset, reg(top++));
         return;
     }
 
@@ -113,20 +111,20 @@ static void gen_stmt(Node *node) {
     }
 }
 
-void codegen(Node *node) {
+void codegen(Function *prog) {
     printf(".globl main\n");
     printf("main:\n");
 
     // Prologue. %r12-15 are callee-saved retisters.
     printf("  push %%rbp\n");
     printf("  mov %%rsp, %%rbp\n");
-    printf("  sub $240, %%rsp\n");
+    printf("  sub $%d, %%rsp\n", prog->stack_size);
     printf("  mov %%r12, -8(%%rbp)\n");
     printf("  mov %%r13, -16(%%rbp)\n");
     printf("  mov %%r14, -24(%%rbp)\n");
     printf("  mov %%r15, -32(%%rbp)\n");
 
-    for (Node *n = node; n; n = n->next) {
+    for (Node *n = prog->node; n; n = n->next) {
         gen_stmt(n);
         assert(top == 0);
     }
