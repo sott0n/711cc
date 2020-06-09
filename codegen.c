@@ -208,7 +208,15 @@ void codegen(Function *prog) {
         printf("  mov %%r13, -16(%%rbp)\n");
         printf("  mov %%r14, -24(%%rbp)\n");
         printf("  mov %%r15, -32(%%rbp)\n");
+
+        // Save arguments to the stack
+        int i = 0;
+        for (Var *var = fn->params; var; var = var->next)
+            i++;
+        for (Var *var = fn->params; var; var = var->next)
+            printf("  mov %s, -%d(%%rbp)\n", argreg[--i], var->offset);
     
+        // Emit code
         gen_stmt(fn->body);
         assert(top == 0);
     
