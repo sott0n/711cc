@@ -1,6 +1,7 @@
 #include "711cc.h"
 
 static int top;
+static char *argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
 static int count(void) {
     static int i = 1;
@@ -62,15 +63,25 @@ static void gen_expr(Node *node) {
         gen_addr(node->lhs);
         store();
         return;
-    case ND_FUNCALL:
+    case ND_FUNCALL: {
+        int nargs = 0;
+        for (Node *arg = node->args; arg; arg = arg->next) {
+            gen_expr(arg);
+            nargs++;
+        }
+
+        for (int i = 1; i <= nargs; i++)
+            printf("  mov %s, %s\n", reg(--top), argreg[nargs - i]);
+
         printf("  push %%r10\n");
         printf("  push %%r11\n");
         printf("  mov $0, %%rax\n");
         printf("  call %s\n", node->funcname);
+        printf("  pop %%r11\n");
+        printf("  pop %%r10\n");
         printf("  mov %%rax, %s\n", reg(top++));
-        printf("  push %%r11\n");
-        printf("  push %%r10\n");
         return;
+    }
     }
 
     gen_expr(node->lhs);
