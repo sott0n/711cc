@@ -1,7 +1,8 @@
 #include "711cc.h"
 
 static int top;
-static char *argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "r9b"};
+static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Function *current_fn;
 
 static int count(void) {
@@ -47,12 +48,22 @@ static void load(Type *ty) {
         // the array in C" occurs.
         return;
     }
-
-    printf("  mov (%s), %s\n", reg(top - 1), reg(top - 1));
+    
+    char *r = reg(top - 1);
+    if (ty->size == 1)
+        printf("  movsbq (%s), %s\n", r, r);
+    else
+        printf("  mov (%s), %s\n", r, r);
 }
 
-static void store(void) {
-    printf("  mov %s, (%s)\n", reg(top - 2), reg(top - 1));
+static void store(Type *ty) {
+    char *rd = reg(top - 1);
+    char *rs = reg(top - 2);
+
+    if (ty->size == 1)
+        printf("  mov %sb, (%s)\n", rs, rd);
+    else
+        printf("  mov %s, (%s)\n", rs, rd);
     top--;
 }
 
@@ -79,7 +90,7 @@ static void gen_expr(Node *node) {
  
         gen_expr(node->rhs);
         gen_addr(node->lhs);
-        store();
+        store(node->ty);
         return;
     case ND_FUNCALL: {
         int nargs = 0;
@@ -89,7 +100,7 @@ static void gen_expr(Node *node) {
         }
 
         for (int i = 1; i <= nargs; i++)
-            printf("  mov %s, %s\n", reg(--top), argreg[nargs - i]);
+            printf("  mov %s, %s\n", reg(--top), argreg64[nargs - i]);
 
         printf("  push %%r10\n");
         printf("  push %%r11\n");
@@ -241,7 +252,10 @@ static void emit_text(Program *prog) {
         for (Var *var = fn->params; var; var = var->next)
             i++;
         for (Var *var = fn->params; var; var = var->next)
-            printf("  mov %s, -%d(%%rbp)\n", argreg[--i], var->offset);
+            if (var->ty->size == 1)
+                printf("  mov %s, -%d(%%rbp)\n", argreg8[--i], var->offset);
+            else
+                printf("  mov %s, -%d(%%rbp)\n", argreg64[--i], var->offset);
     
         // Emit code
         gen_stmt(fn->body);
