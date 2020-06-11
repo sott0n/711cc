@@ -90,7 +90,21 @@ static bool is_keyword(Token *tok) {
     return false;
 }
 
-static char read_escaped_char(char *p) {
+static char read_escaped_char(char **new_ops, char *p) {
+    if ('0' <= *p && *p <= '7') {
+        // Read an octal number
+        int c = *p++ - '0';
+        if ('0' <= *p && *p <= '7') {
+            c = (c * 8) + (*p++ - '0');
+            if ('0' <= *p && *p <= '7')
+                c = (c * 8) + (*p++ - '0');
+        }
+        *new_ops = p;
+        return c;
+    }
+
+    *new_ops = p + 1;
+
     switch (*p) {
     case 'a': return '\a';
     case 'b': return '\b';
@@ -121,12 +135,10 @@ static Token *read_string_literal(Token *cur, char *start) {
     int len = 0;
 
     while (*p != '"') {
-        if (*p == '\\') {
-            buf[len++] = read_escaped_char(p + 1);
-            p += 2;
-        } else {
+        if (*p == '\\')
+            buf[len++] = read_escaped_char(&p, p + 1);
+        else
             buf[len++] = *p++;
-        }
     }
 
     buf[len++] = '\0';
