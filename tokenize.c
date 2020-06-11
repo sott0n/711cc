@@ -90,16 +90,50 @@ static bool is_keyword(Token *tok) {
     return false;
 }
 
+static char read_escaped_char(char *p) {
+    switch (*p) {
+    case 'a': return '\a';
+    case 'b': return '\b';
+    case 't': return '\t';
+    case 'n': return '\n';
+    case 'v': return '\v';
+    case 'f': return '\f';
+    case 'r': return '\r';
+    case 'e': return 27;
+    default: return *p;
+    }
+}
+
 static Token *read_string_literal(Token *cur, char *start) {
     char *p = start + 1;
-    while (*p && *p != '"')
-        p++;
-    if (!*p)
-        error_at(start, "unclosed string literal");
+    char *end = p;
+
+    // Find the closing double-quote
+    for (; *end != '"'; end++) {
+        if (*end == '\0')
+            error_at(start, "unclosed starting literal");
+        if (*end == '\\')
+            end++;
+    }
+
+    // Allocate a buffer that is large enough to hold the entire string.
+    char *buf = calloc(1, end - p + 1);
+    int len = 0;
+
+    while (*p != '"') {
+        if (*p == '\\') {
+            buf[len++] = read_escaped_char(p + 1);
+            p += 2;
+        } else {
+            buf[len++] = *p++;
+        }
+    }
+
+    buf[len++] = '\0';
 
     Token *tok = new_token(TK_STR, cur, start, p - start + 1);
-    tok->contents = strndup(start + 1, p - start - 1);
-    tok->cont_len = p - start;
+    tok->contents = buf;
+    tok->cont_len = len;
     return tok;
 }
 
