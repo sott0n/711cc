@@ -518,13 +518,19 @@ static Node *funcall(Token **rest, Token *tok) {
     return node;
 }
 
-// primary = "(" expr ")" | ident  args? | num
+// primary = "(" expr ")" | "sizeof" unary | ident  args? | num
 // args = "(" ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
         *rest = skip(tok, ")");
         return node;
+    }
+
+    if (equal(tok, "sizeof")) {
+        Node *node = unary(rest, tok->next);
+        add_type(node);
+        return new_num(node->ty->size, tok);
     }
 
     if (tok->kind == TK_IDENT) {
