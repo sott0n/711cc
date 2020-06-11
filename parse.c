@@ -106,6 +106,20 @@ static Var *new_gvar(char *name, Type *ty) {
     return var;
 }
 
+static char *new_gvar_name(void) {
+    static int id = 0;
+    char *buf = calloc(1, 20);
+    sprintf(buf, ".L.data.%d", id++);
+    return buf;
+}
+
+static Var *new_string_literal(char *p, int len) {
+    Type *ty = array_of(ty_char, len);
+    Var *var = new_gvar(new_gvar_name(), ty);
+    var->init_data = p;
+    return var;
+}
+
 static char *get_ident(Token *tok) {
     if (tok->kind != TK_IDENT)
         error_tok(tok, "expected a identifier");
@@ -547,7 +561,7 @@ static Node *funcall(Token **rest, Token *tok) {
     return node;
 }
 
-// primary = "(" expr ")" | "sizeof" unary | ident  args? | num
+// primary = "(" expr ")" | "sizeof" unary | ident  args? | str | num
 // args = "(" ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
@@ -575,7 +589,16 @@ static Node *primary(Token **rest, Token *tok) {
         return new_var_node(var, tok);
     }
     
-    Node *node = new_num(get_number(tok), tok);
+    if (tok->kind == TK_STR) {
+        Var *var = new_string_literal(tok->contents, tok->cont_len);
+        *rest = tok->next;
+        return new_var_node(var, tok);
+    }
+
+    if (tok->kind != TK_NUM)
+        error_tok(tok, "expected expression");
+
+    Node *node = new_num(tok->val, tok);
     *rest = tok->next;
     return node;
 }

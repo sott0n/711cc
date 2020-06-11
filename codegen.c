@@ -226,7 +226,14 @@ static void emit_data(Program *prog) {
 
     for (Var *var = prog->globals; var; var = var->next) {
         printf("%s:\n", var->name);
-        printf("  .zero %d\n", var->ty->size);
+
+        if (!var->init_data) {
+            printf("  .zero %d\n", var->ty->size);
+            continue;
+        }
+
+        for (int i = 0; i < var->ty->size; i++)
+            printf("  .byte %d\n", var->init_data[i]);
     }
 }
 
