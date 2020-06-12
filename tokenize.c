@@ -79,6 +79,20 @@ static bool is_alnum(char c) {
     return is_alpha(c) || ('0' <= c && c <= '9');
 }
 
+static bool is_hex(char c) {
+    return ('0' <= c && c <= '9') ||
+           ('a' <= c && c <= 'f') ||
+           ('A' <= c && c <= 'F');
+}
+
+static int from_hex(char c) {
+    if ('0' <= c && c <= '9')
+        return c - '0';
+    if ('a' <= c && c <= 'f')
+        return c - 'a' + 10;
+    return c - 'A' + 10;
+}
+
 static bool is_keyword(Token *tok) {
     static char *kw[] = {
         "return", "if", "else", "for", "while", "int", "sizeof", "char",
@@ -98,6 +112,22 @@ static char read_escaped_char(char **new_ops, char *p) {
             c = (c * 8) + (*p++ - '0');
             if ('0' <= *p && *p <= '7')
                 c = (c * 8) + (*p++ - '0');
+        }
+        *new_ops = p;
+        return c;
+    }
+
+    if (*p == 'x') {
+        // Read a hexadecimal number
+        p++;
+        if (!is_hex(*p))
+            error_at(p, "invalid hex escape sequence");
+
+        int c = 0;
+        for (; is_hex(*p); p++) {
+            c = (c * 16) + from_hex(*p);
+            if (c > 255)
+                error_at(p, "hex escape sequence out of range");
         }
         *new_ops = p;
         return c;
