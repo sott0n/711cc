@@ -5,12 +5,6 @@ FILE *output_file;
 static char *input_path;
 static char *output_path = "-";
 
-// Round up `n` to the nearest multiple of `align`. For instance,
-// align_to(5, 8) returns 8 and align_to(11, 8) return 16.
-static int align_to(int n, int align) {
-    return (n + align - 1) / align * align;
-}
-
 static void usage(int status) {
     fprintf(stderr, "711cc [ -o <path> ] <file>\n");
     exit(status);
