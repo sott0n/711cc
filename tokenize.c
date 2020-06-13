@@ -284,7 +284,8 @@ Token *tokenize(char *filename, char *p) {
         
         // Multi-letter punctuators
         if (startswith(p, "==") || startswith(p, "!=") ||
-            startswith(p, "<=") || startswith(p, ">=")) {
+            startswith(p, "<=") || startswith(p, ">=") ||
+            startswith(p, "->")) {
             cur = new_token(TK_RESERVED, cur, p, 2);
             p += 2;
             continue;
