@@ -34,6 +34,8 @@ struct Token {
 
     char *contents;     // String literal contents including terminating '\0'
     int cont_len;       // String literal length
+
+    int line_no;        // Line number
 };
 
 void error(char *fmt, ...);
