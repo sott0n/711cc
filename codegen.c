@@ -2,6 +2,7 @@
 
 static int top;
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
 static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Function *current_fn;
@@ -71,6 +72,8 @@ static void load(Type *ty) {
 
     if (ty->size == 1)
         println("  movsbq (%s), %s", r, r);
+    else if (ty->size == 2)
+        println("  movswq (%s), %s", r, r);
     else if (ty->size == 4)
         println("  movsxd (%s), %s", r, r);
     else
@@ -88,6 +91,8 @@ static void store(Type *ty) {
         }
     } else if (ty->size == 1) {
         println("  mov %sb, (%s)", rs, rd);
+    } else if (ty->size == 2) {
+        println("  mov %sw, (%s)", rs, rd);
     } else if (ty->size == 4) {
         println("  mov %sd, (%s)", rs, rd);
     } else {
@@ -147,9 +152,13 @@ static void gen_expr(Node *node) {
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
             if (arg->ty->size == 1)
-                println("  movsbq -%d(%%rbp), %s", arg->offset, argreg64[i]);
+                println("  movsbl -%d(%%rbp), %s", arg->offset, argreg32[i]);
+            else if (arg->ty->size == 2)
+                println("  movswl -%d(%%rbp), %s", arg->offset, argreg32[i]);
+            else if (arg->ty->size == 4)
+                println("  mov -%d(%%rbp), %s", arg->offset, argreg32[i]);
             else
-                println("  movsxd -%d(%%rbp), %s", arg->offset, argreg64[i]);
+                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[i]);
         }
 
         println("  mov $0, %%rax");
@@ -290,6 +299,8 @@ static void emit_data(Program *prog) {
 static char *get_argreg(int sz, int idx) {
     if (sz == 1)
         return argreg8[idx];
+    if (sz == 2)
+        return argreg16[idx];
     if (sz == 4)
         return argreg32[idx];
     assert(sz == 8);

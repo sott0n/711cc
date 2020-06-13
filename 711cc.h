@@ -150,7 +150,9 @@ Program *parse(Token *tok);
 
 typedef enum {
     TY_CHAR,
+    TY_SHORT,
     TY_INT,
+    TY_LONG,
     TY_PTR,
     TY_FUNC,
     TY_ARRAY,
@@ -196,7 +198,9 @@ struct Member {
 };
 
 extern Type *ty_char;
+extern Type *ty_short;
 extern Type *ty_int;
+extern Type *ty_long;
 
 bool is_integer(Type *ty);
 Type *copy_type(Type *ty);

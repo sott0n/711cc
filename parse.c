@@ -221,16 +221,26 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "int" | struct-decl | union-decl
+// typespec = "char" | "short" | "int" | "long" | struct-decl | union-decl
 static Type *typespec(Token **rest, Token *tok) {
     if (equal(tok, "char")) {
         *rest = tok->next;
         return ty_char;
     }
 
+    if (equal(tok, "short")) {
+        *rest = tok->next;
+        return ty_short;
+    }
+
     if (equal(tok, "int")) {
         *rest = tok->next;
         return ty_int;
+    }
+
+    if (equal(tok, "long")) {
+        *rest = tok->next;
+        return ty_long;
     }
 
     if (equal(tok, "struct"))
@@ -324,8 +334,8 @@ static Node *declaration(Token **rest, Token *tok) {
 
 // Returns true if a given token represents a type.
 static bool is_typename(Token *tok) {
-    return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct") ||
-           equal(tok, "union");
+    return equal(tok, "char") || equal(tok, "short") || equal(tok, "int") ||
+           equal(tok, "long") || equal(tok, "struct") || equal(tok, "union");
 }
 
 // stmt = "return" expr ";"
