@@ -1,7 +1,8 @@
 #include "711cc.h"
 
 static int top;
-static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "r9b"};
+static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Function *current_fn;
 
@@ -67,8 +68,11 @@ static void load(Type *ty) {
     }
     
     char *r = reg(top - 1);
+
     if (ty->size == 1)
         println("  movsbq (%s), %s", r, r);
+    else if (ty->size == 4)
+        println("  movsxd (%s), %s", r, r);
     else
         println("  mov (%s), %s", r, r);
 }
@@ -84,6 +88,8 @@ static void store(Type *ty) {
         }
     } else if (ty->size == 1) {
         println("  mov %sb, (%s)", rs, rd);
+    } else if (ty->size == 4) {
+        println("  mov %sd, (%s)", rs, rd);
     } else {
         println("  mov %s, (%s)", rs, rd);
     }
@@ -143,7 +149,7 @@ static void gen_expr(Node *node) {
             if (arg->ty->size == 1)
                 println("  movsbq -%d(%%rbp), %s", arg->offset, argreg64[i]);
             else
-                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[i]);
+                println("  movsxd -%d(%%rbp), %s", arg->offset, argreg64[i]);
         }
 
         println("  mov $0, %%rax");
@@ -281,6 +287,15 @@ static void emit_data(Program *prog) {
     }
 }
 
+static char *get_argreg(int sz, int idx) {
+    if (sz == 1)
+        return argreg8[idx];
+    if (sz == 4)
+        return argreg32[idx];
+    assert(sz == 8);
+    return argreg64[idx];
+}
+
 static void emit_text(Program *prog) {
     println("  .text");
 
@@ -302,11 +317,10 @@ static void emit_text(Program *prog) {
         int i = 0;
         for (Var *var = fn->params; var; var = var->next)
             i++;
-        for (Var *var = fn->params; var; var = var->next)
-            if (var->ty->size == 1)
-                println("  mov %s, -%d(%%rbp)", argreg8[--i], var->offset);
-            else
-                println("  mov %s, -%d(%%rbp)", argreg64[--i], var->offset);
+        for (Var *var = fn->params; var; var = var->next) {
+            char *r = get_argreg(var->ty->size, --i);
+            println("  mov %s, -%d(%%rbp)", r, var->offset);
+        }
     
         // Emit code
         gen_stmt(fn->body);
