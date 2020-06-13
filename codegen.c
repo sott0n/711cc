@@ -45,6 +45,10 @@ static void gen_addr(Node *node) {
         top--;
         gen_addr(node->rhs);
         return;
+    case ND_MEMBER:
+        gen_addr(node->lhs);
+        println("  add $%d, %s", node->member->offset, reg(top - 1));
+        return;
     }
 
     error_tok(node->tok, "not an lvalue");
@@ -89,6 +93,7 @@ static void gen_expr(Node *node) {
         println("  mov $%lu, %s", node->val, reg(top++));
         return;
     case ND_VAR:
+    case ND_MEMBER:
         gen_addr(node);
         load(node->ty);
         return;
