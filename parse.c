@@ -585,25 +585,43 @@ static Node *postfix(Token **rest, Token *tok) {
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"
+//
+// foo(a,b,c) is compiled to (t1=a, t2=b, t3=c, foo(t1, t2, t3))
+// where t1, t2 and t3 are fresh local variables.
 static Node *funcall(Token **rest, Token *tok) {
     Token *start = tok;
     tok = tok->next->next;
 
-    Node head = {};
-    Node *cur = &head;
+    Node *node = new_node(ND_NULL_EXPR, tok);
+    Var **args = NULL;
+    int nargs = 0;
 
     while (!equal(tok, ")")) {
-        if (cur != &head)
+        if (nargs)
             tok = skip(tok, ",");
-        cur = cur->next = assign(&tok, tok);
+
+        Node *arg = assign(&tok, tok);
+        add_type(arg);
+
+        Var *var = arg->ty->base
+            ? new_lvar("", pointer_to(arg->ty->base))
+            : new_lvar("", arg->ty);
+
+        args = realloc(args, sizeof(*args) * (nargs + 1));
+        args[nargs] = var;
+        nargs++;
+
+        Node *expr = new_binary(ND_ASSIGN, new_var_node(var, tok), arg, tok);
+        node = new_binary(ND_COMMA, node, expr, tok);
     }
 
     *rest = skip(tok, ")");
 
-    Node *node = new_node(ND_FUNCALL, start);
-    node->funcname = strndup(start->loc, start->len);
-    node->args = head.next;
-    return node;
+    Node *funcall = new_node(ND_FUNCALL, start);
+    funcall->funcname = strndup(start->loc, start->len);
+    funcall->args = args;
+    funcall->nargs = nargs;
+    return new_binary(ND_COMMA, node, funcall, tok);
 }
 
 // primary = "(" "{" stmt stmt* "}" ")"

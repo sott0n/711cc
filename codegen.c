@@ -112,23 +112,28 @@ static void gen_expr(Node *node) {
             gen_stmt(n);
         top++;
         return;
+    case ND_NULL_EXPR:
+        top++;
+        return;
     case ND_COMMA:
         gen_expr(node->lhs);
         top--;
         gen_expr(node->rhs);
         return;
     case ND_FUNCALL: {
-        int nargs = 0;
-        for (Node *arg = node->args; arg; arg = arg->next) {
-            gen_expr(arg);
-            nargs++;
-        }
-
-        for (int i = 1; i <= nargs; i++)
-            println("  mov %s, %s", reg(--top), argreg64[nargs - i]);
-
+        // Save caller-saved registers
         println("  push %%r10");
         println("  push %%r11");
+
+        // Load arguments from the stack
+        for (int i = 0; i < node->nargs; i++) {
+            Var *arg = node->args[i];
+            if (arg->ty->size == 1)
+                println("  movsbq -%d(%%rbp), %s", arg->offset, argreg64[i]);
+            else
+                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[i]);
+        }
+
         println("  mov $0, %%rax");
         println("  call %s", node->funcname);
         println("  pop %%r11");

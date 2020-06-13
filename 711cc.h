@@ -86,6 +86,7 @@ typedef enum {
     ND_FUNCALL,     // Function call 
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
+    ND_NULL_EXPR,   // Do nothing
     ND_VAR,         // Variable
     ND_NUM,         // Integer
 } NodeKind;
@@ -113,7 +114,8 @@ struct Node {
 
     // Function call
     char *funcname;
-    Node *args;
+    Var **args;
+    int nargs;
 
     Var *var;       // Used if kind == ND_VAR
     long val;       // Used if kind == ND_NUM
