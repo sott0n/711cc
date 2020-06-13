@@ -187,3 +187,8 @@ void add_type(Node *node);
 //
 
 void codegen(Program *prog);
+
+//
+// main.c
+//
+extern FILE *output_file;

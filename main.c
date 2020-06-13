@@ -1,16 +1,62 @@
 #include "711cc.h"
 
+FILE *output_file;
+
+static char *input_path;
+static char *output_path = "-";
+
 // Round up `n` to the nearest multiple of `align`. For instance,
 // align_to(5, 8) returns 8 and align_to(11, 8) return 16.
 static int align_to(int n, int align) {
     return (n + align - 1) / align * align;
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2)
-        error("%s: invalid number of arguments\n", argv[0]);
+static void usage(int status) {
+    fprintf(stderr, "711cc [ -o <path> ] <file>\n");
+    exit(status);
+}
 
-    Token *tok = tokenize_file(argv[1]);
+static void parse_args(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--help"))
+            usage(0);
+
+        if (!strcmp(argv[i], "-o")) {
+            if (!argv[++i])
+                usage(1);
+            output_path = argv[i];
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-o", 2)) {
+            output_path = argv[i] + 2;
+            continue;
+        }
+
+        if (argv[i][0] == '-' && argv[i][1] != '\0')
+            error("unknown argument, %s", argv[i]);
+
+        input_path = argv[i];
+    }
+
+    if (!input_path)
+        error("no input files");
+}
+
+int main(int argc, char **argv) {
+    parse_args(argc, argv);
+
+    // Open the output file.
+    if (strcmp(output_path, "-") == 0) {
+        output_file = stdout;
+    } else {
+        output_file = fopen(output_path, "w");
+        if (!output_file)
+            error("cannot open output file: %s: %s", output_file, strerror(errno));
+    }
+
+    // Tokenize and parse
+    Token *tok = tokenize_file(input_path);
     Program *prog = parse(tok);
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
