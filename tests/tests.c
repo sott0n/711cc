@@ -2,6 +2,9 @@
  * This is a block comment.
  */
 
+int printf();
+int exit();
+
 int g1, g2[4];
 
 int assert(int expected, int actual, char *code) {

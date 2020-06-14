@@ -7,7 +7,7 @@ OBJS=$(SRCS:.c=.o)
 
 $(OBJS): 711cc.h
 
-test: 711cc
+test: 711cc tests/extern.c
 	./711cc -o tmp.s tests/tests.c
 	gcc -static -o tmp tmp.s
 	./tmp

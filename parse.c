@@ -879,6 +879,8 @@ Program *parse(Token *tok) {
 
         // Function
         if (ty->kind == TY_FUNC) {
+            if (consume(&tok, tok, ";"))
+                continue;
             cur = cur->next = funcdef(&tok, start);
             continue;
         }
