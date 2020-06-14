@@ -69,12 +69,13 @@ static void load(Type *ty) {
     }
     
     char *r = reg(top - 1);
+    int sz = size_of(ty);
 
-    if (ty->size == 1)
+    if (sz == 1)
         println("  movsbq (%s), %s", r, r);
-    else if (ty->size == 2)
+    else if (sz == 2)
         println("  movswq (%s), %s", r, r);
-    else if (ty->size == 4)
+    else if (sz == 4)
         println("  movsxd (%s), %s", r, r);
     else
         println("  mov (%s), %s", r, r);
@@ -83,17 +84,18 @@ static void load(Type *ty) {
 static void store(Type *ty) {
     char *rd = reg(top - 1);
     char *rs = reg(top - 2);
+    int sz = size_of(ty);
 
     if (ty->kind == TY_STRUCT) {
-        for (int i = 0; i < ty->size; i++) {
+        for (int i = 0; i < sz; i++) {
             println("  mov %d(%s), %%al", i, rs);
             println("  mov %%al, %d(%s)", i, rd);
         }
-    } else if (ty->size == 1) {
+    } else if (sz == 1) {
         println("  mov %sb, (%s)", rs, rd);
-    } else if (ty->size == 2) {
+    } else if (sz == 2) {
         println("  mov %sw, (%s)", rs, rd);
-    } else if (ty->size == 4) {
+    } else if (sz == 4) {
         println("  mov %sd, (%s)", rs, rd);
     } else {
         println("  mov %s, (%s)", rs, rd);
@@ -287,11 +289,11 @@ static void emit_data(Program *prog) {
         println("%s:", var->name);
 
         if (!var->init_data) {
-            println("  .zero %d", var->ty->size);
+            println("  .zero %d", size_of(var->ty));
             continue;
         }
 
-        for (int i = 0; i < var->ty->size; i++)
+        for (int i = 0; i < size_of(var->ty); i++)
             println("  .byte %d", var->init_data[i]);
     }
 }

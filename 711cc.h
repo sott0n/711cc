@@ -149,6 +149,7 @@ Program *parse(Token *tok);
 //
 
 typedef enum {
+    TY_VOID,
     TY_CHAR,
     TY_SHORT,
     TY_INT,
@@ -197,6 +198,8 @@ struct Member {
     int offset;
 };
 
+extern Type *ty_void;
+
 extern Type *ty_char;
 extern Type *ty_short;
 extern Type *ty_int;
@@ -208,6 +211,7 @@ int align_to(int n, int align);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 Type *array_of(Type *base, int size);
+int size_of(Type *ty);
 void add_type(Node *node);
 
 //
