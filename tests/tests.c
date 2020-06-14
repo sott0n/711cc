@@ -302,6 +302,13 @@ int main() {
 
     { void *x; }
 
+    assert(1, ({ char x; sizeof(x); }), "({ char x; sizeof(x); })");
+    assert(2, ({ short int x; sizeof(x); }), "({ short int x; sizeof(x); })");
+    assert(2, ({ int short x; sizeof(x); }), "({ int short x; sizeof(x); })");
+    assert(4, ({ int x; sizeof(x); }), "({ int x; sizeof(x); })");
+    assert(8, ({ long int x; sizeof(x); }), "({ long int x; sizeof(x); })");
+    assert(8, ({ int long x; sizeof(x); }), "({ int long x; sizeof(x); })");
+
     printf("OK\n");
     return 0;
 }
