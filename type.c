@@ -122,9 +122,6 @@ void add_type(Node *node) {
             node->rhs = new_cast(node->rhs, node->lhs->ty);
         node->ty = node->lhs->ty;
         return;
-    case ND_FUNCALL:
-        node->ty = ty_long;
-        return;
     case ND_VAR:
         node->ty = node->var->ty;
         return;

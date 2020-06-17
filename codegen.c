@@ -187,11 +187,13 @@ static void gen_expr(Node *node) {
         // Load arguments from the stack
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
-            if (arg->ty->size == 1)
+            int sz = size_of(arg->ty);
+
+            if (sz == 1)
                 println("  movsbl -%d(%%rbp), %s", arg->offset, argreg32[i]);
-            else if (arg->ty->size == 2)
+            else if (sz == 2)
                 println("  movswl -%d(%%rbp), %s", arg->offset, argreg32[i]);
-            else if (arg->ty->size == 4)
+            else if (sz == 4)
                 println("  mov -%d(%%rbp), %s", arg->offset, argreg32[i]);
             else
                 println("  mov -%d(%%rbp), %s", arg->offset, argreg64[i]);
