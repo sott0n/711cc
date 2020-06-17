@@ -139,6 +139,17 @@ static Node *new_var_node(Var *var, Token *tok) {
     return node;
 }
 
+Node *new_cast(Node *expr, Type *ty) {
+    add_type(expr);
+
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_CAST;
+    node->tok = expr->tok;
+    node->lhs = expr;
+    node->ty = copy_type(ty);
+    return node;
+}
+
 static VarScope *push_scope(char *name) {
     VarScope *sc = calloc(1, sizeof(VarScope));
     sc->next = var_scope;

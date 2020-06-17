@@ -143,6 +143,7 @@ typedef struct {
     Function *fns;
 } Program;
 
+Node *new_cast(Node *expr, Type *ty);
 Program *parse(Token *tok);
 
 //

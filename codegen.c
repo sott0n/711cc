@@ -26,6 +26,16 @@ static char *reg(int idx) {
     return r[idx];
 }
 
+static char *xreg(Type *ty, int idx) {
+    if (ty->base || size_of(ty) == 8)
+        return reg(idx);
+
+    static char *r[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: %d", idx);
+    return r[idx];
+}
+
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
@@ -68,17 +78,21 @@ static void load(Type *ty) {
         return;
     }
     
-    char *r = reg(top - 1);
+    char *rs = reg(top - 1);
+    char *rd = xreg(ty, top - 1);
     int sz = size_of(ty);
 
+    // When we load a char or a short value to a register, we always
+    // extend them to the size of int, so we can assume the lower half of
+    // a register always contains a valid value. The upper half of a
+    // register for char, short and int may contain garbage. When we load
+    // a long value to a register, it simply occupies the entire register.
     if (sz == 1)
-        println("  movsbq (%s), %s", r, r);
+        println("  movsbl (%s), %s", rs, rd);
     else if (sz == 2)
-        println("  movswq (%s), %s", r, r);
-    else if (sz == 4)
-        println("  movsxd (%s), %s", r, r);
+        println("  movswl (%s), %s", rs, rd);
     else
-        println("  mov (%s), %s", r, r);
+        println("  mov (%s), %s", rs, rd);
 }
 
 static void store(Type *ty) {
@@ -104,18 +118,19 @@ static void store(Type *ty) {
     top--;
 }
 
-static void cast(Type *ty) {
-    if (ty->kind == TY_VOID)
+static void cast(Type *from, Type *to) {
+    if (to->kind == TY_VOID)
         return;
 
     char *r = reg(top - 1);
 
-    int sz = size_of(ty);
-    if (sz == 1)
+    if (size_of(to) == 1)
         println("  movsx %sb, %s", r, r);
-    else if (sz == 2)
+    else if (size_of(to) == 2)
         println("  movsx %sw, %s", r, r);
-    else if (sz == 4)
+    else if (size_of(to) == 4)
+        println("  mov %sd, %sd", r, r);
+    else if (is_integer(from) && size_of(from) < 8)
         println("  movsx %sd, %s", r, r);
 }
 
@@ -162,7 +177,7 @@ static void gen_expr(Node *node) {
         return;
     case ND_CAST:
         gen_expr(node->lhs);
-        cast(node->ty);
+        cast(node->lhs->ty, node->ty);
         return;
     case ND_FUNCALL: {
         // Save caller-saved registers
@@ -194,8 +209,8 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     gen_expr(node->rhs);
 
-    char *rd = reg(top - 2);
-    char *rs = reg(top - 1);
+    char *rd = xreg(node->lhs->ty, top - 2);
+    char *rs = xreg(node->lhs->ty, top - 1);
     top--;
 
     switch (node->kind) {
@@ -209,10 +224,17 @@ static void gen_expr(Node *node) {
         println("  imul %s, %s", rs, rd);
         return;
     case ND_DIV:
-        println("  mov %s, %%rax", rd);
-        println("  cqo");
-        println("  idiv %s", rs);
-        println("  mov %%rax, %s", rd);
+        if (size_of(node->ty) == 8) {
+            println("  mov %s, %%rax", rd);
+            println("  cqo");
+            println("  idiv %s", rs);
+            println("  mov %%rax, %s", rd);
+        } else {
+            println("  mov %s, %%eax", rd);
+            println("  cdq");
+            println("  idiv %s", rs);
+            println("  mov %%eax, %s", rd);
+        }
         return;
     case ND_EQ:
         println("  cmp %s, %s", rs, rd);
