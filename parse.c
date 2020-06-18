@@ -58,6 +58,9 @@ static TagScope *tag_scope;
 // scope and decremented by one at the end of a block scope.
 static int scope_depth;
 
+// Points to the function object the parser is currently parsing.
+static Var *current_fn;
+
 static bool is_typename(Token *tok);
 static Type *typespec(Token **rest, Token *tok, VarAttr *attr);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
@@ -500,8 +503,11 @@ static bool is_typename(Token *tok) {
 static Node *stmt(Token **rest, Token *tok) {
     if (equal(tok, "return")) {
         Node *node = new_node(ND_RETURN, tok); 
-        node->lhs = expr(&tok, tok->next);
+        Node *exp = expr(&tok, tok->next);
         *rest = skip(tok, ";");
+
+        add_type(exp);
+        node->lhs = new_cast(exp, current_fn->ty->return_ty);
         return node;
     }
 
@@ -1070,7 +1076,7 @@ Program *parse(Token *tok) {
 
         // Function
         if (ty->kind == TY_FUNC) {
-            new_gvar(get_ident(ty->name), ty, false);
+            current_fn = new_gvar(get_ident(ty->name), ty, false);
             if (!consume(&tok, tok, ";"))
                 cur = cur->next = funcdef(&tok, start);
             continue;
