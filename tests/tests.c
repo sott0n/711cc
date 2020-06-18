@@ -64,6 +64,10 @@ int fib(int x) {
 int *g1_ptr() { return &g1; }
 char int_to_char(int x) { return x; }
 
+int div_long(long a, long b) {
+    return a / b;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -390,6 +394,7 @@ int main() {
 
     assert(3, *g1_ptr(), "*g1_ptr()");
     assert(5, int_to_char(261), "int_to_char(261)");
+    assert(-5, div_long(-10, 2), "div_long(-10, 2)");
 
     printf("OK\n");
     return 0;

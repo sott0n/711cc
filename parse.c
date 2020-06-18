@@ -950,15 +950,16 @@ static Node *funcall(Token **rest, Token *tok) {
     if (sc) {
         if (!sc->var || sc->var->ty->kind != TY_FUNC)
             error_tok(start, "not a function");
-        ty = sc->var->ty->return_ty;
+        ty = sc->var->ty;
     } else {
         warn_tok(start, "implicit declaration of a function");
-        ty = ty_int;
+        ty = func_type(ty_int);
     }
 
     Node *node = new_node(ND_NULL_EXPR, tok);
     Var **args = NULL;
     int nargs = 0;
+    Type *param_ty = ty->params;
 
     while (!equal(tok, ")")) {
         if (nargs)
@@ -966,6 +967,11 @@ static Node *funcall(Token **rest, Token *tok) {
 
         Node *arg = assign(&tok, tok);
         add_type(arg);
+
+        if (param_ty) {
+            arg = new_cast(arg, param_ty);
+            param_ty = param_ty->next;
+        }
 
         Var *var = arg->ty->base
             ? new_lvar("", pointer_to(arg->ty->base))
@@ -983,7 +989,8 @@ static Node *funcall(Token **rest, Token *tok) {
 
     Node *funcall = new_node(ND_FUNCALL, start);
     funcall->funcname = strndup(start->loc, start->len);
-    funcall->ty = ty;
+    funcall->func_ty = ty;
+    funcall->ty = ty->return_ty;
     funcall->args = args;
     funcall->nargs = nargs;
     return new_binary(ND_COMMA, node, funcall, tok);
