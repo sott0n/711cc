@@ -362,7 +362,8 @@ static void emit_text(Program *prog) {
     println("  .text");
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
-        println("  .globl %s", fn->name);
+        if (!fn->is_static)
+            println("  .globl %s", fn->name);
         println("%s:", fn->name);
         current_fn = fn;
     

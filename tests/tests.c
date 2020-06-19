@@ -71,6 +71,8 @@ int div_long(long a, long b) {
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
 
+static int static_fn() { return 3; }
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -427,6 +429,8 @@ int main() {
     assert(4, ({ enum { zero, five=5, three=3, four }; four; }), "({ enum { zero, five=5, three, four }; four; })");
     assert(4, ({ enum { zero, one, two } x; sizeof(x); }), "({ enum { zero, one, two } x; sizeof(x); })");
     assert(4, ({ enum t { zero, one, two }; enum t y; sizeof(y); }), "({ enum t { zero, one, two }; enum t y; sizeof(y); })");
+
+    assert(3, static_fn(), "static_fn()");
 
     printf("OK\n");
     return 0;
