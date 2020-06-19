@@ -1034,7 +1034,29 @@ static Node *struct_ref(Node *lhs, Token *tok) {
     return node;
 }
 
-// postfix = primary ("[" expr "]" | "." ident | "->" ident)*
+// Convert A++ to `tmp = &A, *tmp = *tmp + 1, *tmp - 1`
+// where tmp is a fresh pointer variable.
+static Node *new_inc_dec(Node *node, Token *tok, int addend) {
+    add_type(node);
+    Var *var = new_lvar("", pointer_to(node->ty));
+
+    Node *expr1 = new_binary(ND_ASSIGN, new_var_node(var, tok),
+                            new_unary(ND_ADDR, node, tok), tok);
+
+    Node *expr2 =
+        new_binary(ND_ASSIGN,
+                   new_unary(ND_DEREF, new_var_node(var, tok), tok),
+                   new_add(new_unary(ND_DEREF, new_var_node(var, tok), tok),
+                           new_num(addend, tok), tok),
+                   tok);
+
+    Node *expr3 = new_add(new_unary(ND_DEREF, new_var_node(var, tok), tok),
+                         new_num(-addend, tok), tok);
+
+    return new_binary(ND_COMMA, expr1, new_binary(ND_COMMA, expr2, expr3, tok), tok);
+}
+
+// postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
 static Node *postfix(Token **rest, Token *tok) {
     Node *node = primary(&tok, tok);
 
@@ -1059,6 +1081,18 @@ static Node *postfix(Token **rest, Token *tok) {
             node = new_unary(ND_DEREF, node, tok);
             node = struct_ref(node, tok->next);
             tok = tok->next->next;
+            continue;
+        }
+
+        if (equal(tok, "++")) {
+            node = new_inc_dec(node, tok, 1);
+            tok = tok->next;
+            continue;
+        }
+
+        if (equal(tok, "--")) {
+            node = new_inc_dec(node, tok, -1);
+            tok = tok->next;
             continue;
         }
 
