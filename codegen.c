@@ -124,6 +124,12 @@ static void cast(Type *from, Type *to) {
 
     char *r = reg(top - 1);
 
+    if (to->kind == TY_BOOL) {
+        println("  cmp $0, %s", r);
+        println("  setne %sb", r);
+        println("  movzx %sb, %s", r, r);
+    }
+
     if (size_of(to) == 1)
         println("  movsx %sb, %s", r, r);
     else if (size_of(to) == 2)
