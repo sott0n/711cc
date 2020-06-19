@@ -444,6 +444,10 @@ int main() {
     assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
     assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })");
 
+    assert(3, ({ int i=2; ++i; }), "({ int i=2; ++i; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; })");
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; })");
+
     printf("OK\n");
     return 0;
 }
