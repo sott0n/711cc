@@ -185,6 +185,12 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         cast(node->lhs->ty, node->ty);
         return;
+    case ND_NOT:
+        gen_expr(node->lhs);
+        println("  cmp $0, %s", reg(top - 1));
+        println("  sete %sb", reg(top - 1));
+        println("  movzx %sb, %s", reg(top - 1), reg(top - 1));
+        return;
     case ND_FUNCALL: {
         // Save caller-saved registers
         println("  push %%r10");

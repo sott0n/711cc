@@ -127,6 +127,9 @@ void add_type(Node *node) {
             node->rhs = new_cast(node->rhs, node->lhs->ty);
         node->ty = node->lhs->ty;
         return;
+    case ND_NOT:
+        node->ty = ty_int;
+        return;
     case ND_VAR:
         node->ty = node->var->ty;
         return;
