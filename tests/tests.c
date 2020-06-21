@@ -442,9 +442,7 @@ int main() {
     assert(6, ({ int i=3; i*=2; i; }), "({ int i=3; i*=2; i; })");
     assert(6, ({ int i=3; i*=2; }), "({ int i=3; i*=2; })");
     assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
-    assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })");
-
-    assert(3, ({ int i=2; ++i; }), "({ int i=2; ++i; })");
+    assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })"); assert(3, ({ int i=2; ++i; }), "({ int i=2; ++i; })");
     assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; })");
     assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; })");
 
@@ -464,6 +462,18 @@ int main() {
     assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; })");
     assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; })");
     assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; })");
+
+    assert(511, 0777, "0777");
+    assert(0, 0x0, "0x0");
+    assert(10, 0xa, "0xa");
+    assert(10, 0XA, "0XA");
+    assert(48879, 0xbeef, "0xbeef");
+    assert(48879, 0xBEEF, "0xBEEF");
+    assert(48879, 0XBEEF, "0XBEEF");
+    assert(0, 0b0, "0b0");
+    assert(1, 0b1, "0b1");
+    assert(47, 0b101111, "0b101111");
+    assert(47, 0B101111, "0B101111");
 
     printf("OK\n");
     return 0;
