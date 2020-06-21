@@ -191,6 +191,10 @@ static void gen_expr(Node *node) {
         println("  sete %sb", reg(top - 1));
         println("  movzx %sb, %s", reg(top - 1), reg(top - 1));
         return;
+    case ND_BITNOT:
+        gen_expr(node->lhs);
+        println("  not %s", reg(top - 1));
+        return;
     case ND_FUNCALL: {
         // Save caller-saved registers
         println("  push %%r10");
