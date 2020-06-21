@@ -262,6 +262,15 @@ static void gen_expr(Node *node) {
     case ND_MOD:
         divmod(node, rs, rd, "%rdx", "%edx");
         return;
+    case ND_BITAND:
+        println("  and %s, %s", rs, rd);
+        return;
+    case ND_BITOR:
+        println("  or %s, %s", rs, rd);
+        return;
+    case ND_BITXOR:
+        println("  xor %s, %s", rs, rd);
+        return;
     case ND_EQ:
         println("  cmp %s, %s", rs, rd);
         println("  sete %%al");
