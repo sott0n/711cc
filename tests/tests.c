@@ -486,6 +486,11 @@ int main() {
     assert(-1, ~0, "~0");
     assert(0, ~-1, "~-1");
 
+    assert(5, 17%6, "17%6");
+    assert(5, ((long)17)%6, "((long)17)%6");
+    assert(2, ({ int i=10; i%=4; i; }), "({ int i=10; i%4; i; })");
+    assert(2, ({ long i=10; i%=4; i; }), "({ long i=10; i%4; i; })");
+
     printf("OK\n");
     return 0;
 }
