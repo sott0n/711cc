@@ -513,6 +513,9 @@ int main() {
     assert(0, (2-2)&&5, "(2-2)&&5");
     assert(1, 1&&5, "1&&5");
 
+    assert(8, sizeof(int(*)[10]), "sizeof(int(*)[10])");
+    assert(8, sizeof(int(*)[][10]), "sizeof(int(*)[][10])");
+
     printf("OK\n");
     return 0;
 }

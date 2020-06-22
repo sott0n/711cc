@@ -178,8 +178,9 @@ typedef enum {
 
 struct Type {
     TypeKind kind;
-    int size;       // sizeof() value
-    int align;      // alignment
+    int size;           // sizeof() value
+    int align;          // alignment
+    bool is_incomplete; // incomplete type
 
     // Pointer-to or array-of type. We intentionally use the same member
     // to represent pointer/array duality in C.
@@ -210,6 +211,7 @@ struct Type {
 struct Member {
     Member *next;
     Type *ty;
+    Token *tok; // for error message
     Token *name;
     int offset;
 };
