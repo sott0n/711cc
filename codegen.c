@@ -209,6 +209,36 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         println("  not %s", reg(top - 1));
         return;
+    case ND_LOGAND: {
+        int c = count();
+        gen_expr(node->lhs);
+        println("  cmp $0, %s", reg(--top));
+        println("  je .L.false.%d", c);
+        gen_expr(node->rhs);
+        println("  cmp $0, %s", reg(--top));
+        println("  je .L.false.%d", c);
+        println("  mov $1, %s", reg(top));
+        println("  jmp .L.end.%d", c);
+        println(".L.false.%d:", c);
+        println("  mov $0, %s", reg(top++));
+        println(".L.end.%d:", c);
+        return;
+    }
+    case ND_LOGOR: {
+        int c = count();
+        gen_expr(node->lhs);
+        println("  cmp $0, %s", reg(--top));
+        println("  jne .L.true.%d", c);
+        gen_expr(node->rhs);
+        println("  cmp $0, %s", reg(--top));
+        println("  jne .L.true.%d", c);
+        println("  mov $0, %s", reg(top));
+        println("  jmp .L.end.%d", c);
+        println(".L.true.%d:", c);
+        println("  mov $1, %s", reg(top++));
+        println(".L.end.%d:", c);
+        return;
+    }
     case ND_FUNCALL: {
         // Save caller-saved registers
         println("  push %%r10");
