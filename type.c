@@ -62,6 +62,10 @@ Type *enum_type(void) {
     return new_type(TY_ENUM, 4, 4);
 }
 
+Type *struct_type(void) {
+    return new_type(TY_STRUCT, 0, 1);
+}
+
 int size_of(Type *ty) {
     if (ty->kind == TY_VOID)
         error_tok(ty->name, "void type");
