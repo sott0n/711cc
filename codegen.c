@@ -2,6 +2,7 @@
 
 static int top;
 static int brknum;
+static int contnum;
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
 static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
@@ -355,7 +356,8 @@ static void gen_stmt(Node *node) {
     case ND_FOR: {
         int c = count();
         int brk = brknum;
-        brknum = c;
+        int cont = contnum;
+        brknum = contnum = c;
 
         if (node->init)
             gen_stmt(node->init);
@@ -366,6 +368,7 @@ static void gen_stmt(Node *node) {
             println("  je .L.break.%d", c);
         }
         gen_stmt(node->then);
+        println(".L.continue.%d:", c);
         if (node->inc) {
             gen_expr(node->inc);
             top--;
@@ -374,6 +377,7 @@ static void gen_stmt(Node *node) {
         println(".L.break.%d:", c);
 
         brknum = brk;
+        contnum = cont;
         return;
     }
     case ND_BLOCK:
@@ -384,6 +388,11 @@ static void gen_stmt(Node *node) {
         if (brknum == 0)
             error_tok(node->tok, "stray break");
         println("  jmp .L.break.%d", brknum);
+        return;
+    case ND_CONTINUE:
+        if (contnum == 0)
+            error_tok(node->tok, "stray continue");
+        println("  jmp .L.continue.%d", contnum);
         return;
     case ND_RETURN:
         gen_expr(node->lhs);
