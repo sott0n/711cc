@@ -394,6 +394,13 @@ static void gen_stmt(Node *node) {
             error_tok(node->tok, "stray continue");
         println("  jmp .L.continue.%d", contnum);
         return;
+    case ND_GOTO:
+        println("  jmp .L.label.%s.%s", current_fn->name, node->label_name);
+        return;
+    case ND_LABEL:
+        println(".L.label.%s.%s:", current_fn->name, node->label_name);
+        gen_stmt(node->lhs);
+        return;
     case ND_RETURN:
         gen_expr(node->lhs);
         println("  mov %s, %%rax", reg(--top));
