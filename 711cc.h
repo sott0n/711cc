@@ -95,6 +95,7 @@ typedef enum {
     ND_IF,          // "if"
     ND_FOR,         // "for" or "while"
     ND_BLOCK,       // { ... }
+    ND_BREAK,       // "break"
     ND_FUNCALL,     // Function call 
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
