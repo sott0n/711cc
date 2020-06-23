@@ -66,6 +66,10 @@ static int scope_depth;
 // Points to the function object the parser is currently parsing.
 static Var *current_fn;
 
+// Points to a node representing a switch if we are parsing
+// a switch statement. Otherwise, NULL.
+static Node *current_switch;
+
 static bool is_typename(Token *tok);
 static Type *typespec(Token **rest, Token *tok, VarAttr *attr);
 static Type *enum_specifier(Token **rest, Token *tok);
@@ -601,6 +605,9 @@ static bool is_typename(Token *tok) {
 
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "switch" "(" expr ")" stmt
+//      | "case" num ":" stmt
+//      | "default" ":" stmt
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "break" ";"
@@ -629,6 +636,44 @@ static Node *stmt(Token **rest, Token *tok) {
         if (equal(tok, "else"))
             node->els = stmt(&tok, tok->next);
         *rest = tok;
+        return node;
+    }
+
+    if (equal(tok, "switch")) {
+        Node *node = new_node(ND_SWITCH, tok);
+        tok = skip(tok->next, "(");
+        node->cond = expr(&tok, tok);
+        tok = skip(tok, ")");
+
+        Node *sw = current_switch;
+        current_switch = node;
+        node->then = stmt(rest, tok);
+        current_switch = sw;
+        return node;
+    }
+
+    if (equal(tok, "case")) {
+        if (!current_switch)
+            error_tok(tok, "stray case");
+        int val = get_number(tok->next);
+
+        Node *node = new_node(ND_CASE, tok);
+        tok = skip(tok->next->next, ":");
+        node->lhs = stmt(rest, tok);
+        node->val = val;
+        node->case_next = current_switch->case_next;
+        current_switch->case_next = node;
+        return node;
+    }
+
+    if (equal(tok, "default")) {
+        if (!current_switch)
+            error_tok(tok, "stray case");
+
+        Node *node = new_node(ND_CASE, tok);
+        tok = skip(tok->next, ":");
+        node->lhs = stmt(rest, tok);
+        current_switch->default_case = node;
         return node;
     }
 

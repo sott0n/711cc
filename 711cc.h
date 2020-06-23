@@ -94,6 +94,8 @@ typedef enum {
     ND_RETURN,      // "return"
     ND_IF,          // "if"
     ND_FOR,         // "for" or "while"
+    ND_SWITCH,      // "switch"
+    ND_CASE,        // "case"
     ND_BLOCK,       // { ... }
     ND_BREAK,       // "break"
     ND_CONTINUE,    // "continue"
@@ -141,8 +143,17 @@ struct Node {
     // Goto or labeled statement
     char *label_name;
 
-    Var *var;       // Used if kind == ND_VAR
-    long val;       // Used if kind == ND_NUM
+    // Switch-case
+    Node *case_next;
+    Node *default_case;
+    int case_label;
+    int case_end_label;
+
+    // Variable
+    Var *var;
+
+    // Numeric literal
+    long val;
 };
 
 typedef struct Function Function;
