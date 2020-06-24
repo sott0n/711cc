@@ -323,6 +323,14 @@ static void gen_expr(Node *node) {
         println("  setle %%al");
         println("  movzb %%al, %s", rd);
         return;
+    case ND_SHL:
+        println("  mov %s, %%rcx", reg(top));
+        println("  shl %%cl, %s", rd);
+        return;
+    case ND_SHR:
+        println("  mov %s, %%rcx", reg(top));
+        println("  sar %%cl, %s", rd);
+        return;
     default:
         error_tok(node->tok, "invalid expression");
     }
