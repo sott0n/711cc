@@ -47,6 +47,37 @@ typedef struct {
     bool is_static;
 } VarAttr;
 
+// This struct represents a variable initializer. Since initializers
+// can be nested (e.g. `int x[2][2] = {{1, 2}, {3, 4}}`), this struct
+// is a tree data structure.
+typedef struct Initializer Initializer;
+struct Initializer {
+    Type *ty;
+    Token *tok;
+
+    // If len is 0, it's a leaf node, and `expr` has an initializer
+    // expression. Otherwise, `children` has child nodes.
+    int len;
+    Node *expr;
+
+    // `children` may contain null pointers if elements are omitted.
+    // For example, an initializer for `int x[100] = {1}` has 99 null
+    // pointers at the end of `children`.
+    //
+    // The C spec requires that, if an initializer is given, members
+    // with no initializers will automatically be initialized with
+    // zeros. So null childrens are equivalent to zeros.
+    Initializer **children;
+};
+
+// For local variable initializer
+typedef struct InitDesg InitDesg;
+struct InitDesg {
+    InitDesg *next;
+    int idx;
+    Var *var;
+};
+
 // All local variable instances created during parsing are
 // accumulated to this list.
 static Var *locals;
@@ -76,6 +107,7 @@ static Type *enum_specifier(Token **rest, Token *tok);
 static Type *type_suffix(Token **rest, Token *tok, Type *ty);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Node *declaration(Token **rest, Token *tok);
+static Node *lvar_initializer(Token **rest, Token *tok, Var *var);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -182,6 +214,17 @@ static VarScope *push_scope(char *name) {
     var_scope = sc;
     return sc;
 }
+
+static Initializer *new_init(Type *ty, int len, Node *expr, Token *tok) {
+    Initializer *init = calloc(1, sizeof(Initializer));
+    init->ty = ty;
+    init->tok = tok;
+    init->len = len;
+    init->expr = expr;
+    if (len)
+        init->children = calloc(1, sizeof(Initializer *) * len);
+    return init;
+} 
 
 static Var *new_var(char *name, Type *ty) {
     Var *var = calloc(1, sizeof(Var));
@@ -570,19 +613,76 @@ static Node *declaration(Token **rest, Token *tok) {
 
         Var *var = new_lvar(get_ident(ty->name), ty);
 
-        if (!equal(tok, "="))
-            continue;
-
-        Node *lhs = new_var_node(var, ty->name);
-        Node *rhs = assign(&tok, tok->next);
-        Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
-        cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+        if (equal(tok, "=")) {
+            Node *expr = lvar_initializer(&tok, tok->next, var);
+            cur = cur->next = new_unary(ND_EXPR_STMT, expr, tok);
+        }
     }
 
     Node *node = new_node(ND_BLOCK, tok);
     node->body = head.next;
     *rest = tok->next;
     return node;
+}
+
+// initializer = "{" initializer ("," initializer)* "}"
+//             | assign
+static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
+    if (ty->kind == TY_ARRAY) {
+        tok = skip(tok, "{");
+        Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+
+        for (int i = 0; i < ty->array_len; i++) {
+            if (i > 0)
+                tok = skip(tok, ",");
+            init->children[i] = initializer(&tok, tok, ty->base);
+        }
+        *rest = skip(tok, "}");
+        return init;
+    }
+
+    return new_init(ty, 0, assign(rest, tok), tok);
+}
+
+Node *init_desg_expr(InitDesg *desg, Token *tok) {
+    if (desg->var)
+        return new_var_node(desg->var, tok);
+
+    Node *lhs = init_desg_expr(desg->next, tok);
+    Node *rhs = new_num(desg->idx, tok);
+    return new_unary(ND_DEREF, new_add(lhs, rhs, tok), tok);
+}
+
+static Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) {
+    if (ty->kind == TY_ARRAY) {
+        Node *node = new_node(ND_NULL_EXPR, tok);
+        for (int i = 0; i < ty->array_len; i++) {
+            InitDesg desg2 = {desg, i};
+            Node *rhs = create_lvar_init(init->children[i], ty->base, &desg2, tok);
+            node = new_binary(ND_COMMA, node, rhs, tok);
+        }
+        return node;
+    }
+
+    Node *lhs = init_desg_expr(desg, tok);
+    Node *rhs = init->expr;
+    return new_binary(ND_ASSIGN, lhs, rhs, tok);
+}
+
+// A variable definition with an initializer is a shorthand notation
+// for a variable definition followed by assignments. This function
+// generates assignment expressions for an initializer. For example,
+// `int x[2][2] = {{6, 7}, {8, 9}}` is converted to the following
+// expressions:
+//
+//   x[0][0] = 6;
+//   x[0][1] = 7;
+//   x[1][0] = 8;
+//   x[1][1] = 9;
+static Node *lvar_initializer(Token **rest, Token *tok, Var *var) {
+    Initializer *init = initializer(rest, tok, var->ty);
+    InitDesg desg = {NULL, 0, var};
+    return create_lvar_init(init, var->ty, &desg, tok);
 }
 
 // Returns true if a given token represents a type.
