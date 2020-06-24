@@ -107,6 +107,7 @@ static Type *enum_specifier(Token **rest, Token *tok);
 static Type *type_suffix(Token **rest, Token *tok, Type *ty);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Node *declaration(Token **rest, Token *tok);
+static Initializer *initializer(Token **rest, Token *tok, Type *ty);
 static Node *lvar_initializer(Token **rest, Token *tok, Var *var);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
@@ -643,21 +644,41 @@ static Token *skip_end(Token *tok) {
     return skip_excess_elements(tok);
 }
 
-// initializer = "{" initializer ("," initializer)* "}"
-//             | assign
-static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
-    if (ty->kind == TY_ARRAY) {
-        tok = skip(tok, "{");
-        Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+// string-initializer = string-literal
+static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
+    Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+    int len = (ty->array_len < tok->cont_len)
+        ? ty->array_len : tok->cont_len;
 
-        for (int i = 0; i < ty->array_len && !equal(tok, "}"); i++) {
-            if (i > 0)
-                tok = skip(tok, ",");
-            init->children[i] = initializer(&tok, tok, ty->base);
-        }
-        *rest = skip_end(tok);
-        return init;
+    for (int i = 0; i < len; i++) {
+        Node *expr = new_num(tok->contents[i], tok);
+        init->children[i] = new_init(ty->base, 0, expr, tok);
     }
+    *rest = tok->next;
+    return init;
+}
+
+// array-initializer = "{" initializer ("," initializer)* "}"
+static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
+    tok = skip(tok, "{");
+    Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+
+    for (int i = 0; i < ty->array_len && !equal(tok, "}"); i++) {
+        if (i > 0)
+            tok = skip(tok, ",");
+        init->children[i] = initializer(&tok, tok, ty->base);
+    }
+    *rest = skip_end(tok);
+    return init;
+}
+
+// initializer = string-initializer | array-initializer | assign
+static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
+    if (ty->kind == TY_ARRAY && ty->base->kind == TY_CHAR && tok->kind == TK_STR)
+        return string_initializer(rest, tok, ty);
+
+    if (ty->kind == TY_ARRAY)
+        return array_initializer(rest, tok, ty);
 
     return new_init(ty, 0, assign(rest, tok), tok);
 }
