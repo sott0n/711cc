@@ -470,16 +470,26 @@ static void gen_stmt(Node *node) {
     }
 }
 
+static void emit_bss(Program *prog) {
+    println("  .bss");
+
+    for (Var *var = prog->globals; var; var = var->next) {
+        if (var->init_data)
+            continue;
+
+        println("%s:", var->name);
+        println("  .zero %d", size_of(var->ty));
+    }
+}
+
 static void emit_data(Program *prog) {
     println("  .data");
 
     for (Var *var = prog->globals; var; var = var->next) {
-        println("%s:", var->name);
-
-        if (!var->init_data) {
-            println("  .zero %d", size_of(var->ty));
+        if (!var->init_data)
             continue;
-        }
+
+        println("%s:", var->name);
 
         Relocation *rel = var->rel;
         int pos = 0;
@@ -550,6 +560,7 @@ static void emit_text(Program *prog) {
 }
 
 void codegen(Program *prog) {
+    emit_bss(prog);
     emit_data(prog);
     emit_text(prog);
 }
