@@ -477,6 +477,7 @@ static void emit_bss(Program *prog) {
         if (var->init_data)
             continue;
 
+        println("  .align %d", var->ty->align);
         println("%s:", var->name);
         println("  .zero %d", size_of(var->ty));
     }
@@ -489,6 +490,7 @@ static void emit_data(Program *prog) {
         if (!var->init_data)
             continue;
 
+        println("  .align %d", var->ty->align);
         println("%s:", var->name);
 
         Relocation *rel = var->rel;
