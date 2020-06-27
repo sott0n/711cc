@@ -745,6 +745,10 @@ int main() {
     assert(0, strcmp(g33[1], "bar"), "strcmp(g33[1], \"bar\")");
     assert(0, strcmp(g34, "foo"), "strcmp(g34, \"foo\")");
 
+    assert(3, ({ int a[]={1,2,3,}; a[2]; }), "({ int a[]={1,2,3,}; a[2]; })");
+    assert(1, ({ struct {int a,b,c;} x={1,2,3,}; x.a; }), "({ struct {int a,b,c;} x={1,2,3,}; x.a; })");
+    assert(2, ({ enum {x,y,z,}; z; }), "({ enum {x,y,z,}; z; })");
+
     printf("OK\n");
     return 0;
 }
