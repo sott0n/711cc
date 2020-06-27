@@ -14,6 +14,9 @@ char g3 = 3;
 short g4 = 4;
 int g5 = 5;
 long g6 = 6;
+int g9[3] = {0, 1, 2};
+struct {char a; int b;} g11[2] = {{1, 2}, {3, 4}};
+struct {int a[2];} g12[2] = {{{1, 2}}};
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
@@ -668,6 +671,20 @@ int main() {
     assert(4, g4, "g4");
     assert(5, g5, "g5");
     assert(6, g6, "g6");
+
+    assert(0, g9[0], "g9[0]");
+    assert(1, g9[1], "g9[1]");
+    assert(2, g9[2], "g9[2]");
+
+    assert(1, g11[0].a, "g11[0].a");
+    assert(2, g11[0].b, "g11[0].b");
+    assert(3, g11[1].a, "g11[1].a");
+    assert(4, g11[1].b, "g11[1].b");
+
+    assert(1, g12[0].a[0], "g12[0].a[0]");
+    assert(2, g12[0].a[1], "g12[0].a[1]");
+    assert(0, g12[1].a[0], "g12[1].a[0]");
+    assert(0, g12[1].a[1], "g12[1].a[1]");
 
     printf("OK\n");
     return 0;
