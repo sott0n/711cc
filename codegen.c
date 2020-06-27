@@ -481,8 +481,17 @@ static void emit_data(Program *prog) {
             continue;
         }
 
-        for (int i = 0; i < size_of(var->ty); i++)
-            println("  .byte %d", var->init_data[i]);
+        Relocation *rel = var->rel;
+        int pos = 0;
+        while (pos < size_of(var->ty)) {
+            if (rel && rel->offset == pos) {
+                println("  .quad %s%+ld", rel->label, rel->addend);
+                rel = rel->next;
+                pos += 8;
+            } else {
+                println("  .byte %d", var->init_data[pos++]);
+            }
+        }
     }
 }
 
