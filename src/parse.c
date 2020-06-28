@@ -658,6 +658,16 @@ static Node *declaration(Token **rest, Token *tok) {
             continue;
         }
 
+        if (attr.is_static) {
+            // static local variable
+            Var *var = new_gvar(new_gvar_name(), ty, true);
+            push_scope(get_ident(ty->name))->var = var;
+
+            if (equal(tok, "="))
+                gvar_initializer(&tok, tok->next, var);
+            continue;
+        }
+
         Var *var = new_lvar(get_ident(ty->name), ty);
         if (attr.align)
             var->align = attr.align;

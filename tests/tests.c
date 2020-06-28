@@ -112,6 +112,12 @@ typedef struct {char a; int b;} Ty1;
 int _Alignas(512) g_aligned1;
 int _Alignas(512) g_aligned2;
 
+int counter() {
+    static int i;
+    static int j = 1+1;
+    return i++ + j++;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -783,6 +789,10 @@ int main() {
     assert(8, ({ struct T { _Alignas(8) char a; }; _Alignof(struct T); }), "({ struct T { _Alignas(8) char a; }; _Alignof(struct T); })");
     assert(0, (long)(char *)&g_aligned1 % 512, "(long)(char *)&g_aligned1 % 512");
     assert(0, (long)(char *)&g_aligned2 % 512, "(long)(char *)&g_aligned2 % 512");
+
+    assert(2, counter(), "counter()");
+    assert(4, counter(), "counter()");
+    assert(6, counter(), "counter()");
 
     printf("OK\n");
     return 0;
