@@ -15,6 +15,6 @@ test: 711cc tests/extern.c
 	./tmp
 
 clean:
-	rm -rf 711cc *.o *~ tmp* tests/*~ tests/*.o
+	rm -rf 711cc $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o
 
 .PHONY: test clean
