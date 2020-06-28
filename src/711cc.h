@@ -66,6 +66,7 @@ struct Var {
     int offset;     
     
     // Global variable
+    bool is_static;
     char *init_data;
     Relocation *rel;
 };

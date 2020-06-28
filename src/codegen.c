@@ -480,6 +480,8 @@ static void emit_bss(Program *prog) {
             continue;
 
         println("  .align %d", var->align);
+        if (!var->is_static)
+            println("  .globl %s", var->name);
         println("%s:", var->name);
         println("  .zero %d", size_of(var->ty));
     }
@@ -493,6 +495,8 @@ static void emit_data(Program *prog) {
             continue;
 
         println("  .align %d", var->align);
+        if (!var->is_static)
+            println("  .globl %s", var->name);
         println("%s:", var->name);
 
         Relocation *rel = var->rel;

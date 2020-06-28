@@ -9,9 +9,9 @@ OBJS=$(SRCS:.c=.o)
 
 $(OBJS): $(SRCROOT)/711cc.h
 
-test: 711cc tests/extern.c
+test: 711cc tests/extern.o
 	./711cc -o tmp.s tests/tests.c
-	gcc -static -o tmp tmp.s
+	gcc -static -o tmp tmp.s tests/extern.o
 	./tmp
 
 clean:
