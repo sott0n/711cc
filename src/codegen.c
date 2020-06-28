@@ -401,6 +401,24 @@ static void gen_stmt(Node *node) {
         contnum = cont;
         return;
     }
+    case ND_DO: {
+        int c = count();
+        int brk = brknum;
+        int cont = contnum;
+        brknum = contnum = c;
+
+        println(".L.begin.%d:", c);
+        gen_stmt(node->then);
+        println(".L.continue.%d:", c);
+        gen_expr(node->cond);
+        println("  cmp $0, %s", reg(--top));
+        println("  jne .L.begin.%d", c);
+        println(".L.break.%d:", c);
+
+        brknum = brk;
+        contnum = cont;
+        return;
+    }
     case ND_SWITCH: {
         int c = count();
         int brk = brknum;
