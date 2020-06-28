@@ -276,6 +276,14 @@ static void gen_expr(Node *node) {
 
         println("  mov $0, %%rax");
         println("  call %s", node->funcname);
+
+        // The Systen V x86-64 ABI has a special rule regarding a boolean
+        // return value that only the lower 8 bits are valid for it and
+        // the upper 56bits may contain garbage. Here, we clear the upper
+        // 56 bits.
+        if (node->ty->kind == TY_BOOL)
+            println("  movzx %%al, %%eax");
+
         println("  pop %%r11");
         println("  pop %%r10");
         println("  mov %%rax, %s", reg(top++));

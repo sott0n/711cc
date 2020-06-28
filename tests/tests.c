@@ -139,6 +139,9 @@ int counter() {
     return i++ + j++;
 }
 
+_Bool true_fn();
+_Bool false_fn();
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -836,6 +839,9 @@ int main() {
 
     assert(7, ({ int i=0; int j=0; do { j++; } while (i++ < 6); j; }), "({ int i=0; int j=0; do { j++; } while (i++ < 6); j; })");
     assert(4, ({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; }), "({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; })");
+
+    assert(1, true_fn(), "true_fn()");
+    assert(0, false_fn(), "false_fn()");
 
     printf("OK\n");
     return 0;
