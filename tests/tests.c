@@ -102,6 +102,9 @@ static int static_fn() { return 3; }
 
 int param_decay(int x[]) { return x[0]; }
 
+extern int ext1;
+extern int *ext2;
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -748,6 +751,12 @@ int main() {
     assert(3, ({ int a[]={1,2,3,}; a[2]; }), "({ int a[]={1,2,3,}; a[2]; })");
     assert(1, ({ struct {int a,b,c;} x={1,2,3,}; x.a; }), "({ struct {int a,b,c;} x={1,2,3,}; x.a; })");
     assert(2, ({ enum {x,y,z,}; z; }), "({ enum {x,y,z,}; z; })");
+
+    ext1 = 5;
+    assert(5, ext1, "ext1");
+
+    ext2 = &ext1;
+    assert(5, *ext2, "*ext2");
 
     printf("OK\n");
     return 0;
