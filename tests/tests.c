@@ -114,6 +114,10 @@ int div_long(long a, long b) {
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
 
+void ret_none() {
+    return;
+}
+
 static int static_fn() { return 3; }
 
 int param_decay(int x[]) { return x[0]; }
@@ -820,6 +824,8 @@ int main() {
     assert(2, tree->lhs->val, "tree->lhs->val");
     assert(3, tree->lhs->lhs->val, "tree->lhs->lhs->val");
     assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
+
+    ret_none();
 
     printf("OK\n");
     return 0;
