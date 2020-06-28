@@ -1,5 +1,5 @@
 /*
- * This is a block comment.
+ * This is a C compiler tests.
  */
 
 int printf();
@@ -35,6 +35,22 @@ struct {int a[2];} g30[2] = {{1, 2}, 3, 4};
 struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
+
+typedef struct Tree {
+    int val;
+    struct Tree *lhs;
+    struct Tree *rhs;
+} Tree;
+
+Tree *tree = &(Tree) {
+    1,
+    &(Tree) {
+        2,
+        &(Tree){ 3, 0, 0 },
+        &(Tree){ 4, 0, 0 },
+    },
+    0
+};
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
@@ -793,6 +809,17 @@ int main() {
     assert(2, counter(), "counter()");
     assert(4, counter(), "counter()");
     assert(6, counter(), "counter()");
+
+    assert(1, (int){1}, "(int){1}");
+    assert(2, ((int[]){0,1,2})[2], "((int[]){0,1,2})[2]");
+    assert('a', ((struct {char a; int b;}){'a', 3}).a, "((struct {char a; int b;}){'a', 3}).a");
+    assert(3, ({ int x=3; (int){x}; }), "({ int x=3; (int){x}; })");
+    (int){3} = 5;
+
+    assert(1, tree->val, "tree->val");
+    assert(2, tree->lhs->val, "tree->lhs->val");
+    assert(3, tree->lhs->lhs->val, "tree->lhs->lhs->val");
+    assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
 
     printf("OK\n");
     return 0;
