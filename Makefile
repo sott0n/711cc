@@ -1,11 +1,13 @@
 CFLAGS=-std=c11 -g -static -fno-common
-SRCS=$(wildcard *.c)
+SRCROOT=./src
+SRCDIRS:=$(shell find $(SRCROOT) -type d)
+SRCS=$(foreach dir, $(SRCDIRS), $(wildcard $(dir)/*.c))
 OBJS=$(SRCS:.c=.o)
 
 711cc: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
-$(OBJS): 711cc.h
+$(OBJS): $(SRCROOT)/711cc.h
 
 test: 711cc tests/extern.c
 	./711cc -o tmp.s tests/tests.c
