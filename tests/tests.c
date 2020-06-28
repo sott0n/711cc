@@ -105,6 +105,10 @@ int param_decay(int x[]) { return x[0]; }
 extern int ext1;
 extern int *ext2;
 
+int;
+struct {char a; int b;};
+typedef struct {char a; int b;} Ty1;
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
