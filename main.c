@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     for (Function *fn = prog->fns; fn; fn = fn->next) {
         int offset = 32;    // 32 for callee-saved registers
         for (Var *var = fn->locals; var; var = var->next) {
-            offset = align_to(offset, var->ty->align);
+            offset = align_to(offset, var->align);
             offset += size_of(var->ty);
             var->offset = offset;
         }
