@@ -180,6 +180,7 @@ struct Function {
     char *name;
     Var *params;
     bool is_static;
+    bool is_variadic;
 
     Node *body;
     Var *locals;
@@ -240,6 +241,7 @@ struct Type {
     // Function type
     Type *return_ty;
     Type *params;
+    bool is_variadic;
     Type *next;
 };
 
