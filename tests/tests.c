@@ -142,8 +142,23 @@ int counter() {
 _Bool true_fn();
 _Bool false_fn();
 
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+
 int add_all1(int x, ...);
 int add_all3(int z, int b, int c, ...);
+int sprintf(char *buf, char *fmt, ...);
+int vsprintf(char *buf, char *fmt, va_list ap);
+
+char *fmt(char *buf, char *fmt, ...) {
+    va_list ap;
+    __builtin_va_start(ap, fmt);
+    vsprintf(buf, fmt, ap);
+}
 
 int main() {
     assert(0, 0, "0");
@@ -851,6 +866,9 @@ int main() {
 
     assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
     assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
+
+    assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
+    assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 
     printf("OK\n");
     return 0;

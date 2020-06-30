@@ -156,6 +156,18 @@ static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
     }
 }
 
+static void builtin_va_start(Node *node) {
+    int n = 0;
+    for (Var *var = current_fn->params; var; var = var->next)
+        n++;
+
+    println("  mov -%d(%%rbp), %%rax", node->args[0]->offset);
+    println("  movl $%d, (%%rax)", n * 8);
+    println("  mov %%rbp, 16(%%rax)");
+    println("  subq $80, 16(%%rax)");
+    top++;
+}
+
 // Generate code for a given node.
 static void gen_expr(Node *node) {
     println("  .loc 1 %d", node->tok->line_no);
@@ -255,6 +267,11 @@ static void gen_expr(Node *node) {
         return;
     }
     case ND_FUNCALL: {
+        if (!strcmp(node->funcname, "__builtin_va_start")) {
+            builtin_va_start(node);
+            return;
+        }
+
         // Save caller-saved registers
         println("  push %%r10");
         println("  push %%r11");
@@ -568,7 +585,17 @@ static void emit_text(Program *prog) {
         println("  mov %%r14, -24(%%rbp)");
         println("  mov %%r15, -32(%%rbp)");
 
-        // Save arguments to the stack
+        // Save arg registers if function is variadic
+        if (fn->is_variadic) {
+            println("  mov %%rdi, -80(%%rbp)");
+            println("  mov %%rsi, -72(%%rbp)");
+            println("  mov %%rdx, -64(%%rbp)");
+            println("  mov %%rcx, -56(%%rbp)");
+            println("  mov %%r8, -48(%%rbp)");
+            println("  mov %%r9, -40(%%rbp)");
+        }
+
+        // Push arguments to the stack
         int i = 0;
         for (Var *var = fn->params; var; var = var->next)
             i++;
