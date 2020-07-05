@@ -82,17 +82,18 @@ static void load(Type *ty) {
     
     char *rs = reg(top - 1);
     char *rd = xreg(ty, top - 1);
-    int sz = size_of(ty);
+    char *insn = ty->is_unsigned ? "movz" : "movs";
 
     // When we load a char or a short value to a register, we always
     // extend them to the size of int, so we can assume the lower half of
     // a register always contains a valid value. The upper half of a
     // register for char, short and int may contain garbage. When we load
     // a long value to a register, it simply occupies the entire register.
+    int sz = size_of(ty);
     if (sz == 1)
-        println("  movsbl (%s), %s", rs, rd);
+        println("  %sbl (%s), %s", insn, rs, rd);
     else if (sz == 2)
-        println("  movswl (%s), %s", rs, rd);
+        println("  %swl (%s), %s", insn, rs, rd);
     else
         println("  mov (%s), %s", rs, rd);
 }
@@ -130,28 +131,42 @@ static void cast(Type *from, Type *to) {
         println("  cmp $0, %s", r);
         println("  setne %sb", r);
         println("  movzx %sb, %s", r, r);
+        return;
     }
 
-    if (size_of(to) == 1)
-        println("  movsx %sb, %s", r, r);
-    else if (size_of(to) == 2)
-        println("  movsx %sw, %s", r, r);
-    else if (size_of(to) == 4)
+    char *insn = to->is_unsigned ? "movzx" : "movsx";
+
+    if (size_of(to) == 1) {
+        println("  %s %sb, %s", insn, r, r);
+    } else if (size_of(to) == 2) {
+        println("  %s %sw, %s", insn, r, r);
+    } else if (size_of(to) == 4) {
         println("  mov %sd, %sd", r, r);
-    else if (is_integer(from) && size_of(from) < 8)
+    } else if (is_integer(from) && size_of(from) < 8 && !from->is_unsigned) {
         println("  movsx %sd, %s", r, r);
+    }
 }
 
 static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
     if (size_of(node->ty) == 8) {
         println("  mov %s, %%rax", rd);
-        println("  cqo");
-        println("  idiv %s", rs);
+        if (node->ty->is_unsigned) {
+            println("  mov $0, %%rdx");
+            println("  div %s", rs);
+        } else {
+            println("  cqo");
+            println("  idiv %s", rs);
+        }
         println("  mov %s, %s", r64, rd);
     } else {
         println("  mov %s, %%eax", rd);
-        println("  cdq");
-        println("  idiv %s", rs);
+        if (node->ty->is_unsigned) {
+            println("  mov $0, %%edx");
+            println("  div %s", rs);
+        } else {
+            println("  cdq");
+            println("  idiv %s", rs);
+        }
         println("  mov %s, %s", r32, rd);
     }
 }
@@ -279,12 +294,13 @@ static void gen_expr(Node *node) {
         // Load arguments from the stack
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
+            char *insn = arg->ty->is_unsigned ? "movz" : "movs";
             int sz = size_of(arg->ty);
 
             if (sz == 1)
-                println("  movsbl -%d(%%rbp), %s", arg->offset, argreg32[i]);
+                println("  %sbl -%d(%%rbp), %s", insn, arg->offset, argreg32[i]);
             else if (sz == 2)
-                println("  movswl -%d(%%rbp), %s", arg->offset, argreg32[i]);
+                println("  %swl -%d(%%rbp), %s", insn, arg->offset, argreg32[i]);
             else if (sz == 4)
                 println("  mov -%d(%%rbp), %s", arg->offset, argreg32[i]);
             else
@@ -353,12 +369,18 @@ static void gen_expr(Node *node) {
         return;
     case ND_LT:
         println("  cmp %s, %s", rs, rd);
-        println("  setl %%al");
+        if (node->lhs->ty->is_unsigned)
+            println("  setb %%al");
+        else
+            println("  setl %%al");
         println("  movzb %%al, %s", rd);
         return;
     case ND_LE:
         println("  cmp %s, %s", rs, rd);
-        println("  setle %%al");
+        if (node->lhs->ty->is_unsigned)
+            println("  setbe %%al");
+        else
+            println("  setle %%al");
         println("  movzb %%al, %s", rd);
         return;
     case ND_SHL:
@@ -367,7 +389,10 @@ static void gen_expr(Node *node) {
         return;
     case ND_SHR:
         println("  mov %s, %%rcx", reg(top));
-        println("  sar %%cl, %s", rd);
+        if (node->lhs->ty->is_unsigned)
+            println("  shr %%cl, %s", rd);
+        else
+            println("  sar %%cl, %s", rd);
         return;
     default:
         error_tok(node->tok, "invalid expression");
