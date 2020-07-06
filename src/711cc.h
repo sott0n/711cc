@@ -147,6 +147,9 @@ struct Node {
     Node *init;
     Node *inc;
 
+    // Assignment
+    bool is_init;
+
     // Block or statement expression
     Node *body;
 
@@ -220,6 +223,7 @@ struct Type {
     int align;          // alignment
     bool is_unsigned;   // unsigned or signed
     bool is_incomplete; // incomplete type
+    bool is_const;
 
     // Pointer-to or array-of type. We intentionally use the same member
     // to represent pointer/array duality in C.
@@ -279,6 +283,7 @@ Type *array_of(Type *base, int size);
 Type *enum_type(void);
 Type *struct_type(void);
 int size_of(Type *ty);
+Type *copy_type(Type *ty);
 void add_type(Node *node);
 
 //

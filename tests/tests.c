@@ -1019,6 +1019,14 @@ int main() {
     assert(1, ({ char x[(unsigned)1<-1]; sizeof(x); }), "({ char x[(unsigned)1<-1]; sizeof(x); })");
     assert(1, ({ char x[(unsigned)1<=-1]; sizeof(x); }), "({ char x[(unsigned)1<=-1]; sizeof(x); })");
 
+    { const x; }
+    { int const x; }
+    { const int x; }
+    { const int const const x; }
+    assert(5, ({ const x = 5; x; }), "({ const x = 5; x; })");
+    assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
+    assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
+
     printf("OK\n");
     return 0;
 }
