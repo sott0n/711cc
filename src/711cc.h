@@ -60,6 +60,7 @@ struct Var {
     Var *next;
     char *name;     // Variable name
     Type *ty;       // Type
+    Token *tok;     // representative token
     bool is_local;  // local or global
     int align;      // alignment
 
@@ -237,6 +238,7 @@ struct Type {
 
     // Declaration
     Token *name;
+    Token *name_pos;
 
     // Array
     int array_len;
