@@ -189,7 +189,10 @@ static void gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_NUM:
-        println("  mov $%lu, %s", node->val, reg(top++));
+        if (node->ty->kind == TY_LONG)
+            println("  movabs $%lu, %s", node->val, reg(top++));
+        else
+            println("  mov $%lu, %s", node->val, reg(top++));
         return;
     case ND_VAR:
     case ND_MEMBER:

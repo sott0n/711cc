@@ -32,6 +32,7 @@ struct Token {
     TokenKind kind;     // Token kind
     Token *next;        // Next token
     long val;           // If kind is TK_NUM, its value
+    Type *ty;           // Used if TK_NUM
     char *loc;          // Token location
     int len;            // Token length
 
