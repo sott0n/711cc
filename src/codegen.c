@@ -38,6 +38,13 @@ static char *xreg(Type *ty, int idx) {
     return r[idx];
 }
 
+static char *freg(int idx) {
+    static char *r[] = {"%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13"};
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: %d", idx);
+    return r[idx];
+}
+
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
@@ -189,10 +196,18 @@ static void gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_NUM:
-        if (node->ty->kind == TY_LONG)
+        if (node->ty->kind == TY_FLOAT) {
+            float val = node->fval;
+            println("  mov $%u, %%eax", *(int *)&val);
+            println("  movd %%eax, %s", freg(top++));
+        } else if (node->ty->kind == TY_DOUBLE) {
+            println("  movabs $%lu, %%rax", *(long *)&node->fval);
+            println("  movq %%rax, %s", freg(top++));
+        } else if (node->ty->kind == TY_LONG) {
             println("  movabs $%lu, %s", node->val, reg(top++));
-        else
+        } else {
             println("  mov $%lu, %s", node->val, reg(top++));
+        }
         return;
     case ND_VAR:
     case ND_MEMBER:
