@@ -1227,6 +1227,8 @@ static long eval(Node *node) {
     case ND_MUL:
         return eval(node->lhs) * eval(node->rhs);
     case ND_DIV:
+        if (node->ty->is_unsigned)
+            return (unsigned long)eval(node->lhs) / eval(node->rhs);
         return eval(node->lhs) / eval(node->rhs);
     case ND_BITAND:
         return eval(node->lhs) & eval(node->rhs);
@@ -1237,14 +1239,20 @@ static long eval(Node *node) {
     case ND_SHL:
         return eval(node->lhs) << eval(node->rhs);
     case ND_SHR:
+        if (node->ty->is_unsigned && size_of(node->ty) == 8)
+            return (unsigned long)eval(node->lhs) >> eval(node->rhs);
         return eval(node->lhs) >> eval(node->rhs);
     case ND_EQ:
         return eval(node->lhs) == eval(node->rhs);
     case ND_NE:
         return eval(node->lhs) != eval(node->rhs);
     case ND_LT:
+        if (node->lhs->ty->is_unsigned)
+            return (unsigned long)eval(node->lhs) < eval(node->rhs);
         return eval(node->lhs) < eval(node->rhs);
     case ND_LE:
+        if (node->lhs->ty->is_unsigned)
+            return (unsigned long)eval(node->lhs) <= eval(node->rhs);
         return eval(node->lhs) <= eval(node->rhs);
     case ND_COND:
         return eval(node->cond) ? eval(node->then) : eval(node->els);
@@ -1258,15 +1266,27 @@ static long eval(Node *node) {
         return eval(node->lhs) && eval(node->rhs);
     case ND_LOGOR:
         return eval(node->lhs) || eval(node->rhs);
-    case ND_CAST:
-        if (is_integer(node->ty)) {
-            switch (size_of(node->ty)) {
-            case 1: return (char)eval(node->lhs);
-            case 2: return (short)eval(node->lhs);
-            case 4: return (int)eval(node->lhs);
-            }
+    case ND_CAST: {
+        long val = eval(node->lhs);
+        if (!is_integer(node->ty) || size_of(node->ty) == 8)
+            return val;
+
+        switch (size_of(node->ty)) {
+        case 1:
+            if (node->ty->is_unsigned)
+                return (unsigned char)val;
+            return (char)val;
+        case 2:
+            if (node->ty->is_unsigned)
+                return (unsigned short)val;
+            return (short)val;
+        default:
+            assert(size_of(node->ty) == 4);
+            if (node->ty->is_unsigned)
+                return (unsigned int)val;
+            return (int)val;
         }
-        return eval(node->lhs);
+    }
     case ND_NUM:
         return node->val;
     }

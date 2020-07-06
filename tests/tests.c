@@ -1010,6 +1010,15 @@ int main() {
     assert(1, _Alignof(char) << 31 >> 31, "_Alignof(char) << 31 >> 31");
     assert(1, _Alignof(char) << 63 >> 63, "_Alignof(char) << 63 >> 63");
 
+    assert(4, ({ char x[(-1>>31)+5]; sizeof(x); }), "({ char x[(-1>>31)+5]; sizeof(x); })");
+    assert(255, ({ char x[(unsigned char)0xffffffff]; sizeof(x); }), "({ char x[(unsigned char)0xffffffff]; sizeof(x); })");
+    assert(0x800f, ({ char x[(unsigned short)0xffff800f]; sizeof(x); }), "({ char x[(unsigned short)0xffff800f]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); }), "({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); })");
+    assert(1, ({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); })");
+    assert(4, ({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned)1<-1]; sizeof(x); }), "({ char x[(unsigned)1<-1]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned)1<=-1]; sizeof(x); }), "({ char x[(unsigned)1<=-1]; sizeof(x); })");
+
     printf("OK\n");
     return 0;
 }
