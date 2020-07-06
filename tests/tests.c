@@ -1005,6 +1005,11 @@ int main() {
     assert(-1, 0x1 << 31 >> 31, "0x1 << 31 >> 31");
     assert(-1, 0b1 << 31 >> 31, "0b1 << 31 >> 31");
 
+    assert(1, sizeof(char) << 31 >> 31, "sizeof(char) << 31 >> 31");
+    assert(1, sizeof(char) << 63 >> 63, "sizeof(char) << 63 >> 63");
+    assert(1, _Alignof(char) << 31 >> 31, "_Alignof(char) << 31 >> 31");
+    assert(1, _Alignof(char) << 63 >> 63, "_Alignof(char) << 63 >> 63");
+
     printf("OK\n");
     return 0;
 }
