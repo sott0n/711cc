@@ -393,6 +393,10 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
             continue;
         }
 
+        if (consume(&tok, tok, "volatile") || consume(&tok, tok, "register") ||
+            consume(&tok, tok, "_Noreturn"))
+            continue;
+
         if (equal(tok, "_Alignas")) {
             if (!attr)
                 error_tok(tok, "_Alignas is not allowed in this context");
@@ -585,12 +589,16 @@ static Type *type_suffix(Token **rest, Token *tok, Type *ty) {
     return ty;
 }
 
-// pointers = ("*" "const"*)*
+// pointers = ("*" "const" | "volatile" | "restrict")*)*
 static Type *pointers(Token **rest, Token *tok, Type *ty) {
     while (consume(&tok, tok, "*")) {
         ty = pointer_to(ty);
-        while (consume(&tok, tok, "const"))
-            ty->is_const = true;
+        while (equal(tok, "const") || equal(tok, "volatile") ||
+               equal(tok, "restrict")) {
+            if (equal(tok, "const"))
+                ty->is_const = true;
+            tok = tok->next;
+        }
     }
     *rest = tok;
     return ty;
@@ -1025,7 +1033,7 @@ static bool is_typename(Token *tok) {
     static char *kw[] = {
         "void", "_Bool", "char", "short", "int", "long", "struct", "union",
         "typedef", "enum", "static", "extern", "_Alignas", "signed", "unsigned",
-        "const",
+        "const", "volatile", "register", "_Noreturn",
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)

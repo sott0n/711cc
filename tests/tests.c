@@ -160,6 +160,10 @@ char *fmt(char *buf, char *fmt, ...) {
     vsprintf(buf, fmt, ap);
 }
 
+_Noreturn noreturn_fn(void) {
+    exit(0);
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -1026,6 +1030,13 @@ int main() {
     assert(5, ({ const x = 5; x; }), "({ const x = 5; x; })");
     assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
     assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
+
+    { volatile x; }
+    { int volatile x; }
+    { volatile int x; }
+    { volatile int volatile volatile x; }
+    { int volatile * volatile volatile x; }
+    { int ** restrict const volatile *x; }
 
     printf("OK\n");
     return 0;
