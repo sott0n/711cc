@@ -396,6 +396,8 @@ static void gen_expr(Node *node) {
 
     char *rd = xreg(node->lhs->ty, top - 2);
     char *rs = xreg(node->lhs->ty, top - 1);
+    char *fd = freg(top - 2);
+    char *fs = freg(top - 1);
     top--;
 
     switch (node->kind) {
@@ -424,30 +426,56 @@ static void gen_expr(Node *node) {
         println("  xor %s, %s", rs, rd);
         return;
     case ND_EQ:
-        println("  cmp %s, %s", rs, rd);
+        if (node->lhs->ty->kind == TY_FLOAT)
+            println("  ucomiss %s, %s", fs, fd);
+        else if (node->lhs->ty->kind == TY_DOUBLE)
+            println("  ucomisd %s, %s", fs, fd);
+        else
+            println("  cmp %s, %s", rs, rd);
         println("  sete %%al");
-        println("  movzb %%al, %s", rd);
+        println("  movzx %%al, %s", rd);
         return;
     case ND_NE:
-        println("  cmp %s, %s", rs, rd);
+        if (node->lhs->ty->kind == TY_FLOAT)
+            println("  ucomiss %s, %s", fs, fd);
+        else if (node->lhs->ty->kind == TY_DOUBLE)
+            println("  ucomisd %s, %s", fs, fd);
+        else
+            println("  cmp %s, %s", rs, rd);
         println("  setne %%al");
-        println("  movzb %%al, %s", rd);
+        println("  movzx %%al, %s", rd);
         return;
     case ND_LT:
-        println("  cmp %s, %s", rs, rd);
-        if (node->lhs->ty->is_unsigned)
+        if (node->lhs->ty->kind == TY_FLOAT) {
+            println("  ucomiss %s, %s", fs, fd);
             println("  setb %%al");
-        else
-            println("  setl %%al");
-        println("  movzb %%al, %s", rd);
+        } else if (node->lhs->ty->kind == TY_DOUBLE) {
+            println("  ucomisd %s, %s", fs, fd);
+            println("  setb %%al");
+        } else {
+            println("  cmp %s, %s", rs, rd);
+            if (node->lhs->ty->is_unsigned)
+                println("  setb %%al");
+            else
+                println("  setl %%al");
+        }
+        println("  movzx %%al, %s", rd);
         return;
     case ND_LE:
-        println("  cmp %s, %s", rs, rd);
-        if (node->lhs->ty->is_unsigned)
+        if (node->lhs->ty->kind == TY_FLOAT) {
+            println("  ucomiss %s, %s", fs, fd);
             println("  setbe %%al");
-        else
-            println("  setle %%al");
-        println("  movzb %%al, %s", rd);
+        } else if (node->lhs->ty->kind == TY_DOUBLE) {
+            println("  ucomisd %s, %s", fs, fd);
+            println("  setbe %%al");
+        } else {
+            println("  cmp %s, %s", rs, rd);
+            if (node->lhs->ty->is_unsigned)
+                println("  setbe %%al");
+            else
+                println("  setle %%al");
+        }
+        println("  movzx %%al, %s", rd);
         return;
     case ND_SHL:
         println("  mov %s, %%rcx", reg(top));

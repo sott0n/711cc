@@ -333,7 +333,7 @@ static Token *read_number(Token *cur, char *start) {
     }
 
     tok = new_token(TK_NUM, cur, start, end - start);
-    tok->val = val;
+    tok->fval = val;
     tok->ty = ty;
     return tok;
 }
