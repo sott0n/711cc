@@ -128,16 +128,62 @@ static void store(Type *ty) {
     top--;
 }
 
+static void cmp_zero(Type *ty) {
+    if (ty->kind == TY_FLOAT) {
+        println("  xorps %%xmm0, %%xmm0");
+        println("  ucomiss %%xmm0, %s", freg(--top));
+    } else if (ty->kind == TY_DOUBLE) {
+        println("  xorpd %%xmm0, %%xmm0");
+        println("  ucomisd %%xmm0, %s", freg(--top));
+    } else {
+        println("  cmp $0, %s", reg(--top));
+    }
+}
+
 static void cast(Type *from, Type *to) {
     if (to->kind == TY_VOID)
         return;
 
     char *r = reg(top - 1);
+    char *fr = freg(top - 1);
 
     if (to->kind == TY_BOOL) {
-        println("  cmp $0, %s", r);
-        println("  setne %sb", r);
-        println("  movzx %sb, %s", r, r);
+        cmp_zero(from);
+        println("  setne %sb", reg(top));
+        println("  movzx %sb, %s", reg(top), reg(top));
+        top++;
+        return;
+    }
+
+    if (from->kind == TY_FLOAT) {
+        if (to->kind == TY_FLOAT)
+            return;
+
+        if (to->kind == TY_DOUBLE)
+            println("  cvtss2sd %s, %s", fr, fr);
+        else
+            println("  cvttss2si %s, %s", fr, r);
+        return;
+    }
+
+    if (from->kind == TY_DOUBLE) {
+        if (to->kind == TY_DOUBLE)
+            return;
+
+        if (to->kind == TY_FLOAT)
+            println("  cvtsd2ss %s, %s", fr, fr);
+        else
+            println("  cvtsd2si %s, %s", fr, r);
+        return;
+    }
+
+    if (to->kind == TY_FLOAT) {
+        println("  cvtsi2ss %s, %s", r, fr);
+        return;
+    }
+
+    if (to->kind == TY_DOUBLE) {
+        println("  cvtsi2sd %s, %s", r, fr);
         return;
     }
 
