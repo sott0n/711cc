@@ -86,6 +86,16 @@ static void load(Type *ty) {
         // the array in C" occurs.
         return;
     }
+
+    if (ty->kind == TY_FLOAT) {
+        println("  movss (%s), %s", reg(top - 1), freg(top - 1));
+        return;
+    }
+
+    if (ty->kind == TY_DOUBLE) {
+        println("  movsd (%s), %s", reg(top - 1), freg(top - 1));
+        return;
+    }
     
     char *rs = reg(top - 1);
     char *rd = xreg(ty, top - 1);
@@ -115,6 +125,10 @@ static void store(Type *ty) {
             println("  mov %d(%s), %%al", i, rs);
             println("  mov %%al, %d(%s)", i, rd);
         }
+    } else if (ty->kind == TY_FLOAT) {
+        println("  movss %s, (%s)", freg(top - 2), rd);
+    } else if (ty->kind == TY_DOUBLE) {
+        println("  movsd %s, (%s)", freg(top - 2), rd);
     } else if (sz == 1) {
         println("  mov %sb, (%s)", rs, rd);
     } else if (sz == 2) {
@@ -173,7 +187,7 @@ static void cast(Type *from, Type *to) {
         if (to->kind == TY_FLOAT)
             println("  cvtsd2ss %s, %s", fr, fr);
         else
-            println("  cvtsd2si %s, %s", fr, r);
+            println("  cvttsd2si %s, %s", fr, r);
         return;
     }
 
