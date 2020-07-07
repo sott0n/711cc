@@ -1106,6 +1106,28 @@ int main() {
     assert(8, sizeof(double), "sizeof(double)");
     assert(8, sizeof(long double), "sizeof(long double)");
 
+    assert(4, sizeof(1f+2), "sizeof(1f+2)");
+    assert(8, sizeof(1.0+2), "sizeof(1.0+2)");
+    assert(4, sizeof(1f-2), "sizeof(1f-2)");
+    assert(8, sizeof(1.0-2), "sizeof(1.0-2)");
+    assert(4, sizeof(1f*2), "sizeof(1f*2)");
+    assert(8, sizeof(1.0*2), "sizeof(1.0*2)");
+    assert(4, sizeof(1f/2), "sizeof(1f/2)");
+    assert(8, sizeof(1.0/2), "sizeof(1.0/2)");
+
+    assert(6, 2.3+3.8, "2.3+3.8");
+    assert(-1, 2.3-3.8, "2.3-3.8");
+    assert(-3, -3.8, "-3.8");
+    assert(13, 3.3*4, "3.3*4");
+    assert(2, 5.0/2, "5.0/2");
+
+    assert(6, 2.3f+3.8f, "2.3f+3.8f");
+    assert(6, 2.3f+3.8, "2.3f+3.8");
+    assert(-1, 2.3f-3.8, "2.3f-3.8");
+    assert(-3, -3.8f, "-3.8f");
+    assert(13, 3.3f*4, "3.3f*4");
+    assert(2, 5.0f/2, "5.0f/2");
+
     printf("OK\n");
     return 0;
 }

@@ -416,16 +416,36 @@ static void gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
-        println("  add %s, %s", rs, rd);
+        if (node->ty->kind == TY_FLOAT)
+            println("  addss %s, %s", fs, fd);
+        else if (node->ty->kind == TY_DOUBLE)
+            println("  addsd %s, %s", fs, fd);
+        else
+            println("  add %s, %s", rs, rd);
         return;
     case ND_SUB:
-        println("  sub %s, %s", rs, rd);
+        if (node->ty->kind == TY_FLOAT)
+            println("  subss %s, %s", fs, fd);
+        else if (node->ty->kind == TY_DOUBLE)
+            println("  subsd %s, %s", fs, fd);
+        else
+            println("  sub %s, %s", rs, rd);
         return;
     case ND_MUL:
-        println("  imul %s, %s", rs, rd);
+        if (node->ty->kind == TY_FLOAT)
+            println("  mulss %s, %s", fs, fd);
+        else if (node->ty->kind == TY_DOUBLE)
+            println("  mulsd %s, %s", fs, fd);
+        else
+            println("  imul %s, %s", rs, rd);
         return;
     case ND_DIV:
-        divmod(node, rs, rd, "%rax", "%eax");
+        if (node->ty->kind == TY_FLOAT)
+            println("  divss %s, %s", fs, fd);
+        else if (node->ty->kind == TY_DOUBLE)
+            println("  divsd %s, %s", fs, fd);
+        else
+            divmod(node, rs, rd, "%rax", "%eax");
         return;
     case ND_MOD:
         divmod(node, rs, rd, "%rdx", "%edx");
