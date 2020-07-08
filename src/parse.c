@@ -2010,6 +2010,8 @@ static Node *funcall(Token **rest, Token *tok) {
         if (param_ty) {
             arg = new_cast(arg, param_ty);
             param_ty = param_ty->next;
+        } else if (arg->ty->kind == TY_FLOAT) {
+            arg = new_cast(arg, ty_double);
         }
 
         Var *var = arg->ty->base
