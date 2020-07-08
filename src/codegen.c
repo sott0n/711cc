@@ -311,7 +311,7 @@ static void gen_expr(Node *node) {
     case ND_COND: {
         int c = count();
         gen_expr(node->cond);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->cond->ty);
         println("  je .L.else.%d", c);
         gen_expr(node->then);
         top--;
@@ -323,9 +323,10 @@ static void gen_expr(Node *node) {
     }
     case ND_NOT:
         gen_expr(node->lhs);
-        println("  cmp $0, %s", reg(top - 1));
-        println("  sete %sb", reg(top - 1));
-        println("  movzx %sb, %s", reg(top - 1), reg(top - 1));
+        cmp_zero(node->lhs->ty);
+        println("  sete %sb", reg(top));
+        println("  movzx %sb, %s", reg(top), reg(top));
+        top++;
         return;
     case ND_BITNOT:
         gen_expr(node->lhs);
@@ -334,10 +335,10 @@ static void gen_expr(Node *node) {
     case ND_LOGAND: {
         int c = count();
         gen_expr(node->lhs);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->lhs->ty);
         println("  je .L.false.%d", c);
         gen_expr(node->rhs);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->rhs->ty);
         println("  je .L.false.%d", c);
         println("  mov $1, %s", reg(top));
         println("  jmp .L.end.%d", c);
@@ -349,10 +350,10 @@ static void gen_expr(Node *node) {
     case ND_LOGOR: {
         int c = count();
         gen_expr(node->lhs);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->lhs->ty);
         println("  jne .L.true.%d", c);
         gen_expr(node->rhs);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->rhs->ty);
         println("  jne .L.true.%d", c);
         println("  mov $0, %s", reg(top));
         println("  jmp .L.end.%d", c);
@@ -536,7 +537,7 @@ static void gen_stmt(Node *node) {
         int c = count();
         if (node->els) {
             gen_expr(node->cond);
-            println("  cmp $0, %s", reg(--top));
+            cmp_zero(node->cond->ty);
             println("  je .L.else.%d", c);
             gen_stmt(node->then);
             println("  jmp .L.end.%d", c);
@@ -545,7 +546,7 @@ static void gen_stmt(Node *node) {
             println(".L.end.%d:", c);
         } else {
             gen_expr(node->cond);
-            println("  cmp $0, %s", reg(--top));
+            cmp_zero(node->cond->ty);
             println("  je .L.end.%d", c);
             gen_stmt(node->then);
             println(".L.end.%d:", c);
@@ -563,7 +564,7 @@ static void gen_stmt(Node *node) {
         println(".L.begin.%d:", c);
         if (node->cond) {
             gen_expr(node->cond);
-            println("  cmp $0, %s", reg(--top));
+            cmp_zero(node->cond->ty);
             println("  je .L.break.%d", c);
         }
         gen_stmt(node->then);
@@ -589,7 +590,7 @@ static void gen_stmt(Node *node) {
         gen_stmt(node->then);
         println(".L.continue.%d:", c);
         gen_expr(node->cond);
-        println("  cmp $0, %s", reg(--top));
+        cmp_zero(node->cond->ty);
         println("  jne .L.begin.%d", c);
         println(".L.break.%d:", c);
 
