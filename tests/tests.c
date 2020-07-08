@@ -167,6 +167,14 @@ _Noreturn noreturn_fn(void) {
     exit(0);
 }
 
+double add_double3(double x, double y, double z) {
+    return x + y + z;
+}
+
+float add_float3(float x, float y, float z) {
+    return x + y + z;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -1151,6 +1159,9 @@ int main() {
     assert(2, ret_float(2.8), "ret_float(2.8)");
     assert(6, add_float(2.3, 3.8), "add_float(2.3, 3.8)");
     assert(6, add_double(2.3, 3.8), "add_double(2.3, 3.8)");
+
+    assert(7, add_float3(2.5, 2.5, 2.5), "add_float3(2.5, 2.5, 2.5)");
+    assert(7, add_double3(2.5, 2.5, 2.5), "add_double3(2.5, 2.5, 2.5)");
 
     printf("OK\n");
     return 0;

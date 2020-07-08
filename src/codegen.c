@@ -687,7 +687,10 @@ static void gen_stmt(Node *node) {
     case ND_RETURN:
         if (node->lhs) {
             gen_expr(node->lhs);
-            println("  mov %s, %%rax", reg(--top));
+            if (is_flonum(node->lhs->ty))
+                println("  movsd %s, %%xmm0", freg(--top));
+            else
+                println("  mov %s, %%rax", reg(--top));
         }
         println("  jmp .L.return.%s", current_fn->name);
         return;
@@ -781,12 +784,23 @@ static void emit_text(Program *prog) {
         }
 
         // Push arguments to the stack
-        int i = 0;
-        for (Var *var = fn->params; var; var = var->next)
-            i++;
+        int gp = 0, fp = 0;
         for (Var *var = fn->params; var; var = var->next) {
-            char *r = get_argreg(var->ty->size, --i);
-            println("  mov %s, -%d(%%rbp)", r, var->offset);
+            if (is_flonum(var->ty))
+                fp++;
+            else
+                gp++;
+        }
+
+        for (Var *var = fn->params; var; var = var->next) {
+            if (var->ty->kind == TY_FLOAT) {
+                println("  movss %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+            } else if (var->ty->kind == TY_DOUBLE) {
+                println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+            } else {
+                char *r = get_argreg(size_of(var->ty), --gp);
+                println("  mov %s, -%d(%%rbp)", r, var->offset);
+            }
         }
     
         // Emit code
