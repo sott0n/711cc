@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdio.h>
 
 int ext1;
 int *ext2;
@@ -33,4 +34,16 @@ int add_all3(int x, int y, int z, ...) {
             return x;
         x += y;
     }
+}
+
+float ret_float(float x) {
+    return x;
+}
+
+float add_float(float x, float y) {
+    return x + y;
+}
+
+double add_double(double x, double y) {
+    return x + y;
 }

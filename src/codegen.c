@@ -369,26 +369,43 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        println("  push %%r10");
-        println("  push %%r11");
+        println("  sub $64, %%rsp");
+        println("  mov %%r10, (%%rsp)");
+        println("  mov %%r11, 8(%%rsp)");
+        println("  movsd %%xmm8, 16(%%rsp)");
+        println("  movsd %%xmm9, 24(%%rsp)");
+        println("  movsd %%xmm10, 32(%%rsp)");
+        println("  movsd %%xmm11, 40(%%rsp)");
+        println("  movsd %%xmm12, 48(%%rsp)");
+        println("  movsd %%xmm13, 56(%%rsp)");
 
         // Load arguments from the stack
+        int gp = 0, fp = 0;
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
             char *insn = arg->ty->is_unsigned ? "movz" : "movs";
             int sz = size_of(arg->ty);
 
+            if (is_flonum(arg->ty)) {
+                if (arg->ty->kind == TY_FLOAT)
+                    println("  movss -%d(%%rbp), %%xmm%d", arg->offset, fp++);
+                else
+                    println("  movsd -%d(%%rbp), %%xmm%d", arg->offset, fp++);
+                continue;
+            }
+
             if (sz == 1)
-                println("  %sbl -%d(%%rbp), %s", insn, arg->offset, argreg32[i]);
+                println("  %sbl -%d(%%rbp), %s", insn, arg->offset, argreg32[gp++]);
             else if (sz == 2)
-                println("  %swl -%d(%%rbp), %s", insn, arg->offset, argreg32[i]);
+                println("  %swl -%d(%%rbp), %s", insn, arg->offset, argreg32[gp++]);
             else if (sz == 4)
-                println("  mov -%d(%%rbp), %s", arg->offset, argreg32[i]);
+                println("  mov -%d(%%rbp), %s", arg->offset, argreg32[gp++]);
             else
-                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[i]);
+                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[gp++]);
         }
 
-        println("  mov $0, %%rax");
+        // Call a function
+        println("  mov $%d, %%rax", fp);
         println("  call %s", node->funcname);
 
         // The Systen V x86-64 ABI has a special rule regarding a boolean
@@ -398,9 +415,23 @@ static void gen_expr(Node *node) {
         if (node->ty->kind == TY_BOOL)
             println("  movzx %%al, %%eax");
 
-        println("  pop %%r11");
-        println("  pop %%r10");
-        println("  mov %%rax, %s", reg(top++));
+        // Restore caller-saved registers
+        println("  mov (%%rsp), %%r10");
+        println("  mov 8(%%rsp), %%r11");
+        println("  movsd 16(%%rsp), %%xmm8");
+        println("  movsd 24(%%rsp), %%xmm9");
+        println("  movsd 32(%%rsp), %%xmm10");
+        println("  movsd 40(%%rsp), %%xmm11");
+        println("  movsd 48(%%rsp), %%xmm12");
+        println("  movsd 56(%%rsp), %%xmm13");
+        println("  add $64, %%rsp");
+
+        if (node->ty->kind == TY_FLOAT)
+            println("  movss %%xmm0, %s", freg(top++));
+        else if (node->ty->kind == TY_DOUBLE)
+            println("  movsd %%xmm0, %s", freg(top++));
+        else
+            println("  mov %%rax, %s", reg(top++));
         return;
     }
     }
