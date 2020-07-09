@@ -22,3 +22,13 @@ $ make
 ```shell
 $ make test
 ```
+
+For test a self hosting, give "test-stage2" and "test-stage3" as an argument:
+
+```shell
+// Test for self hosting with a test
+$ make test-stage2
+
+// Check a diff between stage2 compiler and stage3 compiler
+$ make test-stage3
+```
