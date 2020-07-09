@@ -39,6 +39,9 @@ struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
 
+float g40 = 1.5;
+double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
+
 typedef struct Tree {
     int val;
     struct Tree *lhs;
@@ -1166,6 +1169,9 @@ int main() {
     assert(0, ({ char buf[100]; sprintf(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; sprintf(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
 
     assert(0, ({ char buf[100]; fmt(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; fmt(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
+
+    assert(1, g40==1.5, "g40==1.5");
+    assert(1, g41==11, "g41==11");
 
     printf("OK\n");
     return 0;
