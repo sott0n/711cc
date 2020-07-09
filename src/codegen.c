@@ -239,14 +239,21 @@ static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
 }
 
 static void builtin_va_start(Node *node) {
-    int n = 0;
-    for (Var *var = current_fn->params; var; var = var->next)
-        n++;
+    int gp = 0;
+    int fp = 0;
+
+    for (Var *var = current_fn->params; var; var = var->next) {
+        if (is_flonum(var->ty))
+            fp++;
+        else
+            gp++;
+    }
 
     println("  mov -%d(%%rbp), %%rax", node->args[0]->offset);
-    println("  movl $%d, (%%rax)", n * 8);
+    println("  movl $%d, (%%rax)", gp * 8);
+    println("  movl $%d, 4(%%rax)", 48 + fp * 8);;
     println("  mov %%rbp, 16(%%rax)");
-    println("  subq $80, 16(%%rax)");
+    println("  subq $128, 16(%%rax)");
     top++;
 }
 
@@ -775,12 +782,18 @@ static void emit_text(Program *prog) {
 
         // Save arg registers if function is variadic
         if (fn->is_variadic) {
-            println("  mov %%rdi, -80(%%rbp)");
-            println("  mov %%rsi, -72(%%rbp)");
-            println("  mov %%rdx, -64(%%rbp)");
-            println("  mov %%rcx, -56(%%rbp)");
-            println("  mov %%r8, -48(%%rbp)");
-            println("  mov %%r9, -40(%%rbp)");
+            println("  mov %%rdi, -128(%%rbp)");
+            println("  mov %%rsi, -120(%%rbp)");
+            println("  mov %%rdx, -112(%%rbp)");
+            println("  mov %%rcx, -104(%%rbp)");
+            println("  mov %%r8, -96(%%rbp)");
+            println("  mov %%r9, -88(%%rbp)");
+            println("  movsd %%xmm0, -80(%%rbp)");
+            println("  movsd %%xmm1, -72(%%rbp)");
+            println("  movsd %%xmm2, -64(%%rbp)");
+            println("  movsd %%xmm3, -56(%%rbp)");
+            println("  movsd %%xmm4, -48(%%rbp)");
+            println("  movsd %%xmm5, -40(%%rbp)");
         }
 
         // Push arguments to the stack
