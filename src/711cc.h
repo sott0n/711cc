@@ -49,7 +49,14 @@ void warn_tok(Token *tok, char *fmt, ...);
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
 bool consume(Token **rest, Token *tok, char *str);
+void convert_keywords(Token *tok);
 Token *tokenize_file(char *filename);
+
+// 
+// preprocess.c
+//
+
+Token *preprocess(Token *tok);
 
 //
 // parse.c
