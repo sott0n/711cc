@@ -133,7 +133,7 @@ static void gen_addr(Node *node) {
 
 // Load a value from where the stack top is pointing to.
 static void load(Type *ty) {
-    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT) {
+    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC) {
         // If it is an array, do nothing because in general we can't load
         // an entire array to a register. As a result, the result of an
         // evaluation of an array becomes not the array itself but the
@@ -426,7 +426,8 @@ static void gen_expr(Node *node) {
         return;
     }
     case ND_FUNCALL: {
-        if (!strcmp(node->funcname, "__builtin_va_start")) {
+        if (node->lhs->kind == ND_VAR &&
+                !strcmp(node->lhs->var->name, "__builtin_va_start")) {
             builtin_va_start(node);
             return;
         }
@@ -441,6 +442,8 @@ static void gen_expr(Node *node) {
         println("  movsd %%xmm11, 40(%%rsp)");
         println("  movsd %%xmm12, 48(%%rsp)");
         println("  movsd %%xmm13, 56(%%rsp)");
+
+        gen_expr(node->lhs);
 
         // Load arguments from the stack
         int gp = 0, fp = 0;
@@ -469,10 +472,7 @@ static void gen_expr(Node *node) {
 
         // Call a function
         println("  mov $%d, %%rax", fp);
-        if (opt_fpic)
-            println("  call %s@PLT", node->funcname);
-        else
-            println("  call %s", node->funcname);
+        println("  call *%s", reg(--top));
 
         // The Systen V x86-64 ABI has a special rule regarding a boolean
         // return value that only the lower 8 bits are valid for it and

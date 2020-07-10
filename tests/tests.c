@@ -178,6 +178,10 @@ float add_float3(float x, float y, float z) {
     return x + y + z;
 }
 
+int (*fnptr(void))(int) {
+    return ret3;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -1172,6 +1176,11 @@ int main() {
 
     assert(1, g40==1.5, "g40==1.5");
     assert(1, g41==11, "g41==11");
+
+    assert(5, (add2)(2,3), "(add2)(2,3)");
+    assert(5, (&add2)(2,3), "(&add2)(2,3)");
+    assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
+    assert(3, fnptr()(), "fnptr()()");
 
     printf("OK\n");
     return 0;
