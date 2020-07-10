@@ -1182,6 +1182,8 @@ int main() {
     assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
     assert(3, fnptr()(), "fnptr()()");
 
+#
+
     printf("OK\n");
     return 0;
 }

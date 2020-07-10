@@ -345,18 +345,25 @@ void convert_keywords(Token *tok) {
             t->kind = TK_RESERVED;
 }
 
-// Initialize line info for all tokens
+// Initialize token position info for all tokens
 static void add_line_info(Token *tok) {
     char *p = current_input;
     int line_no = 1;
+    bool at_bol = true;
 
     do {
         if (p == tok->loc) {
             tok->line_no = line_no;
+            tok->at_bol = at_bol;
             tok = tok->next;
         }
-        if (*p == '\n')
+
+        if (*p == '\n') {
             line_no++;
+            at_bol = true;
+        } else if (!isspace(*p)) {
+            at_bol = false;
+        }
     } while (*p++);
 }
 
