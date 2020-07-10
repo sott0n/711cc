@@ -80,4 +80,4 @@ cc() {
 711cc codegen.c
 711cc tokenize.c
 
-(cd $TMP; gcc -static -o ../$OUTPUT *.o)
+(cd $TMP; gcc -o ../$OUTPUT *.o)

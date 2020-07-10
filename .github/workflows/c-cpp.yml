@@ -13,9 +13,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: unit test
+    - name: Unit test
       run: make test
-    - name: test for self hosting
+    - name: Unit test with nopic
+      run: make test-nopic
+    - name: Test for self hosting
       run: make test-stage2
-    - name: check a diff between stage2 and stage3 compiler
+    - name: Check a diff between stage2 and stage3 compiler
       run: make test-stage3

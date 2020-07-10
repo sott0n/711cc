@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -static -fno-common
+CFLAGS=-std=c11 -g -fno-common
 SRCROOT=./src
 SRCDIRS:=$(shell find $(SRCROOT) -type d)
 SRCS=$(foreach dir, $(SRCDIRS), $(wildcard $(dir)/*.c))
@@ -17,6 +17,11 @@ $(OBJS): $(SRCROOT)/711cc.h
 
 test: 711cc tests/extern.o
 	./711cc -o tmp.s tests/tests.c
+	gcc -o tmp tmp.s tests/extern.o
+	./tmp
+
+test-nopic: 711cc tests/extern.o
+	./711cc -o tmp.s -fno-pic tests/tests.c
 	gcc -static -o tmp tmp.s tests/extern.o
 	./tmp
 
@@ -28,7 +33,7 @@ test-stage2: 711cc-stage2 tests/extern.o
 test-stage3: 711cc-stage3
 	diff 711cc-stage2 711cc-stage3
 
-test-all: test test-stage2 test-stage3
+test-all: test test-nopic test-stage2 test-stage3
 
 clean:
 	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o

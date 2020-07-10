@@ -307,3 +307,4 @@ void codegen(Program *prog);
 // main.c
 //
 extern FILE *output_file;
+extern bool opt_fpic;

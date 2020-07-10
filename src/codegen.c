@@ -53,10 +53,66 @@ static void gen_stmt(Node *node);
 static void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR:
-        if (node->var->is_local)
+        if (node->var->is_local) {
+            // A local variable resides on the stack and has a fixed offset
+            // from the base pointer.
             println("  lea -%d(%%rbp), %s", node->var->offset, reg(top++));
-        else
+            return;
+        }
+
+        // Here we compute an absolute address of a given global variable.
+        // There are three different ways to compute a global variable below.
+        //
+        // 1. If -fno-pic is given, the resulting ELF module (i.e. an executable
+        //    or a .so file) doesn't have to be position-independent, meaning
+        //    that we can assume that the resulting code and data will be loaded
+        //    at a fixed memory location below 4 GiB. In this case, a 4-byte
+        //    absolute address can be computed at link-time and directly
+        //    embedded to a mov instruction.
+        //
+        // 2. If -fno-pic isn't given, the resulting ELF module may be loaded
+        //    anywhere in the 64-bit address space. We don't know the load
+        //    address at link-time. We have two different ways to compute an
+        //    address in this case:
+        //
+        // 2-1. A file-scope global variable: Because an ELF module is loaded to
+        //      memory as a unit, the relative offset between code and data in
+        //      the same ELF module is fixed whenever the module is loaded. A
+        //      file-scope global variable always resides in the same ELF object
+        //      as a use site, so we can use the RIP-relative addressing to
+        //      refer a variable. `foo(%rip)` refers address %RIP+addend where
+        //      addend is the offset between a use site and the location of
+        //      variable foo. The addend is computed by the linker at link-time.
+        //
+        // 2-2. A non-file-scope global variable: that variable may reside in a
+        //      different ELF module whose address is not known until run-time.
+        //      We know nothing about the location of the variable at link-time.
+        //      For those variable, each ELF module has a table of absolute
+        //      address of global variables. The table is called "GOT" (Global
+        //      Offset Tabel) and is filled by the loader. For example, if we
+        //      have a global variable foo which may not exist in the same ELF
+        //      module, we have a table entry for foo in a GOT, and at runtime
+        //      the table entry has a 8-byte absolute address of foo.
+        //
+        //      Since each ELF module has a GOT, and a relative address to a GOT
+        //      entry within the same ELF module doesn't change whenever the
+        //      module is loaded, we can use the RIP-relative memory access to
+        //      load a 8-byte value from GOT.
+        //
+        //      Not all variables need a GOT entry. By appending "@GOT" or
+        //      "@GOTPCREL" to a variable name, you can tell the linker you need
+        //      a GOT entry for that variable. "foo@GOTPCREL(%RIP)" refers a GOT
+        //      entry of variable foo at runtime.
+        if (!opt_fpic) {
+            // Load a 32-bit fixed address to a register.
             println("  mov $%s, %s", node->var->name, reg(top++));
+        } else if (node->var->is_static) {
+            // Set %RIP+addend to a register.
+            println("  lea %s(%%rip), %s", node->var->name, reg(top++));
+        } else {
+            // Load a 64-bit address value from memory and set it to a register.
+            println("  mov %s@GOTPCREL(%%rip), %s", node->var->name, reg(top++));
+        }
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
@@ -413,7 +469,10 @@ static void gen_expr(Node *node) {
 
         // Call a function
         println("  mov $%d, %%rax", fp);
-        println("  call %s", node->funcname);
+        if (opt_fpic)
+            println("  call %s@PLT", node->funcname);
+        else
+            println("  call %s", node->funcname);
 
         // The Systen V x86-64 ABI has a special rule regarding a boolean
         // return value that only the lower 8 bits are valid for it and
