@@ -62,6 +62,9 @@ int main(int argc, char **argv) {
 
     // Tokenize and parse
     Token *tok = tokenize_file(input_path);
+    if (!tok)
+        error("%s: %s", input_path, strerror(errno));
+
     tok = preprocess(tok);
     Program *prog = parse(tok);
 
@@ -77,9 +80,6 @@ int main(int argc, char **argv) {
         }
         fn->stack_size = align_to(offset, 16);
     }
-
-    // Emit a .file directive for the assembler
-    fprintf(output_file, ".file 1 \"%s\"\n", argv[1]);
 
     // Traverse the AST to emit assembly
     codegen(prog);

@@ -315,7 +315,7 @@ static void builtin_va_start(Node *node) {
 
 // Generate code for a given node.
 static void gen_expr(Node *node) {
-    println("  .loc 1 %d", node->tok->line_no);
+    println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
     case ND_NUM:
@@ -627,7 +627,7 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_stmt(Node *node) {
-    println("  .loc 1 %d", node->tok->line_no);
+    println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
     case ND_IF: {
@@ -892,6 +892,10 @@ static void emit_text(Program *prog) {
 }
 
 void codegen(Program *prog) {
+    char **paths = get_input_files();
+    for (int i = 0; paths[i]; i++)
+        println("  .file %d \"%s\"", i + 1, paths[i]);
+
     emit_bss(prog);
     emit_data(prog);
     emit_text(prog);
