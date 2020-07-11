@@ -356,19 +356,24 @@ static void add_line_info(Token *tok) {
     char *p = current_input;
     int line_no = 1;
     bool at_bol = true;
+    bool has_space =false;
 
     do {
         if (p == tok->loc) {
             tok->line_no = line_no;
             tok->at_bol = at_bol;
+            tok->has_space = has_space;
             tok = tok->next;
         }
 
         if (*p == '\n') {
             line_no++;
             at_bol = true;
-        } else if (!isspace(*p)) {
+        } else if (isspace(*p)) {
+            has_space = true;
+        } else {
             at_bol = false;
+            has_space = false;
         }
     } while (*p++);
 }

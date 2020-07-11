@@ -1361,6 +1361,14 @@ int main() {
 #else
 #endif
 
+#define M7() 1
+    int M7 = 5;
+    assert(1, M7(), "M7()");
+    assert(5, M7, "M7");
+
+#define M7 ()
+    assert(3, ret3 M7, "ret3 M7");
+
     printf("OK\n");
     return 0;
 }
