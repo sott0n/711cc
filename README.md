@@ -29,7 +29,13 @@ $ gcc -o tmp tmp.s
 $ ./tmp
 ```
 
-There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, means a `-fpic` as default setting, the ELF module may be loaded anywhere in the 64-bit address space.
+If `-E` is given, you can see preprocessed tokens:
+
+```shell
+$ ./711cc -E [file-path].c
+```
+
+There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, the ELF module may be loaded anywhere in the 64-bit address space.
 
 ```shell
 # Add `-fpic` or `-fPIC`

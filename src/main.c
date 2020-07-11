@@ -1,6 +1,7 @@
 #include "711cc.h"
 
 FILE *output_file;
+bool opt_E;
 bool opt_fpic = true;
 
 static char *input_path;
@@ -38,6 +39,11 @@ static void parse_args(int argc, char **argv) {
             continue;
         }
 
+        if (!strcmp(argv[i], "-E")) {
+            opt_E = true;
+            continue;
+        }
+
         if (argv[i][0] == '-' && argv[i][1] != '\0')
             error("unknown argument, %s", argv[i]);
 
@@ -46,6 +52,18 @@ static void parse_args(int argc, char **argv) {
 
     if (!input_path)
         error("no input files");
+}
+
+// Print tokens to stdout. Used for -E.
+static void print_tokens(Token *tok) {
+    int line = 1;
+    for (; tok->kind != TK_EOF; tok = tok->next) {
+        if (line > 1 && tok->at_bol)
+            printf("\n");
+        printf(" %.*s", tok->len, tok->loc);
+        line++;
+    }
+    printf("\n");
 }
 
 int main(int argc, char **argv) {
@@ -60,12 +78,21 @@ int main(int argc, char **argv) {
             error("cannot open output file: %s: %s", output_file, strerror(errno));
     }
 
-    // Tokenize and parse
+    // Tokenize
     Token *tok = tokenize_file(input_path);
     if (!tok)
         error("%s: %s", input_path, strerror(errno));
 
+    // Preprocess
     tok = preprocess(tok);
+
+    // If -E is given, print out preprocessed C code as a result.
+    if (opt_E) {
+        print_tokens(tok);
+        exit(0);
+    }
+
+    // Pares
     Program *prog = parse(tok);
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {

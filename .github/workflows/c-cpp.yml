@@ -13,7 +13,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Unit test
+    - name: Test tokenize
+      run: |
+          make
+          cd tests
+          ../711cc -E tests.c
+    - name: Unit test for compile
       run: make test
     - name: Unit test with nopic
       run: make test-nopic
