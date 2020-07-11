@@ -18,9 +18,9 @@ jobs:
           make
           cd tests
           ../711cc -E tests.c
-    - name: Unit test for compile
+    - name: Test for compile
       run: make test
-    - name: Unit test with nopic
+    - name: Test with nopic
       run: make test-nopic
     - name: Test for self hosting
       run: make test-stage2
