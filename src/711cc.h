@@ -10,6 +10,7 @@
 #include <strings.h>
 
 typedef struct Type Type;
+typedef struct Hideset Hideset;
 typedef struct Member Member;
 typedef struct Relocation Relocation;
 
@@ -45,6 +46,7 @@ struct Token {
     int line_no;        // Line number
     int file_no;        // File number for .loc directive
     bool at_bol;        // True if this token is at beginning of line
+    Hideset *hideset;   // For macro expansion
 };
 
 void error(char *fmt, ...);
