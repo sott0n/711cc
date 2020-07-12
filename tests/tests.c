@@ -184,6 +184,8 @@ int (*fnptr(void))(int) {
     return ret3;
 }
 
+int M9(int x) { return x*x; }
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -1386,6 +1388,10 @@ int main() {
 
 #define M8(x,y) x*y
     assert(12, M8((2,3), 4), "M8((2+3), 4)");
+
+#define M9(x) M10(x) * x
+#define M10(x) M9(x) + 3
+    assert(10, M9(2), "M9(2)");
 
     printf("OK\n");
     return 0;
