@@ -58,6 +58,7 @@ Token *skip(Token *tok, char *op);
 bool consume(Token **rest, Token *tok, char *str);
 void convert_keywords(Token *tok);
 char **get_input_files(void);
+Token *tokenize(char *filename, int file_no, char *p);
 Token *tokenize_file(char *filename);
 
 // 

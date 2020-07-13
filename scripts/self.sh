@@ -54,6 +54,7 @@ char *strchr(char *s, int c);
 double strtod(char *nptr, char **endptr);
 static void va_end(va_list ap) {}
 long strtoul(char *nptr, char **endptr, int base);
+char *strncpy(char *dest, char *src, long n);
 void exit(int code);
 EOF
 
