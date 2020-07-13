@@ -393,6 +393,19 @@ static Token *stringize(Token *hash, Token *arg) {
     return new_str_token(s, hash);
 }
 
+// Concatenate two tokens to create a new token.
+static Token *paste(Token *lhs, Token *rhs) {
+    // Paste the two tokens.
+    char *buf = calloc(1, lhs->len + rhs->len + 1);
+    sprintf(buf, "%.*s%.*s", lhs->len, lhs->loc, rhs->len, rhs->loc);
+
+    // Tokenize the resulting string.
+    Token *tok = tokenize(lhs->filename, lhs->file_no, buf);
+    if (tok->next->kind != TK_EOF)
+        error_tok(lhs, "pasting forms '%s', an invalid token", buf);
+    return tok;
+}
+
 // Replace func-like macro paramters with given arguments.
 static Token *subst(Token *tok, MacroArg *args) {
     Token head = {};
@@ -406,6 +419,44 @@ static Token *subst(Token *tok, MacroArg *args) {
                 error_tok(tok->next, "'#' is not followed by a macro paramter");
             cur = cur->next = stringize(tok, arg);
             tok = tok->next->next;
+            continue;
+        }
+
+        // Handle ## (token-pasting operator). x##y is replaced with xy.
+        if (equal(tok->next, "##")) {
+            Token *x = tok;
+            Token *y = tok->next->next;
+            Token *lhs = find_arg(args, x);
+            Token *rhs = find_arg(args, y);
+
+            // x##y becomes y if x is the empty argument list.
+            if (lhs && lhs->kind == TK_EOF) {
+                tok = y;
+                continue;
+            }
+
+            if (lhs) {
+                for (Token *t = lhs; t->kind != TK_EOF; t = t->next)
+                    cur = cur->next = copy_token(t);
+            } else {
+                cur = cur->next = copy_token(x);
+            }
+
+            // x##y becomes x if y is the empty argument list.
+            if (rhs && rhs->kind == TK_EOF) {
+                tok = y->next;
+                continue;
+            }
+
+            if (rhs) {
+                *cur = *paste(cur, rhs);
+                for (Token *t = rhs->next; t->kind != TK_EOF; t = t->next)
+                    cur = cur->next = copy_token(t);
+            } else {
+                *cur = *paste(cur, y);
+            }
+
+            tok = y->next;
             continue;
         }
 
