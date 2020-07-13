@@ -29,7 +29,7 @@ typedef enum {
     TK_NUM,         // Numeric literals
     TK_EOF,         // End-of-file markers
 } TokenKind;
-
+;
 // Token type
 typedef struct Token Token;
 struct Token {
@@ -326,5 +326,6 @@ void codegen(Program *prog);
 // main.c
 //
 extern FILE *output_file;
+extern char **include_paths;
 extern bool opt_E;
 extern bool opt_fpic;

@@ -1,6 +1,7 @@
 #include "711cc.h"
 
 FILE *output_file;
+char **include_paths;
 bool opt_E;
 bool opt_fpic = true;
 
@@ -10,6 +11,14 @@ static char *output_path = "-";
 static void usage(int status) {
     fprintf(stderr, "711cc [ -o <path> ] <file>\n");
     exit(status);
+}
+
+static void add_include_path(char *path) {
+    static int len = 2;
+    include_paths = realloc(include_paths, sizeof(char *) * len);
+    include_paths[len - 2] = path;
+    include_paths[len - 1] = NULL;
+    len++;
 }
 
 static void parse_args(int argc, char **argv) {
@@ -41,6 +50,11 @@ static void parse_args(int argc, char **argv) {
 
         if (!strcmp(argv[i], "-E")) {
             opt_E = true;
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-I", 2)) {
+            add_include_path(argv[i] + 2);
             continue;
         }
 

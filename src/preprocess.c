@@ -586,6 +586,16 @@ static bool file_exists(char *path) {
     return !stat(path, &st);
 }
 
+static char *search_include_paths(char *filename, Token *start) {
+    // Search a file from the include paths.
+    for (char **p = include_paths; *p; p++) {
+        char *path = join_paths(*p, filename);
+        if (file_exists(path))
+            return path;
+    }
+    error_tok(start, "'%s': file not found", filename);
+}
+
 // Read an #include argument.
 static char *read_include_path(Token **rest, Token *tok) {
     // Pattern 1: #include "foo.h"
@@ -595,9 +605,13 @@ static char *read_include_path(Token **rest, Token *tok) {
         // For example, "\f" in "C:\foo" is not a formfeed character but
         // just two non-control characters, backslash and f.
         // So we don't want to use token->contents.
+        Token *start = tok;
         char *filename = strndup(tok->loc + 1, tok->len - 2);
         *rest = skip_line(tok->next);
-        return filename;
+
+        if (file_exists(filename))
+            return filename;
+        return search_include_paths(filename, start);
     }
 
     // Pattern 2: #include <foo.h>
@@ -613,13 +627,7 @@ static char *read_include_path(Token **rest, Token *tok) {
 
         char *filename = join_tokens(start->next, tok);
         *rest = skip_line(tok->next);
-
-        // Search a file from the include paths.
-        // TODO: implement the actual include paths.
-        char *path = join_paths(".", filename);
-        if (!file_exists(path))
-            error_tok(start, "'%s': file not found", filename);
-        return path;
+        return search_include_paths(filename, start);
     }
 
     // Pattern 3: #include FOO
