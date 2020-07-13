@@ -21,6 +21,19 @@ static void add_include_path(char *path) {
     len++;
 }
 
+static void add_default_include_paths(char *argv0) {
+    // We expect that this compiler's specific include files
+    // are installed to ./include relative to argv[0].
+    char *buf = calloc(1, strlen(argv0) + 10);
+    sprintf(buf, "%s/include", dirname(strdup(argv0)));
+    add_include_path(buf);
+
+    // Add standard include paths.
+    add_include_path("/usr/local/include");
+    add_include_path("/usr/include/x86_64-linux-gnu");
+    add_include_path("/usr/include");
+}
+
 static void parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help"))
@@ -83,6 +96,7 @@ static void print_tokens(Token *tok) {
 }
 
 int main(int argc, char **argv) {
+    add_default_include_paths(argv[0]);
     parse_args(argc, argv);
 
     // Open the output file.

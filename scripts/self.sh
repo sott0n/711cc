@@ -46,6 +46,7 @@ long strlen(char *p);
 int strncmp(char *p, char *q);
 void *memcpy(char *dst, char *src, long n);
 char *strndup(char *p, long n);
+char *strdup(char *p);
 int isspace(int c);
 int ispunct(int c);
 int isdigit(int c);
@@ -57,6 +58,7 @@ long strtoul(char *nptr, char **endptr, int base);
 char *strncpy(char *dest, char *src, long n);
 void exit(int code);
 int stat(char *path, struct stat *statbuf);
+char *dirname(char *path);
 EOF
 
     grep -v '^#' src/711cc.h >> $TMP/$1
