@@ -17,7 +17,7 @@ jobs:
       run: |
           make
           cd tests
-          ../711cc -E tests.c
+          ../711cc -I. -E tests.c
     - name: Test for compile
       run: make test
     - name: Test with nopic

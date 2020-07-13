@@ -15,7 +15,7 @@ $(OBJS): $(SRCROOT)/711cc.h
 711cc-stage3: 711cc-stage2
 	./scripts/self.sh tmp-stage3 ./711cc-stage2 711cc-stage3
 
-test: 711cc tests/extern.o
+test: 711cc
 	(cd tests; ../711cc -I. -o- tests.c) > tmp.s
 	gcc -o tmp tmp.s tests/extern.o
 	./tmp
