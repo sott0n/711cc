@@ -17,17 +17,17 @@ $(OBJS): $(SRCROOT)/711cc.h
 
 test: 711cc
 	(cd tests; ../711cc -I. -o- tests.c) > tmp.s
-	gcc -o tmp tmp.s tests/extern.o
+	$(CC) -o tmp tmp.s tests/extern.c
 	./tmp
 
 test-nopic: 711cc tests/extern.o
 	(cd tests; ../711cc -I. -o- -fno-pic tests.c) > tmp.s
-	gcc -static -o tmp tmp.s tests/extern.o
+	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
 test-stage2: 711cc-stage2 tests/extern.o
 	(cd tests; ../711cc-stage2 -I. tests.c) > tmp.s
-	gcc -static -o tmp tmp.s tests/extern.o
+	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
 test-stage3: 711cc-stage3
