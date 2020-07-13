@@ -56,6 +56,7 @@ static void va_end(va_list ap) {}
 long strtoul(char *nptr, char **endptr, int base);
 char *strncpy(char *dest, char *src, long n);
 void exit(int code);
+int stat(char *path, struct stat *statbuf);
 EOF
 
     grep -v '^#' src/711cc.h >> $TMP/$1

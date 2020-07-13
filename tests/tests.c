@@ -1462,6 +1462,22 @@ int main() {
 of(char), \
             "sizeof(char)");
 
+#include "include3.h"
+    assert(3, foo, "foo");
+
+#include "include4.h"
+    assert(4, foo, "foo");
+
+#define M13 "include3.h"
+#include M13
+    assert(3, foo, "foo");
+
+#define M13 < include4.h
+#include M13 >
+    assert(4, foo, "foo");
+
+#undef foo
+
     printf("OK\n");
     return 0;
 }
