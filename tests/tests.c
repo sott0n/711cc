@@ -1451,6 +1451,17 @@ int main() {
 #endif
     assert(4, m, "m");
 
+#if no_such_symbol == 0
+    m = 5;
+#else
+    m = 6;
+#endif
+    assert(5, m, "m");
+
+    assert(1, size\
+of(char), \
+            "sizeof(char)");
+
     printf("OK\n");
     return 0;
 }
