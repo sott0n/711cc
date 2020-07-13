@@ -1421,6 +1421,36 @@ int main() {
 #define paste3(x) 2##x
     assert(23, paste3(1+2), "paste3(1+2)");
 
+#define M12
+#if defined(M12)
+    m = 3;
+#else
+    m = 4;
+#endif
+    assert(3, m, "m");
+
+#define M12
+#if defined M12
+    m = 3;
+#else
+    m = 4;
+#endif
+    assert(3, m, "m");
+
+#if defined(M12) - 1
+    m = 3;
+#else
+    m = 4;
+#endif
+    assert(4, m, "m");
+
+#if defined(NO_SUCH_MACRO)
+    m = 3;
+#else
+    m = 4;
+#endif
+    assert(4, m, "m");
+
     printf("OK\n");
     return 0;
 }
