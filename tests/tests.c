@@ -1,3 +1,5 @@
+char *main_filename = __FILE__;
+char main_line = __LINE__;
 /*
  * This is a C compiler tests.
  */
@@ -1479,6 +1481,11 @@ of(char), \
 #undef foo
 
     assert(1, __STDC__, "__STDC__");
+
+    assert(0, strcmp(main_filename, "tests.c"), "strcmp(main_filename, \"tests.c\")");
+    assert(2, main_line, "main_line");
+    assert(0, strcmp(include1_filename, "include1.h"), "strcmp(include1_filename, \"include1.h\")");
+    assert(4, include1_line, "include1_line");
 
     printf("OK\n");
     return 0;

@@ -32,6 +32,8 @@ struct MacroArg {
     Token *tok;
 };
 
+typedef Token *macro_handler_fn(Token *);
+
 typedef struct Macro Macro;
 struct Macro {
     Macro *next;
@@ -40,6 +42,7 @@ struct Macro {
     MacroParam *params;
     Token *body;
     bool deleted;
+    macro_handler_fn *handler;
 };
 
 // `#if` can be nested, so we use a stack to manage nested `#if`s.
@@ -541,6 +544,13 @@ static bool expand_macro(Token **rest, Token *tok) {
     if (!m)
         return false;
 
+    // Built-in dynamic macro application such as __LINE__
+    if (m->handler) {
+        *rest = m->handler(tok);
+        (*rest)->next = tok->next;
+        return true;
+    }
+
     // Object-like macro application
     if (m->is_objlike) {
         Hideset *hs = hideset_union(tok->hideset, new_hideset(m->name));
@@ -764,6 +774,20 @@ static void define_macro(char *name, char *buf) {
     add_macro(name, true, tok);
 }
 
+static Macro *add_builtin(char *name, macro_handler_fn *fn) {
+    Macro *m = add_macro(name, true, NULL);
+    m->handler = fn;
+    return m;
+}
+
+static Token *file_macro(Token *tmpl) {
+    return new_str_token(tmpl->filename, tmpl);
+}
+
+static Token *line_macro(Token *tmpl) {
+    return new_num_token(tmpl->line_no, tmpl);
+}
+
 static void init_macros(void) {
     // Define predefined macros
     define_macro("__711cc__", "1");
@@ -809,6 +833,9 @@ static void init_macros(void) {
     define_macro("__signed__", "signed");
     define_macro("__typeof__", "typeof");
     define_macro("__volatile__", "volatile");
+
+    add_builtin("__FILE__", file_macro);
+    add_builtin("__LINE__", line_macro);
 }
 
 // Entry point function of the preprocessor.
