@@ -1478,6 +1478,8 @@ of(char), \
 
 #undef foo
 
+    assert(1, __STDC__, "__STDC__");
+
     printf("OK\n");
     return 0;
 }
