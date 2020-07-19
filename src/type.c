@@ -203,6 +203,11 @@ void add_type(Node *node) {
         return;
     }
     case ND_DEREF:
+        if (node->lhs->ty->kind == TY_FUNC) {
+            *node = *node->lhs;
+            return;
+        }
+
         if (!node->lhs->ty->base)
             error_tok(node->tok, "invalid pointer dereference");
         if (node->lhs->ty->base->kind == TY_VOID)
