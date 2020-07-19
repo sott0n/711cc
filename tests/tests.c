@@ -1487,6 +1487,21 @@ of(char), \
     assert(0, strcmp(include1_filename, "include1.h"), "strcmp(include1_filename, \"include1.h\")");
     assert(4, include1_line, "include1_line");
 
+#define M14(...) 3
+    assert(3, M14(), "M14()");
+
+#define M14(...) __VA_ARGS__
+    assert(5, M14(5), "M14(5)");
+
+#define M14(...) add2(__VA_ARGS__)
+    assert(8, M14(2, 6), "M14(2, 6)");
+
+#define M14(...) add6(1,2,__VA_ARGS__,6)
+    assert(21, M14(3,4,5), "M14(3,4,5)");
+
+#define M14(x, ...) add6(1,2,x,__VA_ARGS__,6)
+    assert(21, M14(3,4,5), "M14(3,4,5)");
+
     printf("OK\n");
     return 0;
 }
