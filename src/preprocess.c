@@ -863,6 +863,26 @@ static void init_macros(void) {
     add_builtin("__LINE__", line_macro);
 }
 
+// Concatenate adjacent string literals into a single string literal
+// as per the C spec.
+static void join_adjacent_string_literals(Token *tok) {
+    while (tok->kind != TK_EOF) {
+        Token *tok2 = tok->next;
+
+        if (tok->kind == TK_STR && tok2->kind == TK_STR) {
+            char *buf = calloc(1, tok->len + tok2->len - 1);
+            sprintf(buf, "\"%.*s%.*s\"",
+                    tok->len - 2, tok->loc + 1,
+                    tok2->len - 2, tok2->loc + 1);
+            *tok = *tokenize(tok->filename, tok->file_no, buf);
+            tok->next = tok2->next;
+            continue;
+        }
+
+        tok = tok->next;
+    }
+}
+
 // Entry point function of the preprocessor.
 Token *preprocess(Token *tok) {
     init_macros();
@@ -870,5 +890,6 @@ Token *preprocess(Token *tok) {
     if (cond_incl)
         error_tok(cond_incl->tok, "unterminated conditional directive");
     convert_keywords(tok);
+    join_adjacent_string_literals(tok);
     return tok;
 }

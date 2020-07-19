@@ -1510,6 +1510,11 @@ of(char), \
     assert(0, strcmp("main", __func__), "strcmp(\"main\", __func__)");
     assert(0, strcmp("func_fn", func_fn()), "strcmp(\"func_fn\", func_fn())");
 
+    assert(7, sizeof("abc" "def"), "sizeof(\"abc\" \"def\")");
+    assert(9, sizeof("abc" "d" "efgh"), "sizeof(\"abc\" \"d\" \"efgh\")");
+    assert(0, strcmp("abc" "d" "\nefgh", "abcd\nefgh"), "strcmp(\"abc\" \"d\" \"\nefgh\", \"abcd\nefgh\")");
+    assert(0, !strcmp("abc" "d", "abcd\nefgh"), "!strcmp(\"abc\" \"d\", \"abcd\nefgh\")");
+
     printf("OK\n");
     return 0;
 }
