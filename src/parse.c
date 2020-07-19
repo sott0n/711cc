@@ -271,16 +271,15 @@ static Var *new_gvar(char *name, Type *ty, bool is_static, bool is_definition) {
     return var;
 }
 
-static char *new_gvar_name(void) {
+static char *new_unique_name(void) {
     static int id = 0;
     char *buf = calloc(1, 20);
     sprintf(buf, ".L.data.%d", id++);
     return buf;
 }
 
-static Var *new_string_literal(char *p, int len) {
-    Type *ty = array_of(ty_char, len);
-    Var *var = new_gvar(new_gvar_name(), ty, true, true);
+static Var *new_string_literal(char *p, Type *ty) {
+    Var *var = new_gvar(new_unique_name(), ty, true, true);
     var->init_data = p;
     return var;
 }
@@ -309,6 +308,14 @@ static void push_tag_scope(Token *tok, Type *ty) {
     tag_scope = sc;
 }
 
+// Create a node for "__func__" local variable and add that
+// to the current scope.
+static void add_func_ident(char *func) {
+    Type *ty = array_of(ty_char, strlen(func) + 1);
+    Var *var = new_string_literal(func, ty);
+    push_scope("__func__")->var = var;
+}
+
 // funcdef = typespec declarator compound-stmt
 static Function *funcdef(Token **rest, Token *tok) {
     locals = NULL;
@@ -334,6 +341,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     fn->params = locals;
 
     tok = skip(tok, "{");
+    add_func_ident(fn->name);
     fn->body = compound_stmt(rest, tok);
     fn->locals = locals;
     leave_scope();
@@ -765,7 +773,7 @@ static Node *declaration(Token **rest, Token *tok) {
 
         if (attr.is_static) {
             // static local variable
-            Var *var = new_gvar(new_gvar_name(), ty, true, true);
+            Var *var = new_gvar(new_unique_name(), ty, true, true);
             push_scope(get_ident(ty->name))->var = var;
 
             if (equal(tok, "="))
@@ -821,11 +829,11 @@ static int count_array_init_elements(Token *tok, Type *ty) {
 // string-initializer = string-literal
 static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
     Initializer *init = new_init(ty, ty->array_len, NULL, tok);
-    int len = (ty->array_len < tok->cont_len)
-        ? ty->array_len : tok->cont_len;
+    int len = (ty->array_len < tok->ty->array_len)
+        ? ty->array_len : tok->ty->array_len;
 
     for (int i = 0; i < len; i++) {
-        Node *expr = new_num(tok->contents[i], tok);
+        Node *expr = new_num(tok->str[i], tok);
         init->children[i] = new_init(ty->base, 0, expr, tok);
     }
     *rest = tok->next;
@@ -911,7 +919,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
     if (ty->kind == TY_ARRAY && ty->is_incomplete) {
         int len;
         if (ty->base->kind == TY_CHAR && tok->kind == TK_STR)
-            len = tok->cont_len;
+            len = tok->ty->array_len;
         else
             len = count_array_init_elements(tok, ty);
         *ty = *array_of(ty->base, len);
@@ -1769,12 +1777,12 @@ static Node *mul(Token **rest, Token *tok) {
 // compound-literal = initializer "}"
 static Node *compound_literal(Token **rest, Token *tok, Type *ty, Token *start) {
     if (scope_depth == 0) {
-        Var *var = new_gvar(new_gvar_name(), ty, true, true);
+        Var *var = new_gvar(new_unique_name(), ty, true, true);
         gvar_initializer(rest, tok, var);
         return new_var_node(var, start);
     }
 
-    Var *var = new_lvar(new_gvar_name(), ty);
+    Var *var = new_lvar(new_unique_name(), ty);
     Node *lhs = lvar_initializer(rest, tok, var);
     Node *rhs = new_var_node(var, tok);
     return new_binary(ND_COMMA, lhs, rhs, tok);
@@ -2150,7 +2158,7 @@ static Node *primary(Token **rest, Token *tok) {
     }
     
     if (tok->kind == TK_STR) {
-        Var *var = new_string_literal(tok->contents, tok->cont_len);
+        Var *var = new_string_literal(tok->str, tok->ty);
         *rest = tok->next;
         return new_var_node(var, tok);
     }

@@ -214,11 +214,9 @@ static Token *read_string_literal(Token *cur, char *start) {
             buf[len++] = *p++;
     }
 
-    buf[len++] = '\0';
-
     Token *tok = new_token(TK_STR, cur, start, p - start + 1);
-    tok->contents = buf;
-    tok->cont_len = len;
+    tok->ty = array_of(ty_char, len + 1);
+    tok->str = buf;
     return tok;
 }
 

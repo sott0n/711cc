@@ -38,12 +38,10 @@ struct Token {
     Token *next;        // Next token
     long val;           // If kind is TK_NUM, its value
     double fval;        // If kind is TK_NUM, its value
-    Type *ty;           // Used if TK_NUM
     char *loc;          // Token location
     int len;            // Token length
-
-    char *contents;     // String literal contents including terminating '\0'
-    int cont_len;       // String literal length
+    Type *ty;           // Used if TK_NUM of TK_STR
+    char *str;          // String literal contents including terminating '\0'
 
     char *filename;     // Input filename
     char *input;        // Entire input string
