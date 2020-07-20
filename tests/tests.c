@@ -1572,6 +1572,10 @@ of(char), \
     assert(3, ({ int β=3; β; }), "({ int β=3; β; })");
     assert(3, ({ int あ=3; あ; }), "({ int あ=3; あ; })");
 
+    assert(0, strcmp("日本語", "\u65E5\u672C\u8A9E"), "strcmp(\"日本語\", \"\\u65E5\\u672C\\u8A9E\")");
+    assert(0, strcmp("日本語", "\U000065E5\U0000672C\U00008A9E"), "strcmp(\"日本語\", \"\\U000065E5\\U0000672C\\U00008A9E\")");
+    assert(0, strcmp("🌮", "\U0001F32E"), "strcmp(\"🌮\", \"\\U0001F32E\")");
+
     printf("OK\n");
     return 0;
 }

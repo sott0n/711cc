@@ -575,12 +575,82 @@ static void remove_backslash_newline(char *p) {
     *q = '\0';
 }
 
+// Encode a given character in UTF-8.
+static int encode_utf8(char *buf, int c) {
+    if (c <= 0x7F) {
+        buf[0] = c;
+        return 1;
+    }
+
+    if (c <= 0x7FF) {
+        buf[0] = 0b11000000 | (c >> 6);
+        buf[1] = 0b11000000 | (c & 0b00111111);
+        return 2;
+    }
+
+    if (c <= 0xFFFF) {
+        buf[0] = 0b11100000 | (c >> 12);
+        buf[1] = 0b10000000 | ((c >> 6) & 0b00111111);
+        buf[2] = 0b10000000 | (c & 0b00111111);
+        return 3;
+    }
+
+    buf[0] = 0b11110000 | (c >> 18);
+    buf[1] = 0b10000000 | ((c >> 12) & 0b00111111);
+    buf[2] = 0b10000000 | ((c >> 6) & 0b00111111);
+    buf[3] = 0b10000000 | (c & 0b00111111);
+    return 4;
+}
+
+static int read_universal_char(char *p, int len) {
+    int c = 0;
+    for (int i = 0; i < len; i++) {
+        if (!isxdigit(p[i]))
+            return -1;
+        c = (c << 4) | from_hex(p[i]);
+    }
+    return c;
+}
+
+// Replace \u or \U escape sequence with corresponding UTF-8 bytes.
+static void convert_universal_chars(char *p) {
+    char *q = p;
+
+    while (*p) {
+        if (startswith(p, "\\u")) {
+            int c = read_universal_char(p + 2, 4);
+            if (c == -1) {
+                *q++ = *p++;
+            } else {
+                p += 6;
+                q += encode_utf8(q, c);
+            }
+        } else if (startswith(p, "\\U")) {
+            int c = read_universal_char(p + 2, 8);
+            if (c == -1) {
+                *q++ = *p++;
+            } else {
+                p += 10;
+                q += encode_utf8(q, c);
+            }
+        } else if (p[0] == '\\') {
+            *q++ = *p++;
+            *q++ = *p++;
+        } else {
+            *q++ = *p++;
+        }
+    }
+
+    *q = '\0';
+}
+
 Token *tokenize_file(char *path) {
     char *p = read_file(path);
     if (!p)
         return NULL;
 
     remove_backslash_newline(p);
+    convert_universal_chars(p);
 
     // Save the filename for assembler .file directive
     static int file_no;
