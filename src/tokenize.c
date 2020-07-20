@@ -456,9 +456,9 @@ Token *tokenize(char *filename, int file_no, char *p) {
         }
 
         // Identifier
-        if (is_alpha(*p)) {
+        if (is_alpha(*p) || (*p & 0x80)) {
             char *q = p++;
-            while (is_alnum(*p))
+            while (is_alnum(*p) || (*p & 0x80))
                 p++;
             cur = new_token(TK_IDENT, cur, q, p - q);
             continue;
