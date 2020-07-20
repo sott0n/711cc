@@ -28,9 +28,10 @@ typedef enum {
     TK_IDENT,       // Identifiers
     TK_STR,         // String literals
     TK_NUM,         // Numeric literals
+    TK_PP_NUM,      // Preprocessing numbers
     TK_EOF,         // End-of-file markers
 } TokenKind;
-;
+
 // Token type
 typedef struct Token Token;
 struct Token {
@@ -59,6 +60,7 @@ bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
 bool consume(Token **rest, Token *tok, char *str);
 void convert_keywords(Token *tok);
+void convert_pp_tokens(Token *tok);
 char **get_input_files(void);
 Token *tokenize(char *filename, int file_no, char *p);
 Token *tokenize_file(char *filename);
