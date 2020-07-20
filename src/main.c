@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
 
         for (Var *var = fn->locals; var; var = var->next) {
             offset = align_to(offset, var->align);
-            offset += size_of(var->ty);
+            offset += var->ty->size;
             var->offset = offset;
         }
         fn->stack_size = align_to(offset, 16);

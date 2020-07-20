@@ -29,7 +29,7 @@ static char *reg(int idx) {
 }
 
 static char *xreg(Type *ty, int idx) {
-    if (ty->base || size_of(ty) == 8)
+    if (ty->base || ty->size == 8)
         return reg(idx);
 
     static char *r[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
@@ -162,10 +162,9 @@ static void load(Type *ty) {
     // a register always contains a valid value. The upper half of a
     // register for char, short and int may contain garbage. When we load
     // a long value to a register, it simply occupies the entire register.
-    int sz = size_of(ty);
-    if (sz == 1)
+    if (ty->size == 1)
         println("  %sbl (%s), %s", insn, rs, rd);
-    else if (sz == 2)
+    else if (ty->size == 2)
         println("  %swl (%s), %s", insn, rs, rd);
     else
         println("  mov (%s), %s", rs, rd);
@@ -174,10 +173,9 @@ static void load(Type *ty) {
 static void store(Type *ty) {
     char *rd = reg(top - 1);
     char *rs = reg(top - 2);
-    int sz = size_of(ty);
 
     if (ty->kind == TY_STRUCT) {
-        for (int i = 0; i < sz; i++) {
+        for (int i = 0; i < ty->size; i++) {
             println("  mov %d(%s), %%al", i, rs);
             println("  mov %%al, %d(%s)", i, rd);
         }
@@ -185,11 +183,11 @@ static void store(Type *ty) {
         println("  movss %s, (%s)", freg(top - 2), rd);
     } else if (ty->kind == TY_DOUBLE) {
         println("  movsd %s, (%s)", freg(top - 2), rd);
-    } else if (sz == 1) {
+    } else if (ty->size == 1) {
         println("  mov %sb, (%s)", rs, rd);
-    } else if (sz == 2) {
+    } else if (ty->size == 2) {
         println("  mov %sw, (%s)", rs, rd);
-    } else if (sz == 4) {
+    } else if (ty->size == 4) {
         println("  mov %sd, (%s)", rs, rd);
     } else {
         println("  mov %s, (%s)", rs, rd);
@@ -259,19 +257,19 @@ static void cast(Type *from, Type *to) {
 
     char *insn = to->is_unsigned ? "movzx" : "movsx";
 
-    if (size_of(to) == 1) {
+    if (to->size == 1) {
         println("  %s %sb, %s", insn, r, r);
-    } else if (size_of(to) == 2) {
+    } else if (to->size == 2) {
         println("  %s %sw, %s", insn, r, r);
-    } else if (size_of(to) == 4) {
+    } else if (to->size == 4) {
         println("  mov %sd, %sd", r, r);
-    } else if (is_integer(from) && size_of(from) < 8 && !from->is_unsigned) {
+    } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
         println("  movsx %sd, %s", r, r);
     }
 }
 
 static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
-    if (size_of(node->ty) == 8) {
+    if (node->ty->size == 8) {
         println("  mov %s, %%rax", rd);
         if (node->ty->is_unsigned) {
             println("  mov $0, %%rdx");
@@ -343,7 +341,10 @@ static void gen_expr(Node *node) {
         Member *mem = node->member;
         if (mem->is_bitfield) {
             println("  shl $%d, %s", 64 - mem->bit_width - mem->bit_offset, reg(top - 1));
-            println("  shr $%d, %s", 64 - mem->bit_width, reg(top - 1));
+            if (mem->ty->is_unsigned)
+                println("  shr $%d, %s", 64 - mem->bit_width, reg(top - 1));
+            else
+                println("  sar $%d, %s", 64 - mem->bit_width, reg(top - 1));
         }
         return;
     }
@@ -479,7 +480,7 @@ static void gen_expr(Node *node) {
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
             char *insn = arg->ty->is_unsigned ? "movz" : "movs";
-            int sz = size_of(arg->ty);
+            int sz = arg->ty->size;
 
             if (is_flonum(arg->ty)) {
                 if (arg->ty->kind == TY_FLOAT)
@@ -809,7 +810,7 @@ static void emit_bss(Program *prog) {
         if (!var->is_static)
             println("  .globl %s", var->name);
         println("%s:", var->name);
-        println("  .zero %d", size_of(var->ty));
+        println("  .zero %d", var->ty->size);
     }
 }
 
@@ -827,7 +828,7 @@ static void emit_data(Program *prog) {
 
         Relocation *rel = var->rel;
         int pos = 0;
-        while (pos < size_of(var->ty)) {
+        while (pos < var->ty->size) {
             if (rel && rel->offset == pos) {
                 println("  .quad %s%+ld", rel->label, rel->addend);
                 rel = rel->next;
@@ -899,7 +900,7 @@ static void emit_text(Program *prog) {
             } else if (var->ty->kind == TY_DOUBLE) {
                 println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
             } else {
-                char *r = get_argreg(size_of(var->ty), --gp);
+                char *r = get_argreg(var->ty->size, --gp);
                 println("  mov %s, -%d(%%rbp)", r, var->offset);
             }
         }

@@ -480,26 +480,32 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
             ty = ty_bool;
             break;
         case CHAR:
-        case SIGNED + CHAR:
             ty = ty_char;
+            break;
+        case SIGNED + CHAR:
+            ty = ty_schar;
             break;
         case UNSIGNED + CHAR:
             ty = ty_uchar;
             break;
         case SHORT:
         case SHORT + INT:
+            ty = ty_short;
+            break;
         case SIGNED + SHORT:
         case SIGNED + SHORT + INT:
-            ty = ty_short;
+            ty = ty_sshort;
             break;
         case UNSIGNED + SHORT:
         case UNSIGNED + SHORT + INT:
             ty = ty_ushort;
             break;
         case INT:
+            ty = ty_int;
+            break;
         case SIGNED:
         case SIGNED + INT:
-            ty = ty_int;
+            ty = ty_sint;
             break;
         case UNSIGNED:
         case UNSIGNED + INT:
@@ -509,11 +515,13 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
         case LONG + INT:
         case LONG + LONG:
         case LONG + LONG + INT:
+            ty = ty_long;
+            break;
         case SIGNED + LONG:
         case SIGNED + LONG + INT:
         case SIGNED + LONG + LONG:
         case SIGNED + LONG + LONG + INT:
-            ty = ty_long;
+            ty = ty_slong;
             break; 
         case UNSIGNED + LONG:
         case UNSIGNED + LONG + INT:
@@ -592,9 +600,7 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
 static Type *array_dimentions(Token **rest, Token *tok, Type *ty) {
     if (equal(tok, "]")) {
         ty = type_suffix(rest, tok->next, ty);
-        ty = array_of(ty, 0);
-        ty->is_incomplete = true;
-        return ty;
+        return array_of(ty, -1);
     }
 
     int sz = const_expr(&tok, tok);
@@ -916,7 +922,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
     // An array length can be omitted if an array has an initializer
     // (e.g. `int x[] = {1,2,3}`). If it's omitted, count the number
     // of initializer elements.
-    if (ty->kind == TY_ARRAY && ty->is_incomplete) {
+    if (ty->kind == TY_ARRAY && ty->size < 0) {
         int len;
         if (ty->base->kind == TY_CHAR && tok->kind == TK_STR)
             len = tok->ty->array_len;
@@ -1011,7 +1017,7 @@ static void write_buf(char *buf, long val, int sz) {
 static Relocation *
 write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset) {
     if (ty->kind == TY_ARRAY) {
-        int sz = size_of(ty->base);
+        int sz = ty->base->size;
         for (int i = 0; i < ty->array_len; i++) {
             Initializer *child = init->children[i];
             if (child)
@@ -1045,7 +1051,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         long val = eval_addr(init->expr, &var);
 
         if (!var) {
-            write_buf(buf + offset, val, size_of(ty));
+            write_buf(buf + offset, val, ty->size);
             return cur;
         }
 
@@ -1057,7 +1063,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         return cur->next;
     }
 
-    write_buf(buf + offset, eval(init->expr), size_of(ty));
+    write_buf(buf + offset, eval(init->expr), ty->size);
     return cur;
 }
 
@@ -1069,7 +1075,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
     Initializer *init = initializer(rest, tok, var->ty);
 
     Relocation head = {};
-    char *buf = calloc(1, size_of(var->ty));
+    char *buf = calloc(1, var->ty->size);
     write_gvar_data(&head, init, var->ty, buf, 0);
     var->init_data = buf;
     var->rel = head.next;
@@ -1318,7 +1324,7 @@ static long eval(Node *node) {
     case ND_SHL:
         return eval(node->lhs) << eval(node->rhs);
     case ND_SHR:
-        if (node->ty->is_unsigned && size_of(node->ty) == 8)
+        if (node->ty->is_unsigned && node->ty->size == 8)
             return (unsigned long)eval(node->lhs) >> eval(node->rhs);
         return eval(node->lhs) >> eval(node->rhs);
     case ND_EQ:
@@ -1347,10 +1353,10 @@ static long eval(Node *node) {
         return eval(node->lhs) || eval(node->rhs);
     case ND_CAST: {
         long val = eval(node->lhs);
-        if (!is_integer(node->ty) || size_of(node->ty) == 8)
+        if (!is_integer(node->ty) || node->ty->size == 8)
             return val;
 
-        switch (size_of(node->ty)) {
+        switch (node->ty->size) {
         case 1:
             if (node->ty->is_unsigned)
                 return (unsigned char)val;
@@ -1360,7 +1366,7 @@ static long eval(Node *node) {
                 return (unsigned short)val;
             return (short)val;
         default:
-            assert(size_of(node->ty) == 4);
+            assert(node->ty->size == 4);
             if (node->ty->is_unsigned)
                 return (unsigned int)val;
             return (int)val;
@@ -1697,7 +1703,7 @@ static Node *new_add(Node *lhs, Node *rhs, Token *tok) {
     }
 
     // ptr + num
-    rhs = new_binary(ND_MUL, rhs, new_num(size_of(lhs->ty->base), tok), tok);
+    rhs = new_binary(ND_MUL, rhs, new_num(lhs->ty->base->size, tok), tok);
     return new_binary(ND_ADD, lhs, rhs, tok);
 } 
 
@@ -1712,14 +1718,14 @@ static Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 
     // ptr - num
     if (lhs->ty->base && is_integer(rhs->ty)) {
-        rhs = new_binary(ND_MUL, rhs, new_num(size_of(lhs->ty->base), tok), tok);
+        rhs = new_binary(ND_MUL, rhs, new_num(lhs->ty->base->size, tok), tok);
         return new_binary(ND_SUB, lhs, rhs, tok);
     }
 
     // ptr - ptr, which returns how many elements are between the two.
     if (lhs->ty->base && rhs->ty->base) {
         Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-        return new_binary(ND_DIV, node, new_num(size_of(lhs->ty->base), tok), tok);
+        return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
     }
 
     error_tok(tok, "invalid operands");
@@ -1864,6 +1870,13 @@ static Member *struct_members(Token **rest, Token *tok) {
             if (consume(&tok, tok, ":")) {
                 mem->is_bitfield = true;
                 mem->bit_width = const_expr(&tok, tok);
+
+                // Unlike other variables, bitfields are unsigned by default
+                // as per the x86-64 psABI spec.
+                if (!mem->ty->is_signed) {
+                    mem->ty = copy_type(mem->ty);
+                    mem->ty->is_unsigned = true;
+                }
             }
 
             cur = cur->next = mem;
@@ -1891,7 +1904,7 @@ static Type *struct_union_decl(Token **rest, Token *tok) {
             return sc->ty;
 
         Type *ty = struct_type();
-        ty->is_incomplete = true;
+        ty->size = -1;
         push_tag_scope(tag, ty);
         return ty;
     }
@@ -1957,8 +1970,8 @@ static Type *union_decl(Token **rest, Token *tok) {
     for (Member *mem = ty->members; mem; mem = mem->next) {
         if (ty->align < mem->align)
             ty->align = mem->align;
-        if (ty->size < size_of(mem->ty))
-            ty->size = size_of(mem->ty);
+        if (ty->size < mem->ty->size)
+            ty->size = mem->ty->size;
     }
     ty->size = align_to(ty->size, ty->align);
     return ty;
@@ -2137,13 +2150,13 @@ static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next)) {
         Type *ty = typename(&tok, tok->next->next);
         *rest = skip(tok, ")");
-        return new_ulong(size_of(ty), tok);
+        return new_ulong(ty->size, tok);
     }
 
     if (equal(tok, "sizeof")) {
         Node *node = unary(rest, tok->next);
         add_type(node);
-        return new_ulong(size_of(node->ty), tok);
+        return new_ulong(node->ty->size, tok);
     }
 
     if (equal(tok, "_Alignof")) {

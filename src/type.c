@@ -8,6 +8,11 @@ Type *ty_short = &(Type){TY_SHORT, 2, 2};
 Type *ty_int = &(Type){TY_INT, 4, 4};
 Type *ty_long = &(Type){TY_LONG, 8, 8};
 
+Type *ty_schar = &(Type){TY_CHAR, 1, 1, false, true};
+Type *ty_sshort = &(Type){TY_SHORT, 2, 2, false, true};
+Type *ty_sint = &(Type){TY_INT, 4, 4, false, true};
+Type *ty_slong = &(Type){TY_LONG, 8, 8, false, true};
+
 Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
 Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
 Type *ty_uint = &(Type){TY_INT, 4, 4, true};
@@ -72,7 +77,7 @@ Type *func_type(Type *return_ty) {
 }
 
 Type *array_of(Type *base, int len) {
-    Type *ty = new_type(TY_ARRAY, size_of(base) * len, base->align);
+    Type *ty = new_type(TY_ARRAY, base->size * len, base->align);
     ty->base = base;
     ty->array_len = len;
     return ty;
@@ -86,14 +91,6 @@ Type *struct_type(void) {
     return new_type(TY_STRUCT, 0, 1);
 }
 
-int size_of(Type *ty) {
-    if (ty->kind == TY_VOID)
-        error_tok(ty->name, "void type");
-    if (ty->is_incomplete)
-        error_tok(ty->name, "incomplete type");
-    return ty->size;
-}
-
 static Type *get_common_type(Type *ty1, Type *ty2) {
     if (ty1->base)
         return pointer_to(ty1->base);
@@ -103,13 +100,13 @@ static Type *get_common_type(Type *ty1, Type *ty2) {
     if (ty1->kind == TY_FLOAT || ty2->kind == TY_FLOAT)
         return ty_float;
 
-    if (size_of(ty1) < 4)
+    if (ty1->size < 4)
         ty1 = ty_int;
-    if (size_of(ty2) < 4)
+    if (ty2->size < 4)
         ty2 = ty_int;
 
-    if (size_of(ty1) != size_of(ty2))
-        return (size_of(ty1) < size_of(ty2)) ? ty2 : ty1;
+    if (ty1->size != ty2->size)
+        return (ty1->size < ty2->size) ? ty2 : ty1;
 
     if (ty2->is_unsigned)
         return ty2;
