@@ -34,6 +34,14 @@ static void add_default_include_paths(char *argv0) {
     add_include_path("/usr/include");
 }
 
+static void define(char *str) {
+    char *eq = strchr(str, '=');
+    if (eq)
+        define_macro(strndup(str, eq - str), eq + 1);
+    else
+        define_macro(str, "");
+}
+
 static void parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help"))
@@ -68,6 +76,18 @@ static void parse_args(int argc, char **argv) {
 
         if (!strncmp(argv[i], "-I", 2)) {
             add_include_path(argv[i] + 2);
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-D")) {
+            if (!argv[++i])
+                usage(1);
+            define(argv[i]);
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-D", 2)) {
+            define(argv[i] + 2);
             continue;
         }
 

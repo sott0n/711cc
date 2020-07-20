@@ -797,7 +797,7 @@ static Token *preprocess2(Token *tok) {
     return head.next;
 }
 
-static void define_macro(char *name, char *buf) {
+void define_macro(char *name, char *buf) {
     Token *tok = tokenize("(internal)", 1, buf);
     add_macro(name, true, tok);
 }
@@ -816,7 +816,7 @@ static Token *line_macro(Token *tmpl) {
     return new_num_token(tmpl->line_no, tmpl);
 }
 
-static void init_macros(void) {
+void init_macros(void) {
     // Define predefined macros
     define_macro("__711cc__", "1");
     define_macro("_LP64", "1");

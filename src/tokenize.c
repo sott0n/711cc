@@ -241,7 +241,7 @@ static Token *read_char_literal(Token *cur, char *start) {
     return tok;
 }
 
-static bool *convert_pp_int(Token *tok) {
+static bool convert_pp_int(Token *tok) {
     char *p = tok->loc;
 
     // Read a binary, octal, decimal or hexadecimal number.
@@ -352,7 +352,6 @@ static void convert_pp_number(Token *tok) {
     tok->kind = TK_NUM;
     tok->fval = val;
     tok->ty = ty;
-    return tok;
 }
 
 void convert_pp_tokens(Token *tok) {

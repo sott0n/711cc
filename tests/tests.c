@@ -1521,6 +1521,8 @@ of(char), \
     assert(5, ({ int f0zz=5; CONCAT(f,0zz); }), "({ int f0zz=5; CONCAT(f,0zz); })");
     assert(5, ({ CONCAT(4,.57) + 0.5; }), "({ CONCAT(4,.57) + 0.5; })");
 
+    assert(42, ANSWER, "ANSWER");
+
     printf("OK\n");
     return 0;
 }
