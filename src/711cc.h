@@ -287,6 +287,11 @@ struct Member {
     Token *name;
     int align;
     int offset;
+
+    // Bitfield
+    int is_bitfield;
+    int bit_offset;
+    int bit_width;
 };
 
 extern Type *ty_void;
@@ -310,6 +315,7 @@ bool is_flonum(Type *ty);
 bool is_numeric(Type *ty);
 Type *copy_type(Type *ty);
 int align_to(int n, int align);
+int align_down(int n, int align);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 Type *array_of(Type *base, int size);

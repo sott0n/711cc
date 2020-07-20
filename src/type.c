@@ -54,6 +54,10 @@ int align_to(int n, int align) {
     return (n + align - 1) / align * align;
 }
 
+int align_down(int n, int align) {
+    return align_to(n - align + 1, align);
+}
+
 Type *pointer_to(Type *base) {
     Type *ty = new_type(TY_PTR, 8, 8);
     ty->base = base;

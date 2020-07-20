@@ -333,10 +333,20 @@ static void gen_expr(Node *node) {
         }
         return;
     case ND_VAR:
-    case ND_MEMBER:
         gen_addr(node);
         load(node->ty);
         return;
+    case ND_MEMBER: {
+        gen_addr(node);
+        load(node->ty);
+
+        Member *mem = node->member;
+        if (mem->is_bitfield) {
+            println("  shl $%d, %s", 64 - mem->bit_width - mem->bit_offset, reg(top - 1));
+            println("  shr $%d, %s", 64 - mem->bit_width, reg(top - 1));
+        }
+        return;
+    }
     case ND_DEREF:
         gen_expr(node->lhs);
         load(node->ty);
@@ -352,6 +362,25 @@ static void gen_expr(Node *node) {
  
         gen_expr(node->rhs);
         gen_addr(node->lhs);
+
+        if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield) {
+            // If the lhs is a bitfield, we need to read a value from memory
+            // and merge it with a new value.
+            Member *mem = node->lhs->member;
+            println("  mov %s, %s", reg(top - 1), reg(top));
+            top++;
+            load(mem->ty);
+
+            println("  and $%ld, %s", (1L << mem->bit_width) - 1, reg(top - 3));
+            println("  shl $%d, %s", mem->bit_offset, reg(top - 3));
+
+            long mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
+            println("  movabs $%ld, %%rax", ~mask);
+            println("  and %%rax, %s", reg(top - 1));
+            println("  or %s, %s", reg(top - 1), reg(top - 3));
+            top--;
+        }
+
         store(node->ty);
         return;
     case ND_STMT_EXPR:
