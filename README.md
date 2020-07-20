@@ -29,10 +29,20 @@ $ gcc -o tmp tmp.s
 $ ./tmp
 ```
 
-If `-E` is given, you can see preprocessed tokens:
+There are some parameters:
 
 ```shell
+# If `--help` is given, you can see a help text:
+$ ./711cc --help
+
+# If `-E` is given, you can see preprocessed tokens:
 $ ./711cc -E [file-path].c
+
+# If `-I` is given, you can add include path:
+$ ./711cc -I[path] [file-path].c
+
+# If `-D` is given, you can set a macro with `=`:
+$ ./711cc -D[Macro-func]=[Macro-body] [file-path].c
 ```
 
 There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, the ELF module may be loaded anywhere in the 64-bit address space.
