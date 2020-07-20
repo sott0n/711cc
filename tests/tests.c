@@ -1562,6 +1562,10 @@ of(char), \
     assert(2, g45.b, "g45.b");
     assert(3, g45.c, "g45.c");
 
+    assert(4, sizeof(struct {int a:3; int c:1; int c:5;}), "sizeof(struct {int a:3; int c:1; int c:5;})");
+    assert(8, sizeof(struct {int a:3; int:0; int c:5;}), "sizeof(struct {int a:3; int:0; int c:5;})");
+    assert(4, sizeof(struct {int a:3; int:0;}), "sizeof(struct {int a:3; int:0;})");
+
     printf("OK\n");
     return 0;
 }
