@@ -5,7 +5,8 @@ A small c compiler named 711cc.
 
 - Target architecture is x86_64
 - AT&T syntax
-- Goal is a self-hosting compiler
+- Support multibyte UTF-8 character in identifier
+- Goal is a self-hosting compile
 
 ## Build
 
