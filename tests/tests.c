@@ -46,6 +46,12 @@ char *g34 = {"foo"};
 float g40 = 1.5;
 double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
 
+struct {
+    char a;
+    int b : 5;
+    int c : 10;
+} g45 = {1, 2, 3};
+
 typedef struct Tree {
     int val;
     struct Tree *lhs;
@@ -1551,6 +1557,10 @@ of(char), \
     assert(1, ({ struct bit2 x={1,1,1}; x.a; }), "({ struct bit2 x={1,1,1}; x.a; })");
     assert(1, ({ struct bit2 x={1,1,1}; x.b; }), "({ struct bit2 x={1,1,1}; x.b; })");
     assert(-1, ({ struct bit2 x={1,1,1}; x.c; }), "({ struct bit2 x={1,1,1}; x.c; })");
+
+    assert(1, g45.a, "g45.a");
+    assert(2, g45.b, "g45.b");
+    assert(3, g45.c, "g45.c");
 
     printf("OK\n");
     return 0;

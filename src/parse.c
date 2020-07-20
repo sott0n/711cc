@@ -996,6 +996,20 @@ static Node *lvar_initializer(Token **rest, Token *tok, Var *var) {
     return create_lvar_init(init, var->ty, &desg, tok);
 }
 
+static long read_buf(char *buf, int sz) {
+    switch (sz) {
+    case 1:
+        return *buf;
+    case 2:
+        return *(short *)buf;
+    case 4:
+        return *(int *)buf;
+    default:
+        assert(sz == 8);
+        return *(long *)buf;
+    }
+}
+
 static void write_buf(char *buf, long val, int sz) {
     switch (sz) {
     case 1:
@@ -1030,8 +1044,19 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         int i = 0;
         for (Member *mem = ty->members; mem; mem = mem->next, i++) {
             Initializer *child = init->children[i];
-            if (child)
-                cur = write_gvar_data(cur, child, mem->ty, buf, offset + mem->offset);
+            if (!child)
+                continue;
+
+            if (mem->is_bitfield) {
+                char *loc = buf + offset + mem->offset;
+                long val = read_buf(loc, mem->ty->size);
+                long mask = (1L << mem->bit_width) - 1;
+                long newval = val | ((eval(child->expr) & mask) << mem->bit_offset);
+                write_buf(loc, newval, mem->ty->size);
+                continue;
+            }
+
+            cur = write_gvar_data(cur, child, mem->ty, buf, offset + mem->offset);
         }
         return cur;
     }
