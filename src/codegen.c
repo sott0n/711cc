@@ -9,13 +9,6 @@ static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Function *current_fn;
 
-static void println(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(output_file, fmt, ap);
-    fprintf(output_file, "\n");
-}
-
 static int count(void) {
     static int i = 1;
     return i++;
