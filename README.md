@@ -20,11 +20,8 @@ $ make
 You can compile a `.c` source to an assembly file with args `-o` and output file path:
 
 ```shell
-# Compile .c source code to tmp.s assembly file
-$ ./711cc -o tmp.s [file-path].c
-
-# Link and make a exectable file by gcc
-$ gcc -o tmp tmp.s
+# Compile .c source code to tmp.o object file
+$ ./711cc -o tmp.o [file-path].c
 
 # Execute
 $ ./tmp
@@ -44,6 +41,9 @@ $ ./711cc -I[path] [file-path].c
 
 # If `-D` is given, you can set a macro with `=`:
 $ ./711cc -D[Macro-func]=[Macro-body] [file-path].c
+
+# If `-S` is given, outputs as assembly:
+$ ./711cc -S -o tmp.s [file-path].c
 ```
 
 There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, the ELF module may be loaded anywhere in the 64-bit address space.
