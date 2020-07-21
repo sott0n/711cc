@@ -4,6 +4,8 @@ char **include_paths;
 bool opt_fpic = true;
 
 static bool opt_E;
+static bool opt_S;
+static bool opt_c;
 
 static FILE *tempfile;
 static char *input_path;
@@ -52,19 +54,19 @@ static void define(char *str) {
 }
 
 static char *get_output_filename() {
-    // If no output filename was specified, the output filename
-    // is made by replacing ".c" with ".s". If the input filename
-    // doesn't end with ".c", we simply append ".s".
+    // If no output filename was specified, the output filename is made
+    // by replacing ".c" with ".o" or ".s". If the input filename
+    // doesn't end with ".c", we simply append ".o" or ".s".
     char *filename = basename(strdup(input_path));
     int len = strlen(filename);
 
     if (3 <= len && strcmp(filename + len - 2, ".c") == 0) {
-        filename[len - 1] = 's';
+        filename[len - 1] = opt_S ? 's' : 'o';
         return filename;
     }
 
     char *buf = calloc(1, len + 3);
-    sprintf(buf, "%s.s", filename);
+    sprintf(buf, "%s.%c", filename, opt_S ? 's' : 'o');
     return buf;
 }
 
@@ -97,6 +99,16 @@ static void parse_args(int argc, char **argv) {
 
         if (!strcmp(argv[i], "-E")) {
             opt_E = true;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-S")) {
+            opt_S = true;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-c")) {
+            opt_c = true;
             continue;
         }
 
@@ -205,17 +217,44 @@ int main(int argc, char **argv) {
     // Traverse the AST to emit assembly
     codegen(prog);
 
-    // Write assembly to an output file.
-    fseek(tempfile, 0, SEEK_SET);
+    // If -S is given, assembly text is the final output.
+    if (opt_S) {
+        fseek(tempfile, 0, SEEK_SET);
 
-    FILE *out;
-    if (strcmp(output_path, "-") == 0) {
-        out = stdout;
-    } else {
-        out = fopen(output_path, "w");
-        if (!out)
-            error("cannot open output file: %s: %s", output_path, strerror(errno));
+        FILE *out;
+        if (strcmp(output_path, "-") == 0) {
+            out = stdout;
+        } else {
+            out = fopen(output_path, "w");
+            if (!out)
+                error("cannot open output file: %s: %s", output_path, strerror(errno));
+        }
+        copy_file(tempfile, out);
+        exit(0);
     }
-    copy_file(tempfile, out);
+
+    // Otherwise, run the assembler to assemble our output.
+    fclose(tempfile);
+
+    pid_t pid;
+    if ((pid = fork()) == 0) {
+        // Child process. Run the assembler.
+        execlp("as", "-c", "-o", output_path, tempfile_path, (char *)0);
+        fprintf(stderr, "exec failed: as: %s", strerror(errno));
+        _exit(1);
+    }
+
+    // Wait for the child process to finish.
+    for (;;) {
+        int status;
+        int w = waitpid(pid, &status, 0);
+        if (!w) {
+            error("waitpid failed: %s", strerror(errno));
+            exit(1);
+        }
+        if (WIFEXITED(status))
+            break;
+    }
+
     return 0;
 }

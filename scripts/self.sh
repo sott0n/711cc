@@ -9,12 +9,11 @@ rm -rf $TMP
 mkdir -p $TMP
 
 711cc() {
-    (cd $TMP; ../$CC -o ${1%.c}.s -I../src ../src/$1)
-    gcc -c -o $TMP/${1%.c}.o $TMP/${1%.c}.s
+    $CC -c -o $TMP/${1%.c}.o -Isrc src/$1
 }
 
 cc() {
-    gcc -c -o $TMP/${1%.c}.c $1
+    gcc -c -o $TMP/${1%.c}.c src/$1
 }
 
 711cc main.c

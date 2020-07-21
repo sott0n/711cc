@@ -16,18 +16,18 @@ $(OBJS): $(SRCROOT)/711cc.h
 	./scripts/self.sh tmp-stage3 ./711cc-stage2 711cc-stage3
 
 test: 711cc
-	(cd tests; ../711cc -I. -o- -DANSWER=42 tests.c) > tmp.s
-	$(CC) -o tmp tmp.s tests/extern.c
+	(cd tests; ../711cc -I. -c -o ../tmp.o -DANSWER=42 tests.c)
+	$(CC) -o tmp tmp.o tests/extern.c
 	./tmp
 
 test-nopic: 711cc tests/extern.o
-	(cd tests; ../711cc -I. -o- -DANSWER=42 -fno-pic tests.c) > tmp.s
-	$(CC) -static -o tmp tmp.s tests/extern.c
+	(cd tests; ../711cc -I. -c -o ../tmp.o -DANSWER=42 -fno-pic tests.c)
+	$(CC) -static -o tmp tmp.o tests/extern.c
 	./tmp
 
 test-stage2: 711cc-stage2 tests/extern.o
-	(cd tests; ../711cc-stage2 -I. -o- -DANSWER=42 tests.c) > tmp.s
-	$(CC) -static -o tmp tmp.s tests/extern.c
+	(cd tests; ../711cc-stage2 -I. -c -o ../tmp.o -DANSWER=42 tests.c)
+	$(CC) -static -o tmp tmp.o tests/extern.c
 	./tmp
 
 test-stage3: 711cc-stage3
