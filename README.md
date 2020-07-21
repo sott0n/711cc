@@ -64,9 +64,9 @@ $ ./tmp
 
 For "make" command, if `-M*` options are given, the compiler write a list of dependencies files to stdout or a file.
 
-- `-M` : show a rule suitable for make describing the dependencies of the main source file.
-- `-MD` : show a list of input files, except that `-E` is not implied.
-- `-MP` : add a phony target for each dependency other than the main file.
+- `-M` : Show a rule suitable for make describing the dependencies of the main source file.
+- `-MD` : Show a list of input files, except that `-E` is not implied.
+- `-MP` : Add a phony target for each dependency other than the main file.
 - `-MT` [target] : Change the target of the rule emitted by dependency generation.
 - `-MF` [file] : When used with -M or -MM, specifies a file to write the dependencies to.
 
