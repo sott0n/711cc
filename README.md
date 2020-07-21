@@ -27,11 +27,16 @@ $ ./711cc -o tmp.o [file-path].c
 $ ./tmp
 ```
 
-There are some parameters:
+## Options
+
+There are some options:
 
 ```shell
 # If `--help` is given, you can see a help text:
 $ ./711cc --help
+
+# If `-S` is given, outputs as assembly:
+$ ./711cc -S -o tmp.s [file-path].c
 
 # If `-E` is given, you can see preprocessed tokens:
 $ ./711cc -E [file-path].c
@@ -40,10 +45,7 @@ $ ./711cc -E [file-path].c
 $ ./711cc -I[path] [file-path].c
 
 # If `-D` is given, you can set a macro with `=`:
-$ ./711cc -D[Macro-func]=[Macro-body] [file-path].c
-
-# If `-S` is given, outputs as assembly:
-$ ./711cc -S -o tmp.s [file-path].c
+$ ./711cc -D[Macro-name]=[Macro-body] [file-path].c
 ```
 
 There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, the ELF module may be loaded anywhere in the 64-bit address space.
@@ -59,6 +61,14 @@ $ ./711cc -o tmp.s -fno-pic [file-path].c
 $ gcc -static -o tmp tmp.s
 $ ./tmp
 ```
+
+For "make" command, if `-M*` options are given, the compiler write a list of dependencies files to stdout or a file.
+
+- `-M` : show a rule suitable for make describing the dependencies of the main source file.
+- `-MD` : show a list of input files, except that `-E` is not implied.
+- `-MP` : add a phony target for each dependency other than the main file.
+- `-MT` [target] : Change the target of the rule emitted by dependency generation.
+- `-MF` [file] : When used with -M or -MM, specifies a file to write the dependencies to.
 
 ## Test
 

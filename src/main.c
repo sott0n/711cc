@@ -4,8 +4,13 @@ char **include_paths;
 bool opt_fpic = true;
 
 static bool opt_E;
+static bool opt_M;
+static bool opt_MP;
 static bool opt_S;
 static bool opt_c;
+
+static char *opt_MF;
+static char *opt_MT;
 
 static FILE *tempfile;
 static char *input_path;
@@ -102,6 +107,41 @@ static void parse_args(int argc, char **argv) {
             continue;
         }
 
+        if (!strcmp(argv[i], "-M")) {
+            opt_M = opt_E = true;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-MD")) {
+            opt_M = true;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-MP")) {
+            opt_MP = true;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-MT")) {
+            opt_MT = argv[++i];
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-MT", 3)) {
+            opt_MT = argv[i] + 3;
+            continue;
+        }
+
+        if (!strcmp(argv[i], "-MF")) {
+            opt_MF = argv[++i];
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-MF", 3)) {
+            opt_MF = argv[i] + 3;
+            continue;
+        }
+
         if (!strcmp(argv[i], "-S")) {
             opt_S = true;
             continue;
@@ -140,6 +180,37 @@ static void parse_args(int argc, char **argv) {
 
     if (!output_path)
         output_path = get_output_filename();
+}
+
+// Handle -M, -MM and the like. If these options are given, the
+// compiler write a list of input files to stdout (or a file if -MF is
+// given) in a format that "make" command can read. This feature is
+// used to automate file dependency management.
+//
+// You can ignore this function if you aren't sure what -M options are.
+static void print_dependencies(void) {
+    FILE *out;
+    if (opt_MF) {
+        out = fopen(opt_MF, "w");
+        if (!out)
+            error("-MF: cannot open %s: %s", opt_MF, strerror(errno));
+    } else {
+        out = stdout;
+    }
+
+    char **paths = get_input_files();
+    fprintf(out, "%s:", opt_MT ? opt_MT : paths[0]);
+
+    for (int i = 1; paths[i]; i++)
+        fprintf(out, " \\\n %s", paths[i]);
+    fprintf(out, "\n\n");
+
+    if (opt_MP)
+        for (int i = 1; paths[i]; i++)
+            fprintf(out, "%s:\n\n", paths[i]);
+
+    if (out != stdout)
+        fclose(out);
 }
 
 // Print tokens to stdout. Used for -E.
@@ -191,6 +262,10 @@ int main(int argc, char **argv) {
 
     // Preprocess
     tok = preprocess(tok);
+
+    // If -M or -MD are given, print out dependency info for make command.
+    if (opt_M)
+        print_dependencies();
 
     // If -E is given, print out preprocessed C code as a result.
     if (opt_E) {
