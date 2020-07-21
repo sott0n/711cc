@@ -6,7 +6,7 @@ bool opt_E;
 bool opt_fpic = true;
 
 static char *input_path;
-static char *output_path = "-";
+static char *output_path;
 
 static void usage(int status) {
     fprintf(stderr, "711cc [ -o <path> ] <file>\n");
@@ -40,6 +40,23 @@ static void define(char *str) {
         define_macro(strndup(str, eq - str), eq + 1);
     else
         define_macro(str, "");
+}
+
+static char *get_output_filename() {
+    // If no output filename was specified, the output filename
+    // is made by replacing ".c" with ".s". If the input filename
+    // doesn't end with ".c", we simply append ".s".
+    char *filename = basename(strdup(input_path));
+    int len = strlen(filename);
+
+    if (3 <= len && strcmp(filename + len - 2, ".c") == 0) {
+        filename[len - 1] = 's';
+        return filename;
+    }
+
+    char *buf = calloc(1, len + 3);
+    sprintf(buf, "%s.s", filename);
+    return buf;
 }
 
 static void parse_args(int argc, char **argv) {
@@ -99,6 +116,9 @@ static void parse_args(int argc, char **argv) {
 
     if (!input_path)
         error("no input files");
+
+    if (!output_path)
+        output_path = get_output_filename();
 }
 
 // Print tokens to stdout. Used for -E.

@@ -26,7 +26,7 @@ test-nopic: 711cc tests/extern.o
 	./tmp
 
 test-stage2: 711cc-stage2 tests/extern.o
-	(cd tests; ../711cc-stage2 -I. -DANSWER=42 tests.c) > tmp.s
+	(cd tests; ../711cc-stage2 -I. -o- -DANSWER=42 tests.c) > tmp.s
 	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
