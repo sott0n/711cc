@@ -169,6 +169,10 @@ static void parse_args(int argc, char **argv) {
             continue;
         }
 
+        if (!strncmp(argv[i], "-W", 2) || !strncmp(argv[i], "-O", 2) ||
+            !strcmp(argv[i], "-g"))
+            continue;
+
         if (argv[i][0] == '-' && argv[i][1] != '\0')
             error("unknown argument, %s", argv[i]);
 
