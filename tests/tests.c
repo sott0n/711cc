@@ -861,7 +861,7 @@ int main() {
     assert(1, _Alignof(char[3]), "_Alignof(char[3])");
     assert(4, _Alignof(int[3]), "_Alignof(int[3])");
     assert(1, _Alignof(struct {char a; char b;}[2]), "_Alignof(struct {char a; char b;}[2])");
-    assert(8, _Alignof(struct {char a; long b;}[2]), "_Alignof(struct {char a; long b;}[2])");
+    assert(16, _Alignof(struct {char a; long b;}[2]), "_Alignof(struct {char a; long b;}[2])");
 
     assert(1, ({ _Alignas(char) char x, y; &y-&x; }), "({ _Alignas(char) char x, y; &y-&x; })");
     assert(8, ({ _Alignas(long) char x, y; &y-&x; }), "({ _Alignas(long) char x, y; &y-&x; })");
@@ -1575,6 +1575,16 @@ of(char), \
     assert(0, strcmp("日本語", "\u65E5\u672C\u8A9E"), "strcmp(\"日本語\", \"\\u65E5\\u672C\\u8A9E\")");
     assert(0, strcmp("日本語", "\U000065E5\U0000672C\U00008A9E"), "strcmp(\"日本語\", \"\\U000065E5\\U0000672C\\U00008A9E\")");
     assert(0, strcmp("🌮", "\U0001F32E"), "strcmp(\"🌮\", \"\\U0001F32E\")");
+
+    assert(1, _Alignof(char[15]), "_Alignof(char[15])");
+    assert(16, _Alignof(char[16]), "_Alignof(char[16])");
+    assert(16, _Alignof(char[17]), "_Alignof(char[17])");
+    assert(8, _Alignof(long[1]), "_Alignof(long[1])");
+    assert(16, _Alignof(long[2]), "_Alignof(long[2])");
+    assert(16, _Alignof(long[3]), "_Alignof(long[3])");
+    assert(4, _Alignof(struct {char a; int b;}), "_Alignof(struct {char a; int b;})");
+    assert(16, _Alignof(struct {char a; int b;}[2]), "_Alignof(struct {char a; int b;}[2])");
+    assert(16, _Alignof(struct {char a; int b;}[3]), "_Alignof(struct {char a; int b;}[3])");
 
     printf("OK\n");
     return 0;

@@ -77,7 +77,13 @@ Type *func_type(Type *return_ty) {
 }
 
 Type *array_of(Type *base, int len) {
-    Type *ty = new_type(TY_ARRAY, base->size * len, base->align);
+    // AMD64 System V ABI has a special alignment rule for an array of
+    // length at least 16 bytes. We need to align such array to at least
+    // 16-byte boundaries.
+    int size = base->size * len;
+    int align = (16 <= size && base->align < 16) ? 16 : base->align;
+
+    Type *ty = new_type(TY_ARRAY, size, align);
     ty->base = base;
     ty->array_len = len;
     return ty;
