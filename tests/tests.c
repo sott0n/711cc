@@ -1587,5 +1587,4 @@ of(char), \
     assert(16, _Alignof(struct {char a; int b;}[3]), "_Alignof(struct {char a; int b;}[3])");
 
     printf("OK\n");
-    return 0;
 }
