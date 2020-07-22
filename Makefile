@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -fno-common
+CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
 SRCROOT=./src
 SRCDIRS:=$(shell find $(SRCROOT) -type d)
 SRCS=$(foreach dir, $(SRCDIRS), $(wildcard $(dir)/*.c))

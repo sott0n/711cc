@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdnoreturn.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
@@ -54,8 +55,8 @@ struct Token {
     Hideset *hideset;   // For macro expansion
 };
 
-void error(char *fmt, ...);
-void error_tok(Token *tok, char *fmt, ...);
+noreturn void error(char *fmt, ...);
+noreturn void error_tok(Token *tok, char *fmt, ...);
 void warn_tok(Token *tok, char *fmt, ...);
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);

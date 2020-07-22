@@ -46,7 +46,7 @@ static void verror_at(char *filename, char *input, int line_no,
     fprintf(stderr, "\n");
 }
 
-static void error_at(char *loc, char *fmt, ...) {
+noreturn static void error_at(char *loc, char *fmt, ...) {
     int line_no = 1;
     for (char *p = current_input; p < loc; p++)
         if (*p == '\n')
