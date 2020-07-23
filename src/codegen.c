@@ -201,6 +201,37 @@ static void cmp_zero(Type *ty) {
     }
 }
 
+// Convert uint64 to double.
+static void convert_ulong_double(char *r, char *fr) {
+    // This conversion is little tricky because x86 doesn't have an
+    // instruction to convert uint64 to double. All we have is cvtsi2sd
+    // which takes a signed 64-bit integer. Here is the strategy:
+    //
+    // 1. If the "sign" bit of a given uint64 value is 0, then we can
+    //    simply use cvtsi2sd.
+    //
+    // 2. Otherwise, We halve a uint64 value first to clear the most
+    //    significant bit, convert it to double using cvtsi2sd and then
+    //    double the result.
+    //
+    //    This is a lossy conversion because double's fraction part (52
+    //    bits long) can't represent all 64-bit integers. We need to
+    //    keep the least significant bit to prevent a rounding error.
+    int c = count();
+    println("  cmp $0, %s", r);
+    println("  jl .L.cast.%d", c);
+    println("  cvtsi2sd %s, %s", r, fr);
+    println("  jmp .L.cast.end.%d", c);
+    println(".L.cast.%d:", c);
+    println("  mov %s, %%rax", r);
+    println("  and $1, %%rax");
+    println("  shr %s", r);
+    println("  or %%rax, %s", r);
+    println("  cvtsi2sd %s, %s", r, fr);
+    println("  addsd %s, %s", fr, fr);
+    println(".L.cast.end.%d:", c);
+}
+
 static void cast(Type *from, Type *to) {
     if (to->kind == TY_VOID)
         return;
@@ -244,7 +275,10 @@ static void cast(Type *from, Type *to) {
     }
 
     if (to->kind == TY_DOUBLE) {
-        println("  cvtsi2sd %s, %s", r, fr);
+        if (from->size == 8 && from->is_unsigned)
+            convert_ulong_double(r, fr);
+        else
+            println("  cvtsi2sd %s, %s", r, fr);
         return;
     }
 
