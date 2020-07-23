@@ -10,6 +10,7 @@ int printf();
 int exit();
 int strcmp(char *p, char *q);
 int memcmp(char *, char *);
+long strlen(char *);
 double add_double(double x, double y);
 float add_float(float x, float y);
 float ret_float(float x);
@@ -1608,6 +1609,9 @@ of(char), \
     assert(55, add10_int(1,2,3,4,5,6,7,8,9,10), "add10_int(1,2,3,4,5,6,7,8,9,10)");
     assert(55, add10_double(1,2,3,4,5,6,7,8,9,10), "add10_double(1,2,3,4,5,6,7,8,9,10)");
     assert(0, ({ char buf[200]; sprintf(buf, "%d %.1f %.1f %.1f %d %d %.1f %d %d %d %d %.1f %d %d %.1f %.1f %.1f %.1f %d", 1, 1.0, 1.0, 1.0, 1, 1, 1.0, 1, 1, 1, 1, 1.0, 1, 1, 1.0, 1.0, 1.0, 1.0, 1); strcmp("1 1.0 1.0 1.0 1 1 1.0 1 1 1 1 1.0 1 1 1.0 1.0 1.0 1.0 1", buf); }), "({ char buf[200]; sprintf(buf, \"%d %.1f %.1f %.1f %d %d %.1f %d %d %d %d %.1f %d %d %.1f %.1f %.1f %.1f %d\", 1, 1.0, 1.0, 1.0, 1, 1, 1.0, 1, 1, 1, 1, 1.0, 1, 1, 1.0, 1.0, 1.0, 1.0, 1); strcmp(\"1 1.0 1.0 1.0 1 1 1.0 1 1 1 1 1.0 1 1 1.0 1.0 1.0 1.0 1\", buf); })");
+
+    assert(11, strlen(__DATE__), "strlen(__DATE__)");
+    assert(8, strlen(__TIME__), "strlen(__TIME__)");
 
     printf("OK\n");
 }
