@@ -338,6 +338,131 @@ static void builtin_va_start(Node *node) {
     top++;
 }
 
+// Load a local variable at RSP+offset to a xmm register.
+static void load_fp_arg(Type *ty, int offset, int r) {
+    if (ty->kind == TY_FLOAT)
+        println("  movss -%d(%%rbp), %%xmm%d", offset, r);
+    else
+        println("  movsd -%d(%%rbp), %%xmm%d", offset, r);
+}
+
+// Load a local variable at RSP+offset to argreg[r].
+static void load_gp_arg(Type *ty, int offset, int r) {
+    char *insn = ty->is_unsigned ? "movz" : "movs";
+
+    if (ty->size == 1)
+        println("  %sbl -%d(%%rbp), %s", insn, offset, argreg32[r]);
+    else if (ty->size == 2)
+        println("  %swl -%d(%%rbp), %s", insn, offset, argreg32[r]);
+    else if (ty->size == 4)
+        println("  mov -%d(%%rbp), %s", offset, argreg32[r]);
+    else
+        println("  mov -%d(%%rbp), %s", offset, argreg64[r]);
+}
+
+// Pushs a local variable at RSP+offset to the stack.
+static void push_arg(Type *ty, int offset) {
+    if (is_flonum(ty)) {
+        if (ty->kind == TY_FLOAT)
+            println("  mov -%d(%%rbp), %%eax", offset);
+        else
+            println("  mov -%d(%%rbp), %%rax", offset);
+    } else {
+        char *insn = ty->is_unsigned ? "movz" : "movs";
+        if (ty->size == 1)
+            println("  %sbl -%d(%%rbp), %%eax", insn, offset);
+        else if (ty->size == 2)
+            println("  %swl -%d(%%rbp), %%eax", insn, offset);
+        else if (ty->size == 4)
+            println("  mov -%d(%%rbp), %%eax", offset);
+        else
+            println("  mov -%d(%%rbp), %%rax", offset);
+    }
+
+    println("  push %%rax");
+}
+
+// Load function call arguments. Arguments are already evaluated and
+// stored to the stack as local variables. What we need to do in this
+// function is to load them to registers or push them to the stack as
+// specified by the x86-64 psABI. Here is what the spec says:
+//
+// - Up to 6 arguments of integral type are passed using RDI, RSI,
+//   RDX, RCX, R8 and R9.
+//
+// - Up to 8 arguments of floating-point type are passed using XMM0 to
+//   XMM7.
+//
+// - If all registers of an appropriate type are already used, push an
+//   argument to the stack in the right-to-left order.
+//
+// - Each argument passed on the stack takes 8 bytes, and the end of
+//   the argument area must be aligned to a 16 byte boundary.
+//
+// - If a function is variadic, set the number of floating-point type
+//   arguments to RSP.
+static int load_args(Node *node) {
+    int gp = 0;
+    int fp = 0;
+    int stack_size = 0;
+    bool *pass_stack = calloc(node->nargs, sizeof(bool));
+
+    // Load as many arguments as possible to the registers.
+    for (int i = 0; i < node->nargs; i++) {
+        Var *arg = node->args[i];
+
+        if (is_flonum(arg->ty)) {
+            if (fp < 8) {
+                load_fp_arg(arg->ty, arg->offset, fp++);
+                continue;
+            }
+        } else {
+            if (gp < 6) {
+                load_gp_arg(arg->ty, arg->offset, gp++);
+                continue;
+            }
+        }
+
+        pass_stack[i] = true;
+        stack_size += 8;
+    }
+
+    // If we have arguments passed on the stack, push them to the stack.
+    if (stack_size) {
+        if (stack_size % 16) {
+            println("  sub $8, %%rsp");
+            stack_size += 8;
+        }
+
+        for (int i = node->nargs - 1; i >= 0; i--) {
+            if (!pass_stack[i])
+                continue;
+            Var *arg = node->args[i];
+            push_arg(arg->ty, arg->offset);
+        }
+    }
+
+    // Set the number of floating-point arguments to RSP. Technically,
+    // we don't have to do this if a function isn't variadic, but we do
+    // this unconditionally for the sake of simplicity.
+    //
+    // The background of this ABI requirement: At the beginning of a
+    // variadic function, there exists code to save all parameter-passing
+    // registers to the stack so that va_arg can retrieve them one by one
+    // later. But in most cases, a variadic function doesn't take any
+    // floating-point argument, or even if it does, it takes only a few.
+    // So, saving all XMM0 to XMM7 registers is in most cases wasteful.
+    // By passing the actual number of floating-point arguments, the
+    // prologue code can save that cost.
+    int n = 0;
+    for (int i = 0; i < node->nargs; i++)
+        if (is_flonum(node->args[i]->ty))
+            n++;
+    println("  mov $%d, %%rax", n);
+
+    return stack_size;
+}
+
 // Generate code for a given node.
 static void gen_expr(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
@@ -501,35 +626,13 @@ static void gen_expr(Node *node) {
         println("  movsd %%xmm13, 56(%%rsp)");
 
         gen_expr(node->lhs);
-
-        // Load arguments from the stack
-        int gp = 0, fp = 0;
-        for (int i = 0; i < node->nargs; i++) {
-            Var *arg = node->args[i];
-            char *insn = arg->ty->is_unsigned ? "movz" : "movs";
-            int sz = arg->ty->size;
-
-            if (is_flonum(arg->ty)) {
-                if (arg->ty->kind == TY_FLOAT)
-                    println("  movss -%d(%%rbp), %%xmm%d", arg->offset, fp++);
-                else
-                    println("  movsd -%d(%%rbp), %%xmm%d", arg->offset, fp++);
-                continue;
-            }
-
-            if (sz == 1)
-                println("  %sbl -%d(%%rbp), %s", insn, arg->offset, argreg32[gp++]);
-            else if (sz == 2)
-                println("  %swl -%d(%%rbp), %s", insn, arg->offset, argreg32[gp++]);
-            else if (sz == 4)
-                println("  mov -%d(%%rbp), %s", arg->offset, argreg32[gp++]);
-            else
-                println("  mov -%d(%%rbp), %s", arg->offset, argreg64[gp++]);
-        }
+        int memarg_size = load_args(node);
 
         // Call a function
-        println("  mov $%d, %%rax", fp);
         println("  call *%s", reg(--top));
+
+        if (memarg_size)
+            println("  sub $%d, %%rsp", memarg_size);
 
         // The Systen V x86-64 ABI has a special rule regarding a boolean
         // return value that only the lower 8 bits are valid for it and
