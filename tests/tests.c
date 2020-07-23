@@ -1593,5 +1593,15 @@ of(char), \
     assert(1, 0x8000000000001400 == 0x1.0000000000002p63, "0x8000000000001400 == 0x1.0000000000002p63");
     assert(1, 0x8000000000001401 == 0x1.0000000000003p63, "0x8000000000001401 == 0x1.0000000000003p63");
 
+    assert(1, ({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.a; }), "({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.a; })");
+    assert(2, ({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.b; }), "({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.b; })");
+    assert(3, ({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.c; }), "({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.c; })");
+    assert(4, ({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.d; }), "({ struct { int a; struct { int b; struct { int c; }; }; int d; } x = {1,2,3,4}; x.d; })");
+
+    assert(0xef, ({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.a; }), "({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.a; })");
+    assert(0xbe, ({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.b; }), "({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.b; })");
+    assert(0xad, ({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.c; }), "({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.c; })");
+    assert(0xde, ({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.d; }), "({ union { struct { unsigned char a,b,c,d; }; long e; } x; x.e=0xdeadbeef; x.d; })");
+
     printf("OK\n");
 }
