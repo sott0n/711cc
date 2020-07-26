@@ -147,7 +147,7 @@ static bool is_keyword(Token *tok) {
     return false;
 }
 
-static char read_escaped_char(char **new_ops, char *p) {
+static int read_escaped_char(char **new_ops, char *p) {
     if ('0' <= *p && *p <= '7') {
         // Read an octal number
         int c = *p++ - '0';
@@ -169,8 +169,6 @@ static char read_escaped_char(char **new_ops, char *p) {
         int c = 0;
         for (; is_hex(*p); p++) {
             c = (c * 16) + from_hex(*p);
-            if (c > 255)
-                error_at(p, "hex escape sequence out of range");
         }
         *new_ops = p;
         return c;
@@ -189,6 +187,47 @@ static char read_escaped_char(char **new_ops, char *p) {
     case 'e': return 27;
     default: return *p;
     }
+}
+
+// Read a UTF-8 encoded Unicode code point from a source file.
+// We assume that source files are always in UTF-8.
+//
+// UTF-8 is a variable-width encoding in which one code point is
+// encoded in one to four bytes. One byte UTF-8 code points are
+// identical to ASCII. Non-ASCII characters are encoded using more
+// than one byte.
+static int read_utf8_char(char **new_pos, char *p) {
+    if ((unsigned char)*p < 0b10000000) {
+        *new_pos = p + 1;
+        return *p;
+    }
+
+    char *start = p;
+    int len;
+    int c;
+
+    if ((unsigned char)*p >= 0b11110000) {
+        len = 4;
+        c = *p++ & 0b111;
+    } else if ((unsigned char)*p >= 0b11100000) {
+        len = 3;
+        c = *p++ & 0b1111;
+    } else if ((unsigned char)*p >= 0b11000000) {
+        len = 2;
+        c = *p++ & 0b11111;
+    } else {
+        error_at(start, "invalid UTF-8 sequence");
+    }
+
+    for (int i = 0; i < len - 1; i++) {
+        if (!(*p & 0b10000000))
+          error_at(start, "invalid UTF-8 sequence");
+        c = (c << 6) | (*p & 0b111111);
+        p++;
+    }
+
+    *new_pos = p;
+    return c;
 }
 
 static Token *read_string_literal(Token *cur, char *start) {
@@ -225,11 +264,11 @@ static Token *read_char_literal(Token *cur, char *start) {
     if (*p == '\0')
         error_at(start, "unclosed char literal");
 
-    char c;
+    int c;
     if (*p == '\\')
         c = read_escaped_char(&p, p + 1);
     else
-        c = *p++;
+        c = read_utf8_char(&p, p);
 
     if (*p != '\'')
         error_at(p, "char literal too long");
@@ -445,6 +484,13 @@ Token *tokenize(char *filename, int file_no, char *p) {
         if (*p == '"') {
             cur = read_string_literal(cur, p);
             p += cur->len;
+            continue;
+        }
+
+        // Wide character literal
+        if (startswith(p, "L'")) {
+            cur = read_char_literal(cur, p + 1);
+            p += cur->len + 1;
             continue;
         }
 

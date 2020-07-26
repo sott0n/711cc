@@ -1617,5 +1617,14 @@ of(char), \
     assert(1, __COUNTER__, "__COUNTER__");
     assert(2, __COUNTER__, "__COUNTER__");
 
+    assert(4, sizeof(L'\0'), "sizeof(L'\\0')");
+    assert(-1, L'\xffffffff'>>31, "L'\\xffffffff'>>31");
+    assert(97, L'a', "L'a'");
+    assert(946, L'β', "L'β'");
+    assert(12354, L'あ', "L'あ'");
+    assert(127843, L'🍣', "L'🍣'");
+    assert(11, ({ int 🍣=11; 🍣; }), "({ int 🍣=11; 🍣; })");
+    assert(0, ({ char 🍣[13]="hello world"; strcmp(🍣, "hello world"); }), "({ char 🍣[13]=\"hello world\"; strcmp(🍣, \"hello world\"); })");
+
     printf("OK\n");
 }
