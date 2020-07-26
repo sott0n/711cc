@@ -550,6 +550,25 @@ char **get_input_files(void) {
     return input_files;
 }
 
+// Replaces \r or \r\n with \n.
+static void canonicalize_newline(char *p) {
+    char *q = p;
+
+    while (*p) {
+        if (p[0] == '\r' && p[1] == '\n') {
+            *q++ = '\n';
+            p += 2;
+        } else if (p[0] == '\r') {
+            *q++ = '\n';
+            p++;
+        } else {
+            *q++ = *p++;
+        }
+    }
+
+    *q = '\0';
+}
+
 // Removes backslashes followed by a newline.
 static void remove_backslash_newline(char *p) {
     char *q = p;
@@ -649,6 +668,7 @@ Token *tokenize_file(char *path) {
     if (!p)
         return NULL;
 
+    canonicalize_newline(p);
     remove_backslash_newline(p);
     convert_universal_chars(p);
 
