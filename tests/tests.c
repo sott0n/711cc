@@ -1613,5 +1613,9 @@ of(char), \
     assert(11, strlen(__DATE__), "strlen(__DATE__)");
     assert(8, strlen(__TIME__), "strlen(__TIME__)");
 
+    assert(0, __COUNTER__, "__COUNTER__");
+    assert(1, __COUNTER__, "__COUNTER__");
+    assert(2, __COUNTER__, "__COUNTER__");
+
     printf("OK\n");
 }
