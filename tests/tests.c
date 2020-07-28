@@ -1640,5 +1640,8 @@ of(char), \
     assert(12354, U'あ', "U'あ'");
     assert(127843, U'🍣', "U'🍣'");
 
+    assert(4, sizeof(u8"abc"), "sizeof(u8\"abc\")");
+    assert(0, strcmp(u8"abc", "abc"), "strcmp(u8\"abc\", \"abc\")");
+
     printf("OK\n");
 }
