@@ -1643,5 +1643,15 @@ of(char), \
     assert(4, sizeof(u8"abc"), "sizeof(u8\"abc\")");
     assert(0, strcmp(u8"abc", "abc"), "strcmp(u8\"abc\", \"abc\")");
 
+    assert(2, sizeof(u""), "sizeof(u\"\")");
+    assert(10, sizeof(u"\xffzzz"), "sizeof(u\"\\xffzzz\")");
+    assert(0, memcmp(u"", "\0\0", 2), "memcmp(u\"\", \"\\0\\0\", 2)");
+    assert(0, memcmp(u"abc", "a\0b\0c\0\0\0", 8), "memcmp(u\"abc\", \"a\\0b\\0c\\0\\0\\0\", 8)");
+    assert(0, memcmp(u"日本語", "\345e,g\236\212\0\0", 8), "memcmp(u\"日本語\", \"\\345e,g\\236\\212\\0\\0\", 8)");
+    assert(0, memcmp(u"🍣", "<\330c\337\0\0", 6), "memcmp(u\"🍣\", \"<\\330c\\337\\0\\0\", 6)");
+    assert('β', u"βb"[0], "u\"βb\"[0]");
+    assert('b', u"βb"[1], "u\"βb\"[1]");
+    assert(0, u"βb"[2], "u\"βb\"[2]");
+
     printf("OK\n");
 }

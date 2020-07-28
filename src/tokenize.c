@@ -230,32 +230,69 @@ static int read_utf8_char(char **new_pos, char *p) {
     return c;
 }
 
-static Token *read_string_literal(Token *cur, char *start) {
-    char *p = start + 1;
-    char *end = p;
-
-    // Find the closing double-quote
-    for (; *end != '"'; end++) {
-        if (*end == '\0')
+// Find a closing double-quote
+static char *string_literal_end(char *p) {
+    char *start = p;
+    for (; *p != '"'; p++) {
+        if (*p == '\0')
             error_at(start, "unclosed starting literal");
-        if (*end == '\\')
-            end++;
+        if (*p == '\\')
+            p++;
     }
+    return p;
+}
 
-    // Allocate a buffer that is large enough to hold the entire string.
-    char *buf = calloc(1, end - p + 1);
+static Token *read_string_literal(Token *cur, char *start) {
+    char *end = string_literal_end(start + 1);
+    char *buf = calloc(1, end - start);
     int len = 0;
 
-    while (*p != '"') {
+    for (char *p = start + 1; p < end;) {
         if (*p == '\\')
             buf[len++] = read_escaped_char(&p, p + 1);
         else
             buf[len++] = *p++;
     }
 
-    Token *tok = new_token(TK_STR, cur, start, p - start + 1);
+    Token *tok = new_token(TK_STR, cur, start, end - start + 1);
     tok->ty = array_of(ty_char, len + 1);
     tok->str = buf;
+    return tok;
+}
+
+// Read a UTF-8-encoded string literal and stranscode it in UTF-16.
+//
+// UTF-16 is yet another variable-width encoding for Unicode. Code
+// points smaller than U+10000 are encoded in 2 bytes. Code points
+// equal to or larger than that are encoded in 4 bytes. Each 2 bytes
+// in the 4 byte sequence is called "surrogate", and a 4 byte sequence
+// is called a "surrogate pair".
+static Token *read_utf16_string_literal(Token *cur, char *start) {
+    char *end = string_literal_end(start + 1);
+    uint16_t *buf = calloc(2, end - start);
+    int len = 0;
+
+    for (char *p = start + 1; p < end;) {
+        if (*p == '\\') {
+            buf[len++] = read_escaped_char(&p, p + 1);
+            continue;
+        }
+
+        uint32_t c = read_utf8_char(&p, p);
+        if (c < 0x10000) {
+            // Encode a code point in 2 bytes.
+            buf[len++] = c;
+        } else {
+            // Encode a code point in 4 bytes.
+            c -= 0x10000;
+            buf[len++] = 0xd800 + ((c >> 10) & 0x3ff);
+            buf[len++] = 0xdc00 + (c & 0x3ff);
+        }
+    }
+
+    Token *tok = new_token(TK_STR, cur, start, end - start + 1);
+    tok->ty = array_of(ty_ushort, len + 1);
+    tok->str = (char *)buf;
     return tok;
 }
 
@@ -491,6 +528,13 @@ Token *tokenize(char *filename, int file_no, char *p) {
         if (startswith(p, "u8\"")) {
             cur = read_string_literal(cur, p + 2);
             p += cur->len + 2;
+            continue;
+        }
+
+        // UTF-16 string literal
+        if (startswith(p, "u\"")) {
+            cur = read_utf16_string_literal(cur, p + 1);
+            p += cur->len + 1;
             continue;
         }
 
