@@ -13,7 +13,7 @@ mkdir -p $TMP
 }
 
 cc() {
-    gcc -c -o $TMP/${1%.c}.c src/$1
+    gcc -c -o $TMP/${1%.c}.o src/$1
 }
 
 711cc main.c

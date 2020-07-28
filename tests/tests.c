@@ -1626,5 +1626,12 @@ of(char), \
     assert(11, ({ int 🍣=11; 🍣; }), "({ int 🍣=11; 🍣; })");
     assert(0, ({ char 🍣[13]="hello world"; strcmp(🍣, "hello world"); }), "({ char 🍣[13]=\"hello world\"; strcmp(🍣, \"hello world\"); })");
 
+    assert(2, sizeof(u'\0'), "sizeof(u'\\0')");
+    assert(1, u'\xffff'>>15, "u'\\xffff'>>15");
+    assert(97, u'a', "u'a'");
+    assert(946, u'β', "u'β'");
+    assert(12354, u'あ', "u'あ'");
+    assert(57187, u'🍣', "u'🍣'");
+
     printf("OK\n");
 }

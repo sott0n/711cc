@@ -259,7 +259,7 @@ static Token *read_string_literal(Token *cur, char *start) {
     return tok;
 }
 
-static Token *read_char_literal(Token *cur, char *start) {
+static Token *read_char_literal(Token *cur, char *start, Type *ty) {
     char *p = start + 1;
     if (*p == '\0')
         error_at(start, "unclosed char literal");
@@ -276,7 +276,7 @@ static Token *read_char_literal(Token *cur, char *start) {
 
     Token *tok = new_token(TK_NUM, cur, start, p - start);
     tok->val = c;
-    tok->ty = ty_int;
+    tok->ty = ty;
     return tok;
 }
 
@@ -487,17 +487,31 @@ Token *tokenize(char *filename, int file_no, char *p) {
             continue;
         }
 
-        // Wide character literal
-        if (startswith(p, "L'")) {
-            cur = read_char_literal(cur, p + 1);
-            p += cur->len + 1;
+        // Character literal
+        if (*p == '\'') {
+            cur = read_char_literal(cur, p, ty_int);
+            p += cur->len;
             continue;
         }
 
-        // Character literal
-        if (*p == '\'') {
-            cur = read_char_literal(cur, p);
-            p += cur->len;
+        // UTF-16 character literal
+        if (startswith(p, "u'")) {
+            cur = read_char_literal(cur, p + 1, ty_ushort);
+            p += cur->len + 1;
+
+            // It is usually a programming error if a u'' literal cannot be
+            // represented in char16_t. We do not report that error and
+            // instead use a low surrogate as a value, because that's what
+            // gcc does.
+            if (cur->val > 0x10000)
+                cur->val = 0xdc00 + ((cur->val - 0x10000) & 0x3ff);
+            continue;
+        }
+
+        // Wide character literal
+        if (startswith(p, "L'")) {
+            cur = read_char_literal(cur, p + 1, ty_int);
+            p += cur->len + 1;
             continue;
         }
 
