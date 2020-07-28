@@ -10,10 +10,20 @@ A small c compiler named 711cc.
 
 ## Build
 
-Run make to build:
+Run make to build this compiler:
 
 ```shell
 $ make
+```
+
+For self-hosting, add args to build:
+
+```shell
+# 711cc compile self code
+$ make 711cc-stage2
+
+# stage2 compiler compile self code as stage3
+$ make 711cc-stage3
 ```
 
 ## Usage
