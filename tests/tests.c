@@ -1633,5 +1633,12 @@ of(char), \
     assert(12354, u'あ', "u'あ'");
     assert(57187, u'🍣', "u'🍣'");
 
+    assert(4, sizeof(U'\0'), "sizeof(U'\\0')");
+    assert(1, U'\xffffffff'>>31, "U'\\xffffffff'>>31");
+    assert(97, U'a', "U'a'");
+    assert(946, U'β', "U'β'");
+    assert(12354, U'あ', "U'あ'");
+    assert(127843, U'🍣', "U'🍣'");
+
     printf("OK\n");
 }

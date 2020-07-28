@@ -508,6 +508,13 @@ Token *tokenize(char *filename, int file_no, char *p) {
             continue;
         }
 
+        // UTF-32 character literal
+        if (startswith(p, "U'")) {
+            cur = read_char_literal(cur, p + 1, ty_uint);
+            p += cur->len + 1;
+            continue;
+        }
+
         // Wide character literal
         if (startswith(p, "L'")) {
             cur = read_char_literal(cur, p + 1, ty_int);
