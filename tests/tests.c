@@ -1664,5 +1664,16 @@ of(char), \
     assert(0, U"βb"[2], "U\"βb\"[2]");
     assert(1, U"\xffffffff"[0] >> 31, "U\"\\xffffffff\"[0] >> 31");
 
+    assert(4, sizeof(L""), "sizeof(L\"\")");
+    assert(20, sizeof(L"\xffzzz"), "sizeof(L\"\\xffzzz\")");
+    assert(0, memcmp(L"", "\0\0\0\0", 4), "memcmp(L\"\", \"\\0\\0\\0\\0\", 4)");
+    assert(0, memcmp(L"abc", "a\0\0\0b\0\0\0c\0\0\0\0\0\0\0", 16), "memcmp(L\"abc\", \"a\\0\\0\\0b\\0\\0\\0c\\0\\0\\0\\0\\0\\0\\0\", 16)");
+    assert(0, memcmp(L"日本語", "\345e\0\0,g\0\0\236\212\0\0\0\0\0\0", 16), "memcmp(L\"日本語\", \"\\345e\\0\\0,g\\0\\0\\236\\212\\0\\0\\0\\0\\0\\0\", 16)");
+    assert(0, memcmp(L"🍣", "c\363\001\0\0\0\0\0", 8), "memcmp(L\"🍣\", \"c\\363\\001\\0\\0\\0\\0\\0\", 8)");
+    assert('β', L"βb"[0], "L\"βb\"[0]");
+    assert('b', L"βb"[1], "L\"βb\"[1]");
+    assert(0, L"βb"[2], "L\"βb\"[2]");
+    assert(-1, L"\xffffffff"[0] >> 31, "L\"\\xffffffff\"[0] >> 31");
+
     printf("OK\n");
 }

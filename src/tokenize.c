@@ -567,6 +567,13 @@ Token *tokenize(char *filename, int file_no, char *p) {
             continue;
         }
 
+        // Wide string literal
+        if (startswith(p, "L\"")) {
+            cur = read_utf32_string_literal(cur, p + 1, ty_int);
+            p += cur->len + 1;
+            continue;
+        }
+
         // Character literal
         if (*p == '\'') {
             cur = read_char_literal(cur, p, ty_int);
