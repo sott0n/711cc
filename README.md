@@ -49,8 +49,8 @@ General options below:
 | --help | Show a help text |
 | -S | Outputs as assembly |
 | -E | Show preprocessed tokens |
-| -I [path] | Add include path |
-| -D [Macro] | Set an origin macro |
+| -I[path] | Add include path |
+| -D[Macro] | Set an origin macro |
 
 Instead of outputting the result of preprocessing, output a rule suitable for make describing the dependencies of the main source file. The preprocessor outputs one make rule containing the object file name for that source file, a colon, and the names of all the included files.
 
