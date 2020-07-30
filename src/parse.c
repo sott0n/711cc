@@ -846,6 +846,21 @@ static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
     return init;
 }
 
+// utf16-string-initializer = utf16-string-literal
+static Initializer *utf16_string_initializer(Token **rest, Token *tok, Type *ty) {
+    Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+    int len = (ty->array_len < tok->ty->array_len)
+        ? ty->array_len : tok->ty->array_len;
+
+    uint16_t *str = (uint16_t *)tok->str;
+    for (int i = 0; i < len; i++) {
+        Node *expr = new_num(str[i], tok);
+        init->children[i] = new_init(ty->base, 0, expr, tok);
+    }
+    *rest = tok->next;
+    return init;
+}
+
 // array-initializer = "{" initializer ("," initializer)* ","? "}"
 static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     bool has_paren = consume(&tok, tok, "{");
@@ -898,8 +913,13 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
 }
 
 static Initializer *initializer2(Token **rest, Token *tok, Type *ty) {
-    if (ty->kind == TY_ARRAY && ty->base->kind == TY_CHAR && tok->kind == TK_STR)
+    if (ty->kind == TY_ARRAY && ty->base->kind == TY_CHAR &&
+            tok->kind == TK_STR && tok->ty->base->size == 1)
         return string_initializer(rest, tok, ty);
+
+    if (ty->kind == TY_ARRAY && ty->base->kind == TY_SHORT &&
+            tok->kind == TK_STR && tok->ty->base->size == 2)
+        return utf16_string_initializer(rest, tok, ty);
 
     if (ty->kind == TY_ARRAY)
         return array_initializer(rest, tok, ty);
@@ -924,7 +944,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
     // of initializer elements.
     if (ty->kind == TY_ARRAY && ty->size < 0) {
         int len;
-        if (ty->base->kind == TY_CHAR && tok->kind == TK_STR)
+        if (tok->kind == TK_STR)
             len = tok->ty->array_len;
         else
             len = count_array_init_elements(tok, ty);

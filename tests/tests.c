@@ -15,6 +15,8 @@ double add_double(double x, double y);
 float add_float(float x, float y);
 float ret_float(float x);
 
+typedef unsigned short char16_t;
+
 int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
@@ -1674,6 +1676,9 @@ of(char), \
     assert('b', L"βb"[1], "L\"βb\"[1]");
     assert(0, L"βb"[2], "L\"βb\"[2]");
     assert(-1, L"\xffffffff"[0] >> 31, "L\"\\xffffffff\"[0] >> 31");
+
+    assert(u'α', ({ char16_t x[] = u"αβ"; x[0]; }), "({ char16_t x[] = u\"αβ\"; x[0]; })");
+    assert(u'β', ({ char16_t x[] = u"αβ"; x[1]; }), "({ char16_t x[] = u\"αβ\"; x[1]; })");
 
     printf("OK\n");
 }
