@@ -95,6 +95,35 @@ $ make test-stage2
 $ make test-stage3
 ```
 
+## Example
+Compile a program of cat command:
+```
+root@a9a608a739a4:/home# make
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/tokenize.o src/tokenize.c
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/type.o src/type.c
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/main.o src/main.c
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/parse.o src/parse.c
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/codegen.o src/codegen.c
+cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/preprocess.o src/preprocess.c
+cc -o 711cc ./src/tokenize.o ./src/type.o ./src/main.o ./src/parse.o ./src/codegen.o ./src/preprocess.o
+root@a9a608a739a4:/home# ./711cc -o examples/cat.o examples/cat.c
+root@a9a608a739a4:/home# gcc -o tmp examples/cat.o
+root@a9a608a739a4:/home# ./tmp examples/fib.c
+#include <stdio.h>
+
+int fib(int n) {
+     if (n == 0) return 0;
+     if (n == 1) return 1;
+     return fib(n - 1) + fib(n - 2);
+}
+
+int main() {
+    int c = 20;
+    for (int i = 0; i < c; i++)
+        printf("fib(%d): %d\n", i, fib(i));
+}
+```
+
 ## Future works
 
 - Wasm support in backend
