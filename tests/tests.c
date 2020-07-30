@@ -16,6 +16,8 @@ float add_float(float x, float y);
 float ret_float(float x);
 
 typedef unsigned short char16_t;
+typedef unsigned int char32_t;
+typedef int wchar_t;
 
 int g1, g2[4];
 
@@ -1679,6 +1681,13 @@ of(char), \
 
     assert(u'α', ({ char16_t x[] = u"αβ"; x[0]; }), "({ char16_t x[] = u\"αβ\"; x[0]; })");
     assert(u'β', ({ char16_t x[] = u"αβ"; x[1]; }), "({ char16_t x[] = u\"αβ\"; x[1]; })");
+
+    assert(U'🤔', ({ char32_t x[] = U"🤔x"; x[0]; }), "({ char32_t x[] = U\"🤔x\"; x[0]; })");
+    assert(U'x', ({ char32_t x[] = U"🤔x"; x[1]; }), "({ char32_t x[] = U\"🤔x\"; x[1]; })");
+
+    assert(L'🤔', ({ wchar_t x[] = L"🤔x"; x[0]; }), "({ wchar_t x[] = L\"🤔x\"; x[0]; })");
+    assert(L'x', ({ wchar_t x[] = L"🤔x"; x[1]; }), "({ wchar_t x[] = L\"🤔x\"; x[1]; })");
+
 
     printf("OK\n");
 }

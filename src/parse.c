@@ -861,6 +861,21 @@ static Initializer *utf16_string_initializer(Token **rest, Token *tok, Type *ty)
     return init;
 }
 
+// utf32-string-initializer = utf32-string-literal
+static Initializer *utf32_string_initializer(Token **rest, Token *tok, Type *ty) {
+    Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+    int len = (ty->array_len < tok->ty->array_len)
+        ? ty->array_len : tok->ty->array_len;
+
+    uint32_t *str = (uint32_t *)tok->str;
+    for (int i = 0; i < len; i++) {
+        Node *expr = new_num(str[i], tok);
+        init->children[i] = new_init(ty->base, 0, expr, tok);
+    }
+    *rest = tok->next;
+    return init;
+}
+
 // array-initializer = "{" initializer ("," initializer)* ","? "}"
 static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     bool has_paren = consume(&tok, tok, "{");
@@ -920,6 +935,10 @@ static Initializer *initializer2(Token **rest, Token *tok, Type *ty) {
     if (ty->kind == TY_ARRAY && ty->base->kind == TY_SHORT &&
             tok->kind == TK_STR && tok->ty->base->size == 2)
         return utf16_string_initializer(rest, tok, ty);
+
+    if (ty->kind == TY_ARRAY && ty->base->kind == TY_INT &&
+            tok->kind == TK_STR && tok->ty->base->size == 4)
+        return utf32_string_initializer(rest, tok, ty);
 
     if (ty->kind == TY_ARRAY)
         return array_initializer(rest, tok, ty);
