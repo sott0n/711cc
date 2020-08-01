@@ -538,6 +538,26 @@ static Token *subst(Token *tok, MacroArg *args) {
             }
 
             tok = y->next;
+
+            while (equal(tok, "##")) {
+                Token *r = tok->next;
+                Token *rhs = find_arg(args, r);
+
+                if (rhs && rhs->kind == TK_EOF) {
+                    tok = tok->next->next;
+                    break;
+                }
+
+                if (rhs) {
+                    *cur = *paste(cur, rhs);
+                    for (Token *t = rhs->next; t->kind != TK_EOF; t = t->next)
+                        cur = cur->next = copy_token(t);
+                } else {
+                    *cur = *paste(cur, r);
+                }
+                tok = r->next;
+            }
+
             continue;
         }
 

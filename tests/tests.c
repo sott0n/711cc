@@ -14,7 +14,6 @@ long strlen(char *);
 double add_double(double x, double y);
 float add_float(float x, float y);
 float ret_float(float x);
-
 typedef unsigned short char16_t;
 typedef unsigned int char32_t;
 typedef int wchar_t;
@@ -1441,6 +1440,12 @@ int main() {
 
 #define paste3(x) 2##x
     assert(23, paste3(1+2), "paste3(1+2)");
+
+#define paste4(x) 2##x##3
+    assert(44, paste4(1+2), "paste4(1+2)");
+
+#define paste5(x) 2##x##3##x
+    assert(254, paste5(1+2), "paste5(1+2)");
 
 #define M12
 #if defined(M12)
