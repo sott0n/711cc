@@ -17,6 +17,8 @@ static char *input_path;
 static char *output_path;
 static char *tempfile_path;
 
+static char *feature = "x86_64";
+
 void println(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -79,6 +81,11 @@ static void parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help"))
             usage(0);
+
+        if (!strncmp(argv[i], "--feature=", 10)) {
+            feature = argv[i] + 10;
+            continue;
+        }
 
         if (!strcmp(argv[i], "-o")) {
             if (!argv[++i])
@@ -294,7 +301,13 @@ int main(int argc, char **argv) {
     }
 
     // Traverse the AST to emit assembly
-    codegen(prog);
+    printf("%s", feature);
+    if (!strcmp(feature, "x86_64"))
+        codegen(prog);
+    else if (!strcmp(feature, "riscv64"))
+        codegen_riscv64(prog);
+    else
+        error("feature not supported: %s", feature);
 
     // If -S is given, assembly text is the final output.
     if (opt_S) {

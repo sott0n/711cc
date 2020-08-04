@@ -33,6 +33,11 @@ test-stage2: 711cc-stage2 tests/extern.o
 test-stage3: 711cc-stage3
 	diff 711cc-stage2 711cc-stage3
 
+test-riscv: 711cc tests/riscv_tests.c
+	(cd tests; ../711cc --feature=riscv64 -I. -S -c -o ../tmp.s riscv_tests.c)
+	riscv64-linux-gnu-gcc -o tmp tmp.s
+	qemu-riscv64 ./tmp
+
 test-all: test test-nopic test-stage2 test-stage3
 
 clean:

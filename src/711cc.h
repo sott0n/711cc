@@ -340,6 +340,12 @@ void add_type(Node *node);
 void codegen(Program *prog);
 
 //
+// codegen_riscv.c
+//
+
+void codegen_riscv64(Program *prog);
+
+//
 // main.c
 //
 
