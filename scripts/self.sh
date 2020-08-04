@@ -20,6 +20,7 @@ cc() {
 711cc type.c
 711cc parse.c
 711cc codegen.c
+711cc codegen_riscv.c
 711cc tokenize.c
 711cc preprocess.c
 

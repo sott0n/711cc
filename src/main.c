@@ -301,7 +301,6 @@ int main(int argc, char **argv) {
     }
 
     // Traverse the AST to emit assembly
-    printf("%s", feature);
     if (!strcmp(feature, "x86_64"))
         codegen(prog);
     else if (!strcmp(feature, "riscv64"))
