@@ -1,12 +1,11 @@
 # 711cc C Compiler
-![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master)
+![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master) ![x86-64](https://img.shields.io/badge/Feature-x86--64-blue) ![riscv-64](https://img.shields.io/badge/Feature-riscv--64-orange)
 
 A small C compiler named 711cc.
 
 ## Feature
 
-- Target architecture is x86_64
-- AT&T syntax
+- Target architecture are x86_64(AT&T syntax) and RISC-V(**Working**)
 - The parser is a hand-written recursive descendent parser
 - Support the preprocesser for macro
 - Support multibyte UTF-8 character in identifier
@@ -48,13 +47,14 @@ $ ./tmp
 
 General options below:  
 
-| Option    | Detail |
-| --------- | ------------------------ |
-| --help    | Show a help text         |
-| -S        | Outputs as assembly      |
-| -E        | Show preprocessed tokens |
-| -I[path]  | Add include path         |
-| -D[Macro] | Set an origin macro      |
+| Option             | Detail                               |
+| ------------------ | ------------------------------------ |
+| --help             | Show a help text                     |
+| --feature=[target] | Target architecture, x86-64/riscv-64 |
+| -S                 | Outputs as assembly                  |
+| -E                 | Show preprocessed tokens             |
+| -I[path]           | Add include path                     |
+| -D[Macro]          | Set an origin macro                  |
 
 Instead of outputting the result of preprocessing, output a rule suitable for make describing the dependencies of the main source file. The preprocessor outputs one make rule containing the object file name for that source file, a colon, and the names of all the included files.
 
@@ -86,7 +86,11 @@ $ ./tmp
 711cc comes with tests. To run the tests, give "test" as an argument:
 
 ```shell
+# Test for x86-64
 $ make test
+
+# Test for riscv-64
+$ make test-riscv
 ```
 
 For test a self hosting, give "test-stage2" and "test-stage3" as an argument:
