@@ -42,6 +42,6 @@ test-riscv: 711cc tests/riscv_tests.c
 test-all: test test-nopic test-stage2 test-stage3 test-riscv
 
 clean:
-	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o
+	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o examples/tmp*
 
 .PHONY: test clean
