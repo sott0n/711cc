@@ -295,7 +295,7 @@ static void cast(Type *from, Type *to) {
     }
 }
 
-static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
+static void divmod(Node *node, char *rs, char *rd, char *r64) {
     if (node->ty->size == 8) {
         println("  mov %s, %%rax", rd);
         if (node->ty->is_unsigned) {
@@ -307,15 +307,11 @@ static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
         }
         println("  mov %s, %s", r64, rd);
     } else {
-        println("  mov %s, %%eax", rd);
         if (node->ty->is_unsigned) {
-            println("  mov $0, %%edx");
-            println("  div %s", rs);
+            println("  divu %s, %s, %s", rd, rd, rs);
         } else {
-            println("  cdq");
-            println("  idiv %s", rs);
+            println("  div %s, %s, %s", rd, rd, rs);
         }
-        println("  mov %s, %s", r32, rd);
     }
 }
 
@@ -693,7 +689,7 @@ static void gen_expr(Node *node) {
         else if (node->ty->kind == TY_DOUBLE)
             println("  mulsd %s, %s", fs, fd);
         else
-            println("  imul %s, %s", rs, rd);
+            println("  mul %s, %s, %s", rd, rd, rs);
         return;
     case ND_DIV:
         if (node->ty->kind == TY_FLOAT)
@@ -701,10 +697,10 @@ static void gen_expr(Node *node) {
         else if (node->ty->kind == TY_DOUBLE)
             println("  divsd %s, %s", fs, fd);
         else
-            divmod(node, rs, rd, "%rax", "%eax");
+            divmod(node, rs, rd, "%rax");
         return;
     case ND_MOD:
-        divmod(node, rs, rd, "%rdx", "%edx");
+        divmod(node, rs, rd, "%rdx");
         return;
     case ND_BITAND:
         println("  and %s, %s", rs, rd);
@@ -916,7 +912,7 @@ static void gen_stmt(Node *node) {
             else
                 println("  mv a0, %s", reg(--top));
         }
-        println("  jr ra");
+        println("  j .L.return.%s", current_fn->name);
         return;
     case ND_EXPR_STMT:
         gen_expr(node->lhs);
@@ -1047,14 +1043,14 @@ static void emit_text(Program *prog) {
         //    println("  mov $0, %%rax");
     
         // Epilogue
-        //println(".L.return.%s:", fn->name);
+        println(".L.return.%s:", fn->name);
         //println("  mov -8(%%rbp), %%r12");
         //println("  mov -16(%%rbp), %%r13");
         //println("  mov -24(%%rbp), %%r14");
         //println("  mov -32(%%rbp), %%r15");
         //println("  mov %%rbp, %%rsp");
         //println("  pop %%rbp");
-        //println("  jr ra");
+        println("  jr ra");
     }
 }
 
