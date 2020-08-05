@@ -11,18 +11,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Install qemu-riscv64
+      run: |
+          git clone https://git.qemu.org/git/qemu.git
+          cd qemu
+          ./configure --static --disable-system --target-list=riscv64-linux-user --python=/usr/bin/python3.6
+          make -j $(nproc)
+          sudo cp riscv64-linux-user/qemu-riscv64 /usr/bin/
+
+    - name: Install gcc cross-compiler for riscv
+      run: |
+          sudo dpkg --add-architecture riscv64
+          sudo apt-get install gcc-riscv64-linux-gnu
+          sudo ln -s /usr/riscv64-linux-gnu/lib/ld-linux-riscv64-lp64d.so.1 /lib
+
     - name: Test tokenize
       run: |
           make
           cd tests
           ../711cc -I. -E tests.c
+
     - name: Test for compile
       run: make test
+
     - name: Test with nopic
       run: make test-nopic
+
     - name: Test for self hosting
       run: make test-stage2
+
     - name: Check a diff between stage2 and stage3 compiler
       run: make test-stage3
+
     - name: Test RISC-V-64 target
       run: make test-riscv
+      env:
+          LD_LIBRARY_PATH: /usr/riscv64-linux-gnu/lib/
+
