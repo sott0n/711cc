@@ -1,4 +1,6 @@
 # 711cc C Compiler
+![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master)
+
 A small C compiler named 711cc.
 
 ## Feature
