@@ -8,9 +8,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Test tokenize
@@ -26,3 +24,5 @@ jobs:
       run: make test-stage2
     - name: Check a diff between stage2 and stage3 compiler
       run: make test-stage3
+    - name: Test RISC-V-64 target
+      run: make test-riscv
