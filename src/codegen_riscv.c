@@ -741,13 +741,11 @@ static void gen_expr(Node *node) {
             println("  ucomisd %s, %s", fs, fd);
             println("  setb %%al");
         } else {
-            println("  cmp %s, %s", rs, rd);
             if (node->lhs->ty->is_unsigned)
                 println("  setb %%al");
             else
-                println("  setl %%al");
+                println("  slt %s, %s, %s", rd, rd, rs);
         }
-        println("  movzx %%al, %s", rd);
         return;
     case ND_LE:
         if (node->lhs->ty->kind == TY_FLOAT) {
@@ -757,13 +755,13 @@ static void gen_expr(Node *node) {
             println("  ucomisd %s, %s", fs, fd);
             println("  setbe %%al");
         } else {
-            println("  cmp %s, %s", rs, rd);
             if (node->lhs->ty->is_unsigned)
                 println("  setbe %%al");
-            else
-                println("  setle %%al");
+            else {
+                println("  addi %s, %s, 1", rs, rs);
+                println("  slt %s, %s, %s", rd, rd, rs);
+            }
         }
-        println("  movzx %%al, %s", rd);
         return;
     case ND_SHL:
         println("  mov %s, %%rcx", reg(top));
