@@ -22,7 +22,8 @@ jobs:
     - name: Install gcc cross-compiler for riscv
       run: |
           sudo dpkg --add-architecture riscv64
-          sudo apt-get install gcc-riscv64-linux-gnu
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-riscv64-linux-gnu
           sudo ln -s /usr/riscv64-linux-gnu/lib/ld-linux-riscv64-lp64d.so.1 /lib
 
     - name: Test tokenize
