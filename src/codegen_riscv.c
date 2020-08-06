@@ -716,20 +716,22 @@ static void gen_expr(Node *node) {
             println("  ucomiss %s, %s", fs, fd);
         else if (node->lhs->ty->kind == TY_DOUBLE)
             println("  ucomisd %s, %s", fs, fd);
-        else
-            println("  cmp %s, %s", rs, rd);
-        println("  sete %%al");
-        println("  movzx %%al, %s", rd);
+        else {
+            println("  sub %s, zero, %s", rs, rs);
+            println("  add %s, %s, %s", rd, rd, rs);
+        }
+        println("  seqz %s, %s", rd, rd);
         return;
     case ND_NE:
         if (node->lhs->ty->kind == TY_FLOAT)
             println("  ucomiss %s, %s", fs, fd);
         else if (node->lhs->ty->kind == TY_DOUBLE)
             println("  ucomisd %s, %s", fs, fd);
-        else
-            println("  cmp %s, %s", rs, rd);
-        println("  setne %%al");
-        println("  movzx %%al, %s", rd);
+        else {
+            println("  sub %s, zero, %s", rs, rs);
+            println("  add %s, %s, %s", rd, rd, rs);
+        }
+        println("  snez %s, %s", rd, rd);
         return;
     case ND_LT:
         if (node->lhs->ty->kind == TY_FLOAT) {
