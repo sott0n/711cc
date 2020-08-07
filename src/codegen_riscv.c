@@ -49,7 +49,7 @@ static void gen_addr(Node *node) {
         if (node->var->is_local) {
             // A local variable resides on the stack and has a fixed offset
             // from the base pointer.
-            println("  lea -%d(%%rbp), %s", node->var->offset, reg(top++));
+            top++;
             return;
         }
 
@@ -125,7 +125,7 @@ static void gen_addr(Node *node) {
 }
 
 // Load a value from where the stack top is pointing to.
-static void load(Type *ty) {
+static void load(Type *ty, int offset) {
     if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC) {
         // If it is an array, do nothing because in general we can't load
         // an entire array to a register. As a result, the result of an
@@ -159,11 +159,12 @@ static void load(Type *ty) {
         println("  %sbl (%s), %s", insn, rs, rd);
     else if (ty->size == 2)
         println("  %swl (%s), %s", insn, rs, rd);
-    else
-        println("  mov (%s), %s", rs, rd);
+    else {
+        println("  lw %s, -%d(s0)", rd, offset);
+    }
 }
 
-static void store(Type *ty) {
+static void store(Type *ty, int offset) {
     char *rd = reg(top - 1);
     char *rs = reg(top - 2);
 
@@ -181,7 +182,7 @@ static void store(Type *ty) {
     } else if (ty->size == 2) {
         println("  mov %sw, (%s)", rs, rd);
     } else if (ty->size == 4) {
-        println("  mov %sd, (%s)", rs, rd);
+        println("  sw %s, -%d(s0)", rs, offset);
     } else {
         println("  mov %s, (%s)", rs, rd);
     }
@@ -480,11 +481,11 @@ static void gen_expr(Node *node) {
         return;
     case ND_VAR:
         gen_addr(node);
-        load(node->ty);
+        load(node->ty, node->var->offset);
         return;
     case ND_MEMBER: {
         gen_addr(node);
-        load(node->ty);
+        load(node->ty, node->member->offset);
 
         Member *mem = node->member;
         if (mem->is_bitfield) {
@@ -498,7 +499,7 @@ static void gen_expr(Node *node) {
     }
     case ND_DEREF:
         gen_expr(node->lhs);
-        load(node->ty);
+        load(node->ty, node->var->offset);
         return;
     case ND_ADDR:
         gen_addr(node->lhs);
@@ -516,7 +517,7 @@ static void gen_expr(Node *node) {
             Member *mem = node->lhs->member;
             println("  mov %s, %s", reg(top - 1), reg(top));
             top++;
-            load(mem->ty);
+            load(mem->ty, mem->offset);
 
             println("  and $%ld, %s", (1L << mem->bit_width) - 1, reg(top - 3));
             println("  shl $%d, %s", mem->bit_offset, reg(top - 3));
@@ -528,7 +529,7 @@ static void gen_expr(Node *node) {
             top--;
         }
 
-        store(node->ty);
+        store(node->ty, node->lhs->var->offset);
         return;
     case ND_STMT_EXPR:
         for (Node *n = node->body; n; n = n->next)
@@ -781,7 +782,7 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_stmt(Node *node) {
-    //println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
+    println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
     case ND_IF: {
