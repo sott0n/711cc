@@ -987,13 +987,10 @@ static void emit_text(Program *prog) {
         current_fn = fn;
     
         // Prologue. %r12-15 are callee-saved retisters.
-        //println("  push %%rbp");
-        //println("  mov %%rsp, %%rbp");
-        //println("  sub $%d, %%rsp", fn->stack_size);
-        //println("  mov %%r12, -8(%%rbp)");
-        //println("  mov %%r13, -16(%%rbp)");
-        //println("  mov %%r14, -24(%%rbp)");
-        //println("  mov %%r15, -32(%%rbp)");
+        println("  addi sp, sp, -%d", fn->stack_size);
+        println("  sd ra, %d(sp)", fn->stack_size - 8);
+        println("  sd s0, %d(sp)", fn->stack_size - 16);
+        println("  addi s0, sp, %d", fn->stack_size);
 
         //// Save arg registers if function is variadic
         //if (fn->is_variadic) {
@@ -1044,12 +1041,9 @@ static void emit_text(Program *prog) {
     
         // Epilogue
         println(".L.return.%s:", fn->name);
-        //println("  mov -8(%%rbp), %%r12");
-        //println("  mov -16(%%rbp), %%r13");
-        //println("  mov -24(%%rbp), %%r14");
-        //println("  mov -32(%%rbp), %%r15");
-        //println("  mov %%rbp, %%rsp");
-        //println("  pop %%rbp");
+        println("  ld s0, %d(sp)", fn->stack_size - 16);
+        println("  ld ra, %d(sp)", fn->stack_size - 8);
+        println("  addi sp, sp, -%d", fn->stack_size);
         println("  jr ra");
     }
 }
@@ -1059,7 +1053,7 @@ void codegen_riscv64(Program *prog) {
     for (int i = 0; paths[i]; i++)
         println("  .file %d \"%s\"", i + 1, paths[i]);
 
-//    emit_bss(prog);
-//    emit_data(prog);
+    emit_bss(prog);
+    emit_data(prog);
     emit_text(prog);
 }
