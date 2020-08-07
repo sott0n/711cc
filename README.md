@@ -132,6 +132,8 @@ int main() {
 }
 ```
 
+Please compile other programs in [examples directory](https://github.com/sott0n/711cc/tree/master/examples).
+
 ## Future works
 
 - Wasm support in backend

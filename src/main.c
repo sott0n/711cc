@@ -27,7 +27,22 @@ void println(char *fmt, ...) {
 }
 
 static void usage(int status) {
-    fprintf(stderr, "711cc [ -o <path> ] <file>\n");
+    fprintf(stderr, "Usage: 711cc [optoins] <file>\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  --feature=[x86-64/riscv64]   Specify target architecture, default is x86-64.\n");
+    fprintf(stderr, "  -o [output file]             Specify output file.\n");
+    fprintf(stderr, "  -fpic/-fPIC                  The ELF module may be loaded anywhere in the 64-bit address space.\n");
+    fprintf(stderr, "  -fno-pic/-fno-PIC            The ELF module doesn't have to be position-independent.\n");
+    fprintf(stderr, "  -S                           Outputs as assembly.\n");
+    fprintf(stderr, "  -E                           Show preprocessed tokens.\n");
+    fprintf(stderr, "  -I[path]                     Add include path.\n");
+    fprintf(stderr, "  -D[Macro]                    Set an expand macro.\n");
+    fprintf(stderr, "  -M                           Show a list of include path of main file.\n");
+    fprintf(stderr, "  -MD                          Show a list of include path, except that `-E` is not implied.\n");
+    fprintf(stderr, "  -MP                          Add a phony target for each dependency other than the main file.\n");
+    fprintf(stderr, "  -MT[target]                  Change the target for `-M`.\n");
+    fprintf(stderr, "  -MF[file]                    Change the file for showing a list of include path.\n");
+
     exit(status);
 }
 
