@@ -600,15 +600,43 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        println("  sub $64, %%rsp");
-        println("  mov %%r10, (%%rsp)");
-        println("  mov %%r11, 8(%%rsp)");
-        println("  movsd %%xmm8, 16(%%rsp)");
-        println("  movsd %%xmm9, 24(%%rsp)");
-        println("  movsd %%xmm10, 32(%%rsp)");
-        println("  movsd %%xmm11, 40(%%rsp)");
-        println("  movsd %%xmm12, 48(%%rsp)");
-        println("  movsd %%xmm13, 56(%%rsp)");
+        println("  sub sp, sp, 64");
+        println("  mv ra, 0(sp)");
+        println("  mv t0, 8(sp)");
+        println("  mv t1, 16(sp)");
+        println("  mv t2, 24(sp)");
+        println("  mv t3, 32(sp)");
+        println("  mv t4, 40(sp)");
+        println("  mv t5, 48(sp)");
+        println("  mv t6, 56(sp)");
+        println("  mv a0, 64(sp)");
+        println("  mv a1, 72(sp)");
+        println("  mv a2, 80(sp)");
+        println("  mv a3, 88(sp)");
+        println("  mv a4, 96(sp)");
+        println("  mv a5, 104(sp)");
+        println("  mv a6, 112(sp)");
+        println("  mv a7, 120(sp)");
+        println("  mv ft0, 128(sp)");
+        println("  mv ft1, 136(sp)");
+        println("  mv ft2, 144(sp)");
+        println("  mv ft3, 152(sp)");
+        println("  mv ft4, 160(sp)");
+        println("  mv ft5, 168(sp)");
+        println("  mv ft6, 176(sp)");
+        println("  mv ft7, 184(sp)");
+        println("  mv ft8, 184(sp)");
+        println("  mv ft9, 184(sp)");
+        println("  mv ft10, 184(sp)");
+        println("  mv ft11, 184(sp)");
+        println("  mv fa0, 192(sp)");
+        println("  mv fa1, 200(sp)");
+        println("  mv fa2, 208(sp)");
+        println("  mv fa3, 216(sp)");
+        println("  mv fa4, 232(sp)");
+        println("  mv fa5, 240(sp)");
+        println("  mv fa6, 248(sp)");
+        println("  mv fa7, 256(sp)");
 
         gen_expr(node->lhs);
         int memarg_size = load_args(node);
@@ -618,13 +646,6 @@ static void gen_expr(Node *node) {
 
         if (memarg_size)
             println("  sub $%d, %%rsp", memarg_size);
-
-        // The Systen V x86-64 ABI has a special rule regarding a boolean
-        // return value that only the lower 8 bits are valid for it and
-        // the upper 56bits may contain garbage. Here, we clear the upper
-        // 56 bits.
-        if (node->ty->kind == TY_BOOL)
-            println("  movzx %%al, %%eax");
 
         // Restore caller-saved registers
         println("  mov (%%rsp), %%r10");
