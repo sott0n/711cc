@@ -15,7 +15,7 @@ static int count(void) {
 }
 
 static char *reg(int idx) {
-    static char *r[] = {"t0", "t1", "t2", "t3", "t4", "t5", "t6"};
+    static char *r[] = {"t1", "t2", "t3", "t4", "t5", "t6"};
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
@@ -25,7 +25,7 @@ static char *xreg(Type *ty, int idx) {
     if (ty->base || ty->size == 8)
         return reg(idx);
 
-    static char *r[] = {"t0", "t1", "t2", "t3", "t4", "t5", "t6"};
+    static char *r[] = {"t1", "t2", "t3", "t4", "t5", "t6"};
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
@@ -49,7 +49,7 @@ static void gen_addr(Node *node) {
         if (node->var->is_local) {
             // A local variable resides on the stack and has a fixed offset
             // from the base pointer.
-            top++;
+            println("  addi %s, s0, -%d", reg(top++), node->var->offset);
             return;
         }
 
@@ -125,7 +125,7 @@ static void gen_addr(Node *node) {
 }
 
 // Load a value from where the stack top is pointing to.
-static void load(Type *ty, int offset) {
+static void load(Type *ty) {
     if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC) {
         // If it is an array, do nothing because in general we can't load
         // an entire array to a register. As a result, the result of an
@@ -159,12 +159,14 @@ static void load(Type *ty, int offset) {
         println("  %sbl (%s), %s", insn, rs, rd);
     else if (ty->size == 2)
         println("  %swl (%s), %s", insn, rs, rd);
+    else if (ty->size == 4)
+        println("  lw %s, 0(%s)", rd, rs);
     else {
-        println("  lw %s, -%d(s0)", rd, offset);
+        println("  ld %s, 0(%s)", rd, rs);
     }
 }
 
-static void store(Type *ty, int offset) {
+static void store(Type *ty) {
     char *rd = reg(top - 1);
     char *rs = reg(top - 2);
 
@@ -182,9 +184,9 @@ static void store(Type *ty, int offset) {
     } else if (ty->size == 2) {
         println("  mov %sw, (%s)", rs, rd);
     } else if (ty->size == 4) {
-        println("  sw %s, -%d(s0)", rs, offset);
+        println("  sw %s, 0(%s)", rs, rd);
     } else {
-        println("  mov %s, (%s)", rs, rd);
+        println("  sd %s, 0(%s)", rs, rd);
     }
 
     top--;
@@ -292,27 +294,15 @@ static void cast(Type *from, Type *to) {
     } else if (to->size == 4) {
         println("  mv %s, %s", r, r);
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        println("  movsx %sd, %s", r, r);
+        println("  mv %s, %s", r, r);
     }
 }
 
 static void divmod(Node *node, char *rs, char *rd, char *r64) {
-    if (node->ty->size == 8) {
-        println("  mov %s, %%rax", rd);
-        if (node->ty->is_unsigned) {
-            println("  mov $0, %%rdx");
-            println("  div %s", rs);
-        } else {
-            println("  cqo");
-            println("  idiv %s", rs);
-        }
-        println("  mov %s, %s", r64, rd);
+    if (node->ty->is_unsigned) {
+        println("  divu %s, %s, %s", rd, rd, rs);
     } else {
-        if (node->ty->is_unsigned) {
-            println("  divu %s, %s, %s", rd, rd, rs);
-        } else {
-            println("  div %s, %s, %s", rd, rd, rs);
-        }
+        println("  div %s, %s, %s", rd, rd, rs);
     }
 }
 
@@ -481,11 +471,11 @@ static void gen_expr(Node *node) {
         return;
     case ND_VAR:
         gen_addr(node);
-        load(node->ty, node->var->offset);
+        load(node->ty);
         return;
     case ND_MEMBER: {
         gen_addr(node);
-        load(node->ty, node->member->offset);
+        load(node->ty);
 
         Member *mem = node->member;
         if (mem->is_bitfield) {
@@ -499,7 +489,7 @@ static void gen_expr(Node *node) {
     }
     case ND_DEREF:
         gen_expr(node->lhs);
-        load(node->ty, node->var->offset);
+        load(node->ty);
         return;
     case ND_ADDR:
         gen_addr(node->lhs);
@@ -517,7 +507,7 @@ static void gen_expr(Node *node) {
             Member *mem = node->lhs->member;
             println("  mov %s, %s", reg(top - 1), reg(top));
             top++;
-            load(mem->ty, mem->offset);
+            load(mem->ty);
 
             println("  and $%ld, %s", (1L << mem->bit_width) - 1, reg(top - 3));
             println("  shl $%d, %s", mem->bit_offset, reg(top - 3));
@@ -529,7 +519,7 @@ static void gen_expr(Node *node) {
             top--;
         }
 
-        store(node->ty, node->lhs->var->offset);
+        store(node->ty);
         return;
     case ND_STMT_EXPR:
         for (Node *n = node->body; n; n = n->next)
