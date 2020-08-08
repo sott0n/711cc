@@ -1,5 +1,5 @@
 # 711cc C Compiler
-![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master) ![x86-64](https://img.shields.io/badge/Feature-x86--64-blue) ![riscv-64](https://img.shields.io/badge/Feature-riscv--64-orange)
+[![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master)](https://github.com/sott0n/711cc/actions?query=workflow%3A%22C%2FC%2B%2B+CI%22) ![x86-64/riscv-64](https://img.shields.io/badge/Feature-x86--64%2Friscv--64-orange) [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 A small C compiler named 711cc.
 
