@@ -75,17 +75,17 @@ assert 3 'int main() { if (0) return 2; return 3; }'
 assert 3 'int main() { if (1-1) return 2; return 3; }'
 assert 2 'int main() { if (1) return 2; return 3; }'
 assert 2 'int main() { if (2-1) return 2; return 3; }'
-#
-#assert 55 'int main() { int i=0; int j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }'	
-#assert 3 'int main() { for (;;) return 3; return 5; }'	
-#
-#assert 10 'int main() { int i=0; while(i<10) i=i+1; return i; }'	
-#
-#assert 3 'int main() { {1; {2;} return 3;} }'	
-#assert 5 'int main() { ;;; return 5; }'	
-#
-#assert 10 'int main() { int i=0; while(i<10) i=i+1; return i; }'	
-#assert 55 'int main() { int i=0; int j=0; while(i<=10) {j=i+j; i=i+1;} return j; }'	
+
+assert 55 'int main() { int i=0; int j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }'
+assert 3 'int main() { for (;;) return 3; return 5; }'
+
+assert 10 'int main() { int i=0; while(i<10) i=i+1; return i; }'
+
+assert 3 'int main() { {1; {2;} return 3;} }'
+assert 5 'int main() { ;;; return 5; }'
+
+assert 10 'int main() { int i=0; while(i<10) i=i+1; return i; }'
+assert 55 'int main() { int i=0; int j=0; while(i<=10) {j=i+j; i=i+1;} return j; }'
 #
 #assert 3 'int main() { int x=3; return *&x; }'	
 #assert 3 'int main() { int x=3; int *y=&x; int **z=&y; return **z; }'	

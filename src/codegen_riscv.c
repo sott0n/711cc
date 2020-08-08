@@ -814,8 +814,7 @@ static void gen_stmt(Node *node) {
         println(".L.begin.%d:", c);
         if (node->cond) {
             gen_expr(node->cond);
-            cmp_zero(node->cond->ty);
-            println("  je .L.break.%d", c);
+            println("  beqz %s, .L.break.%d", reg(--top), c);
         }
         gen_stmt(node->then);
         println(".L.continue.%d:", c);
@@ -823,7 +822,7 @@ static void gen_stmt(Node *node) {
             gen_expr(node->inc);
             top--;
         }
-        println("  jmp .L.begin.%d", c);
+        println("  j .L.begin.%d", c);
         println(".L.break.%d:", c);
 
         brknum = brk;
