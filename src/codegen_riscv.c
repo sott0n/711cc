@@ -551,11 +551,11 @@ static void gen_expr(Node *node) {
     case ND_COND: {
         int c = count();
         gen_expr(node->cond);
-        cmp_zero(node->cond->ty);
-        println("  je .L.else.%d", c);
+        //cmp_zero(node->cond->ty);
+        println("  beqz %s, .L.else.%d", reg(--top), c);
         gen_expr(node->then);
         top--;
-        println("  jmp .L.end.%d", c);
+        println("  j .L.end.%d", c);
         println(".L.else.%d:", c);
         gen_expr(node->els);
         println(".L.end.%d:", c);
@@ -789,17 +789,15 @@ static void gen_stmt(Node *node) {
         int c = count();
         if (node->els) {
             gen_expr(node->cond);
-            cmp_zero(node->cond->ty);
-            println("  je .L.else.%d", c);
+            println("  seqz %s, .L.else.%d", reg(--top), c);
             gen_stmt(node->then);
-            println("  jmp .L.end.%d", c);
+            println("  j .L.end.%d", c);
             println(".L.else.%d:", c);
             gen_stmt(node->els);
             println(".L.end.%d:", c);
         } else {
             gen_expr(node->cond);
-            cmp_zero(node->cond->ty);
-            println("  je .L.end.%d", c);
+            println("  beqz %s, .L.end.%d", reg(--top), c);
             gen_stmt(node->then);
             println(".L.end.%d:", c);
         }
