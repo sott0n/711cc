@@ -582,93 +582,21 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        //println("  addi sp, sp, -264");
-        //println("  sd ra, 0(sp)");
-        //println("  sd t0, 8(sp)");
-        //println("  sd t1, 16(sp)");
-        //println("  sd t2, 24(sp)");
-        //println("  sd t3, 32(sp)");
-        //println("  sd t4, 40(sp)");
-        //println("  sd t5, 48(sp)");
-        //println("  sd t6, 56(sp)");
-        //println("  sd a0, 64(sp)");
-        //println("  sd a1, 72(sp)");
-        //println("  sd a2, 80(sp)");
-        //println("  sd a3, 88(sp)");
-        //println("  sd a4, 96(sp)");
-        //println("  sd a5, 104(sp)");
-        //println("  sd a6, 112(sp)");
-        //println("  sd a7, 120(sp)");
-        //println("  fsd ft0, 128(sp)");
-        //println("  fsd ft1, 136(sp)");
-        //println("  fsd ft2, 144(sp)");
-        //println("  fsd ft3, 152(sp)");
-        //println("  fsd ft4, 160(sp)");
-        //println("  fsd ft5, 168(sp)");
-        //println("  fsd ft6, 176(sp)");
-        //println("  fsd ft7, 184(sp)");
-        //println("  fsd ft8, 184(sp)");
-        //println("  fsd ft9, 184(sp)");
-        //println("  fsd ft10, 184(sp)");
-        //println("  fsd ft11, 184(sp)");
-        //println("  fsd fa0, 192(sp)");
-        //println("  fsd fa1, 200(sp)");
-        //println("  fsd fa2, 208(sp)");
-        //println("  fsd fa3, 216(sp)");
-        //println("  fsd fa4, 232(sp)");
-        //println("  fsd fa5, 240(sp)");
-        //println("  fsd fa6, 248(sp)");
-        //println("  fsd fa7, 256(sp)");
+        println("  addi sp, sp, -16");
+        println("  sd ra, 8(sp)");
 
         gen_expr(node->lhs);
         int memarg_size = load_args(node);
 
         // Call a function
         println("  jalr ra, %s, %%lo(%s)", reg(--top), node->lhs->var->name);
-        //println("  call %s", node->lhs->var->name);
-        //top--;
 
         if (memarg_size)
             println("  sub s0, s0, %d", memarg_size);
 
         // Restore caller-saved registers
-        //println("  ld ra, 0(sp)");
-        //println("  ld t0, 8(sp)");
-        //println("  ld t1, 16(sp)");
-        //println("  ld t2, 24(sp)");
-        //println("  ld t3, 32(sp)");
-        //println("  ld t4, 40(sp)");
-        //println("  ld t5, 48(sp)");
-        //println("  ld t6, 56(sp)");
-        //println("  ld a0, 64(sp)");
-        //println("  ld a1, 72(sp)");
-        //println("  ld a2, 80(sp)");
-        //println("  ld a3, 88(sp)");
-        //println("  ld a4, 96(sp)");
-        //println("  ld a5, 104(sp)");
-        //println("  ld a6, 112(sp)");
-        //println("  ld a7, 120(sp)");
-        //println("  fld ft0, 128(sp)");
-        //println("  fld ft1, 136(sp)");
-        //println("  fld ft2, 144(sp)");
-        //println("  fld ft3, 152(sp)");
-        //println("  fld ft4, 160(sp)");
-        //println("  fld ft5, 168(sp)");
-        //println("  fld ft6, 176(sp)");
-        //println("  fld ft7, 184(sp)");
-        //println("  fld ft8, 184(sp)");
-        //println("  fld ft9, 184(sp)");
-        //println("  fld ft10, 184(sp)");
-        //println("  fld ft11, 184(sp)");
-        //println("  fld fa0, 192(sp)");
-        //println("  fld fa1, 200(sp)");
-        //println("  fld fa2, 208(sp)");
-        //println("  fld fa3, 216(sp)");
-        //println("  fld fa4, 232(sp)");
-        //println("  fld fa5, 240(sp)");
-        //println("  fld fa6, 248(sp)");
-        //println("  fld fa7, 256(sp)");
-        //println("  addi sp, sp, 264");
+        println("  ld ra, 8(sp)");
+        println("  addi sp, sp, 16");
 
         if (node->ty->kind == TY_FLOAT)
             println("  movss %%xmm0, %s", freg(top++));
@@ -996,11 +924,27 @@ static void emit_text(Program *prog) {
         println("  .type %s, @function", fn->name);
         println("%s:", fn->name);
         current_fn = fn;
+
+        int stack_size = fn->stack_size;
     
-        // Prologue. %r12-15 are callee-saved retisters.
+        // Prologue. s0-11, fs0-11 are callee-saved retisters.
         println("  addi sp, sp, -%d", fn->stack_size);
-        println("  sd ra, %d(sp)", fn->stack_size - 8);
-        println("  sd s0, %d(sp)", fn->stack_size - 16);
+        if (strcmp(fn->name, "main") == 0) {
+            println("  sd ra, %d(sp)", fn->stack_size - 8);
+            stack_size = stack_size - 8;
+        }
+        println("  sd s0, %d(sp)", stack_size - 8);
+        println("  sd s1, %d(sp)", stack_size - 16);
+        println("  sd s2, %d(sp)", stack_size - 32);
+        println("  sd s3, %d(sp)", stack_size - 40);
+        println("  sd s4, %d(sp)", stack_size - 48);
+        println("  sd s5, %d(sp)", stack_size - 56);
+        println("  sd s6, %d(sp)", stack_size - 64);
+        println("  sd s7, %d(sp)", stack_size - 72);
+        println("  sd s8, %d(sp)", stack_size - 80);
+        println("  sd s9, %d(sp)", stack_size - 88);
+        println("  sd s10, %d(sp)", stack_size - 96);
+        println("  sd s11, %d(sp)", stack_size - 104);
         println("  addi s0, sp, %d", fn->stack_size);
 
         //// Save arg registers if function is variadic
@@ -1052,8 +996,22 @@ static void emit_text(Program *prog) {
     
         // Epilogue
         println(".L.return.%s:", fn->name);
-        println("  ld s0, %d(sp)", fn->stack_size - 16);
-        println("  ld ra, %d(sp)", fn->stack_size - 8);
+        println("  ld s0, %d(sp)", stack_size - 8);
+        println("  ld s1, %d(sp)", stack_size - 16);
+        println("  ld s2, %d(sp)", stack_size - 32);
+        println("  ld s3, %d(sp)", stack_size - 40);
+        println("  ld s4, %d(sp)", stack_size - 48);
+        println("  ld s5, %d(sp)", stack_size - 56);
+        println("  ld s6, %d(sp)", stack_size - 64);
+        println("  ld s7, %d(sp)", stack_size - 72);
+        println("  ld s8, %d(sp)", stack_size - 80);
+        println("  ld s9, %d(sp)", stack_size - 88);
+        println("  ld s10, %d(sp)", stack_size - 96);
+        println("  ld s11, %d(sp)", stack_size - 104);
+
+        if (strcmp(fn->name, "main") == 0)
+            println("  ld ra, %d(sp)", fn->stack_size - 8);
+
         println("  addi sp, sp, %d", fn->stack_size);
         println("  jr ra");
         println("  .size %s, .-%s", fn->name, fn->name);

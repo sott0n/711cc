@@ -303,9 +303,11 @@ int main(int argc, char **argv) {
     Program *prog = parse(tok);
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
-        // Besides local variables, callee-saved registers take 32 bytes
+        // Besides local variables, callee-saved registers take 200 bytes
         // and the variable-argument save area takes 48 bytes in the stack.
-        int offset = fn->is_variadic ? 128 : 32;
+        int offset = fn->is_variadic ? 128 : 104;
+        if (strcmp(fn->name, "main") == 0 )
+            offset = offset + 8;
 
         for (Var *var = fn->locals; var; var = var->next) {
             offset = align_to(offset, var->align);
