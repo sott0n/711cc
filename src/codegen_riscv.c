@@ -3,10 +3,8 @@
 static int top;
 static int brknum;
 static int contnum;
-static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
-static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
-static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static char *argreg[] = {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
+static char *fargreg[] = {"fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7"};
 static Function *current_fn;
 
 static int count(void) {
@@ -15,24 +13,21 @@ static int count(void) {
 }
 
 static char *reg(int idx) {
-    static char *r[] = {"t1", "t2", "t3", "t4", "t5", "t6"};
-    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
-        error("register out of range: %d", idx);
-    return r[idx];
-}
-
-static char *xreg(Type *ty, int idx) {
-    if (ty->base || ty->size == 8)
-        return reg(idx);
-
-    static char *r[] = {"t1", "t2", "t3", "t4", "t5", "t6"};
+    static char *r[] = {
+        "t0", "t1", "t2", "t3", "t4", "t5", "t6", "s0", "s1", "s2", "s3",
+        "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
+    };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
 }
 
 static char *freg(int idx) {
-    static char *r[] = {"%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13"};
+    static char *r[] = {
+        "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", "ft8", "ft9",
+        "ft10", "ft11", "fs0", "fs1", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
+        "fs8", "fs9", "fs10", "fs11",
+    };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
@@ -100,8 +95,8 @@ static void gen_addr(Node *node) {
             // Load a 32-bit fixed address to a register.
             println("  mov $%s, %s", node->var->name, reg(top++));
         } else if (node->var->is_static) {
-            // Set %RIP+addend to a register.
-            println("  lea %s(%%rip), %s", node->var->name, reg(top++));
+            // Load an high address(offset[31:12])
+            println("  lui %s, %%hi(%s)", reg(top++), node->var->name);
         } else {
             // Load a 64-bit address value from memory and set it to a register.
             println("  mov %s@GOTPCREL(%%rip), %s", node->var->name, reg(top++));
@@ -131,7 +126,7 @@ static void load(Type *ty) {
         // an entire array to a register. As a result, the result of an
         // evaluation of an array becomes not the array itself but the
         // address of the array. In other words, this is where "array is
-        // automatically converted to a pointer to the first element of
+        // automatially converted to a pointer to the first element of
         // the array in C" occurs.
         return;
     }
@@ -147,7 +142,7 @@ static void load(Type *ty) {
     }
     
     char *rs = reg(top - 1);
-    char *rd = xreg(ty, top - 1);
+    char *rd = reg(top - 1);
     char *insn = ty->is_unsigned ? "movz" : "movs";
 
     // When we load a char or a short value to a register, we always
@@ -335,16 +330,21 @@ static void load_fp_arg(Type *ty, int offset, int r) {
 
 // Load a local variable at RSP+offset to argreg[r].
 static void load_gp_arg(Type *ty, int offset, int r) {
-    char *insn = ty->is_unsigned ? "movz" : "movs";
-
-    if (ty->size == 1)
-        println("  %sbl -%d(%%rbp), %s", insn, offset, argreg32[r]);
-    else if (ty->size == 2)
-        println("  %swl -%d(%%rbp), %s", insn, offset, argreg32[r]);
-    else if (ty->size == 4)
-        println("  mov -%d(%%rbp), %s", offset, argreg32[r]);
-    else
-        println("  mov -%d(%%rbp), %s", offset, argreg64[r]);
+    if (ty->size == 1) {
+        if (ty->is_unsigned)
+            println("  lb %s, -%d(s0)", argreg[r], offset);
+        else
+            println("  lbu %s, -%d(s0)", argreg[r], offset);
+    } else if (ty->size == 2) {
+        if (ty->is_unsigned)
+            println("  lh %s, -%d(s0)", argreg[r], offset);
+        else
+            println("  lhu %s, -%d(s0)", argreg[r], offset);
+    } else if (ty->size == 4) {
+        println("  lw %s, -%d(s0)", argreg[r], offset);
+    } else {
+        println("  ld %s, -%d(s0)", argreg[r], offset);
+    }
 }
 
 // Pushs a local variable at RSP+offset to the stack.
@@ -404,7 +404,7 @@ static int load_args(Node *node) {
                 continue;
             }
         } else {
-            if (gp < 6) {
+            if (gp < 8) {
                 load_gp_arg(arg->ty, arg->offset, gp++);
                 continue;
             }
@@ -415,37 +415,19 @@ static int load_args(Node *node) {
     }
 
     // If we have arguments passed on the stack, push them to the stack.
-    if (stack_size) {
-        if (stack_size % 16) {
-            println("  sub $8, %%rsp");
-            stack_size += 8;
-        }
+    //if (stack_size) {
+    //    if (stack_size % 16) {
+    //        println("  sub s0, s0, 8");
+    //        stack_size += 8;
+    //    }
 
-        for (int i = node->nargs - 1; i >= 0; i--) {
-            if (!pass_stack[i])
-                continue;
-            Var *arg = node->args[i];
-            push_arg(arg->ty, arg->offset);
-        }
-    }
-
-    // Set the number of floating-point arguments to RSP. Technically,
-    // we don't have to do this if a function isn't variadic, but we do
-    // this unconditionally for the sake of simplicity.
-    //
-    // The background of this ABI requirement: At the beginning of a
-    // variadic function, there exists code to save all parameter-passing
-    // registers to the stack so that va_arg can retrieve them one by one
-    // later. But in most cases, a variadic function doesn't take any
-    // floating-point argument, or even if it does, it takes only a few.
-    // So, saving all XMM0 to XMM7 registers is in most cases wasteful.
-    // By passing the actual number of floating-point arguments, the
-    // prologue code can save that cost.
-    int n = 0;
-    for (int i = 0; i < node->nargs; i++)
-        if (is_flonum(node->args[i]->ty))
-            n++;
-    println("  mov $%d, %%rax", n);
+    //    for (int i = node->nargs - 1; i >= 0; i--) {
+    //        if (!pass_stack[i])
+    //            continue;
+    //        Var *arg = node->args[i];
+    //        push_arg(arg->ty, arg->offset);
+    //    }
+    //}
 
     return stack_size;
 }
@@ -600,70 +582,100 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        println("  sub sp, sp, 64");
-        println("  mv ra, 0(sp)");
-        println("  mv t0, 8(sp)");
-        println("  mv t1, 16(sp)");
-        println("  mv t2, 24(sp)");
-        println("  mv t3, 32(sp)");
-        println("  mv t4, 40(sp)");
-        println("  mv t5, 48(sp)");
-        println("  mv t6, 56(sp)");
-        println("  mv a0, 64(sp)");
-        println("  mv a1, 72(sp)");
-        println("  mv a2, 80(sp)");
-        println("  mv a3, 88(sp)");
-        println("  mv a4, 96(sp)");
-        println("  mv a5, 104(sp)");
-        println("  mv a6, 112(sp)");
-        println("  mv a7, 120(sp)");
-        println("  mv ft0, 128(sp)");
-        println("  mv ft1, 136(sp)");
-        println("  mv ft2, 144(sp)");
-        println("  mv ft3, 152(sp)");
-        println("  mv ft4, 160(sp)");
-        println("  mv ft5, 168(sp)");
-        println("  mv ft6, 176(sp)");
-        println("  mv ft7, 184(sp)");
-        println("  mv ft8, 184(sp)");
-        println("  mv ft9, 184(sp)");
-        println("  mv ft10, 184(sp)");
-        println("  mv ft11, 184(sp)");
-        println("  mv fa0, 192(sp)");
-        println("  mv fa1, 200(sp)");
-        println("  mv fa2, 208(sp)");
-        println("  mv fa3, 216(sp)");
-        println("  mv fa4, 232(sp)");
-        println("  mv fa5, 240(sp)");
-        println("  mv fa6, 248(sp)");
-        println("  mv fa7, 256(sp)");
+        //println("  addi sp, sp, -264");
+        //println("  sd ra, 0(sp)");
+        //println("  sd t0, 8(sp)");
+        //println("  sd t1, 16(sp)");
+        //println("  sd t2, 24(sp)");
+        //println("  sd t3, 32(sp)");
+        //println("  sd t4, 40(sp)");
+        //println("  sd t5, 48(sp)");
+        //println("  sd t6, 56(sp)");
+        //println("  sd a0, 64(sp)");
+        //println("  sd a1, 72(sp)");
+        //println("  sd a2, 80(sp)");
+        //println("  sd a3, 88(sp)");
+        //println("  sd a4, 96(sp)");
+        //println("  sd a5, 104(sp)");
+        //println("  sd a6, 112(sp)");
+        //println("  sd a7, 120(sp)");
+        //println("  fsd ft0, 128(sp)");
+        //println("  fsd ft1, 136(sp)");
+        //println("  fsd ft2, 144(sp)");
+        //println("  fsd ft3, 152(sp)");
+        //println("  fsd ft4, 160(sp)");
+        //println("  fsd ft5, 168(sp)");
+        //println("  fsd ft6, 176(sp)");
+        //println("  fsd ft7, 184(sp)");
+        //println("  fsd ft8, 184(sp)");
+        //println("  fsd ft9, 184(sp)");
+        //println("  fsd ft10, 184(sp)");
+        //println("  fsd ft11, 184(sp)");
+        //println("  fsd fa0, 192(sp)");
+        //println("  fsd fa1, 200(sp)");
+        //println("  fsd fa2, 208(sp)");
+        //println("  fsd fa3, 216(sp)");
+        //println("  fsd fa4, 232(sp)");
+        //println("  fsd fa5, 240(sp)");
+        //println("  fsd fa6, 248(sp)");
+        //println("  fsd fa7, 256(sp)");
 
         gen_expr(node->lhs);
         int memarg_size = load_args(node);
 
         // Call a function
-        println("  call *%s", reg(--top));
+        println("  jalr ra, %s, %%lo(%s)", reg(--top), node->lhs->var->name);
+        //println("  call %s", node->lhs->var->name);
+        //top--;
 
         if (memarg_size)
-            println("  sub $%d, %%rsp", memarg_size);
+            println("  sub s0, s0, %d", memarg_size);
 
         // Restore caller-saved registers
-        println("  mov (%%rsp), %%r10");
-        println("  mov 8(%%rsp), %%r11");
-        println("  movsd 16(%%rsp), %%xmm8");
-        println("  movsd 24(%%rsp), %%xmm9");
-        println("  movsd 32(%%rsp), %%xmm10");
-        println("  movsd 40(%%rsp), %%xmm11");
-        println("  movsd 48(%%rsp), %%xmm12");
-        println("  movsd 56(%%rsp), %%xmm13");
-        println("  add $64, %%rsp");
+        //println("  ld ra, 0(sp)");
+        //println("  ld t0, 8(sp)");
+        //println("  ld t1, 16(sp)");
+        //println("  ld t2, 24(sp)");
+        //println("  ld t3, 32(sp)");
+        //println("  ld t4, 40(sp)");
+        //println("  ld t5, 48(sp)");
+        //println("  ld t6, 56(sp)");
+        //println("  ld a0, 64(sp)");
+        //println("  ld a1, 72(sp)");
+        //println("  ld a2, 80(sp)");
+        //println("  ld a3, 88(sp)");
+        //println("  ld a4, 96(sp)");
+        //println("  ld a5, 104(sp)");
+        //println("  ld a6, 112(sp)");
+        //println("  ld a7, 120(sp)");
+        //println("  fld ft0, 128(sp)");
+        //println("  fld ft1, 136(sp)");
+        //println("  fld ft2, 144(sp)");
+        //println("  fld ft3, 152(sp)");
+        //println("  fld ft4, 160(sp)");
+        //println("  fld ft5, 168(sp)");
+        //println("  fld ft6, 176(sp)");
+        //println("  fld ft7, 184(sp)");
+        //println("  fld ft8, 184(sp)");
+        //println("  fld ft9, 184(sp)");
+        //println("  fld ft10, 184(sp)");
+        //println("  fld ft11, 184(sp)");
+        //println("  fld fa0, 192(sp)");
+        //println("  fld fa1, 200(sp)");
+        //println("  fld fa2, 208(sp)");
+        //println("  fld fa3, 216(sp)");
+        //println("  fld fa4, 232(sp)");
+        //println("  fld fa5, 240(sp)");
+        //println("  fld fa6, 248(sp)");
+        //println("  fld fa7, 256(sp)");
+        //println("  addi sp, sp, 264");
 
         if (node->ty->kind == TY_FLOAT)
             println("  movss %%xmm0, %s", freg(top++));
         else if (node->ty->kind == TY_DOUBLE)
             println("  movsd %%xmm0, %s", freg(top++));
         else
-            println("  mov %%rax, %s", reg(top++));
+            println("  mv ra, %s", reg(top++));
         return;
     }
     }
@@ -672,8 +684,8 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     gen_expr(node->rhs);
 
-    char *rd = xreg(node->lhs->ty, top - 2);
-    char *rs = xreg(node->lhs->ty, top - 1);
+    char *rd = reg(top - 2);
+    char *rs = reg(top - 1);
     char *fd = freg(top - 2);
     char *fs = freg(top - 1);
     top--;
@@ -973,25 +985,15 @@ static void emit_data(Program *prog) {
     }
 }
 
-static char *get_argreg(int sz, int idx) {
-    if (sz == 1)
-        return argreg8[idx];
-    if (sz == 2)
-        return argreg16[idx];
-    if (sz == 4)
-        return argreg32[idx];
-    assert(sz == 8);
-    return argreg64[idx];
-}
-
 static void emit_text(Program *prog) {
     println("  .text");
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
+        println("  .align 1");
         if (!fn->is_static) {
             println("  .globl %s", fn->name);
-            println("  .type %s, @function", fn->name);
         }
+        println("  .type %s, @function", fn->name);
         println("%s:", fn->name);
         current_fn = fn;
     
@@ -1032,7 +1034,7 @@ static void emit_text(Program *prog) {
         //    } else if (var->ty->kind == TY_DOUBLE) {
         //        println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
         //    } else {
-        //        char *r = get_argreg(var->ty->size, --gp);
+        //        char *r = argreg[--gp];
         //        println("  mov %s, -%d(%%rbp)", r, var->offset);
         //    }
         //}
@@ -1052,8 +1054,9 @@ static void emit_text(Program *prog) {
         println(".L.return.%s:", fn->name);
         println("  ld s0, %d(sp)", fn->stack_size - 16);
         println("  ld ra, %d(sp)", fn->stack_size - 8);
-        println("  addi sp, sp, -%d", fn->stack_size);
+        println("  addi sp, sp, %d", fn->stack_size);
         println("  jr ra");
+        println("  .size %s, .-%s", fn->name, fn->name);
     }
 }
 
