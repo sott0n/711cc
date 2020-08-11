@@ -99,7 +99,7 @@ static void gen_addr(Node *node) {
             println("  lui %s, %%hi(%s)", reg(top++), node->var->name);
         } else {
             // Load a 64-bit address value from memory and set it to a register.
-            println("  mov %s@GOTPCREL(%%rip), %s", node->var->name, reg(top++));
+            println("  auipc %s, %%got_pcrel_hi(%s)", reg(top++), node->var->name);
         }
         return;
     case ND_DEREF:
@@ -945,6 +945,7 @@ static void emit_text(Program *prog) {
         println("  sd s9, %d(sp)", stack_size - 88);
         println("  sd s10, %d(sp)", stack_size - 96);
         println("  sd s11, %d(sp)", stack_size - 104);
+
         println("  addi s0, sp, %d", fn->stack_size);
 
         //// Save arg registers if function is variadic
@@ -963,25 +964,25 @@ static void emit_text(Program *prog) {
         //    println("  movsd %%xmm5, -40(%%rbp)");
         //}
 
-        //// Push arguments to the stack
-        //int gp = 0, fp = 0;
-        //for (Var *var = fn->params; var; var = var->next) {
-        //    if (is_flonum(var->ty))
-        //        fp++;
-        //    else
-        //        gp++;
-        //}
+        // Push arguments to the stack
+        int gp = 0, fp = 0;
+        for (Var *var = fn->params; var; var = var->next) {
+            if (is_flonum(var->ty))
+                fp++;
+            else
+                gp++;
+        }
 
-        //for (Var *var = fn->params; var; var = var->next) {
-        //    if (var->ty->kind == TY_FLOAT) {
-        //        println("  movss %%xmm%d, -%d(%%rbp)", --fp, var->offset);
-        //    } else if (var->ty->kind == TY_DOUBLE) {
-        //        println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
-        //    } else {
-        //        char *r = argreg[--gp];
-        //        println("  mov %s, -%d(%%rbp)", r, var->offset);
-        //    }
-        //}
+        for (Var *var = fn->params; var; var = var->next) {
+            if (var->ty->kind == TY_FLOAT) {
+                println("  movss %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+            } else if (var->ty->kind == TY_DOUBLE) {
+                println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+            } else {
+                char *r = argreg[--gp];
+                println("  sw %s, -%d(s0)", r, var->offset);
+            }
+        }
     
         // Emit code
         gen_stmt(fn->body);
