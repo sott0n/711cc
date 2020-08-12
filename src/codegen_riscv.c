@@ -99,7 +99,7 @@ static void gen_addr(Node *node) {
             println("  lui %s, %%hi(%s)", reg(top++), node->var->name);
         } else {
             // Load a 64-bit address value from memory and set it to a register.
-            println("  auipc %s, %%got_pcrel_hi(%s)", reg(top++), node->var->name);
+            println("  la %s, %s", reg(top++), node->var->name);
         }
         return;
     case ND_DEREF:
@@ -446,7 +446,8 @@ static void gen_expr(Node *node) {
             println("  movabs $%lu, %%rax", *(long *)&node->fval);
             println("  movq %%rax, %s", freg(top++));
         } else if (node->ty->kind == TY_LONG) {
-            println("  movabs $%lu, %s", node->val, reg(top++));
+            println("  li %s, %lu", reg(top++), node->val);
+            //println("  movabs $%lu, %s", node->val, reg(top++));
         } else {
             println("  li %s, %lu", reg(top++), node->val);
         }
