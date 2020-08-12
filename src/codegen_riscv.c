@@ -3,8 +3,8 @@
 static int top;
 static int brknum;
 static int contnum;
-static char *argreg[] = {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
-static char *fargreg[] = {"fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7"};
+static char *argreg[] = {"a1", "a2", "a3", "a4", "a5", "a6", "a7"};
+static char *fargreg[] = {"fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7"};
 static Function *current_fn;
 
 static int count(void) {
@@ -287,9 +287,9 @@ static void cast(Type *from, Type *to) {
     } else if (to->size == 2) {
         println("  %s %sw, %s", insn, r, r);
     } else if (to->size == 4) {
-        println("  mv %s, %s", r, r);
+        return;
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        println("  mv %s, %s", r, r);
+        return;
     }
 }
 
@@ -582,8 +582,15 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        println("  addi sp, sp, -16");
+        println("  addi sp, sp, -72");
         println("  sd ra, 8(sp)");
+        println("  sd t0, 16(sp)");
+        println("  sd t1, 24(sp)");
+        println("  sd t2, 32(sp)");
+        println("  sd t3, 40(sp)");
+        println("  sd t4, 48(sp)");
+        println("  sd t5, 56(sp)");
+        println("  sd t6, 64(sp)");
 
         gen_expr(node->lhs);
         int memarg_size = load_args(node);
@@ -596,14 +603,22 @@ static void gen_expr(Node *node) {
 
         // Restore caller-saved registers
         println("  ld ra, 8(sp)");
-        println("  addi sp, sp, 16");
+        println("  ld t0, 16(sp)");
+        println("  ld t1, 24(sp)");
+        println("  ld t2, 32(sp)");
+        println("  ld t3, 40(sp)");
+        println("  ld t4, 48(sp)");
+        println("  ld t5, 56(sp)");
+        println("  ld t6, 64(sp)");
+        println("  addi sp, sp, 72");
 
         if (node->ty->kind == TY_FLOAT)
             println("  movss %%xmm0, %s", freg(top++));
         else if (node->ty->kind == TY_DOUBLE)
             println("  movsd %%xmm0, %s", freg(top++));
         else
-            println("  mv ra, %s", reg(top++));
+            println("  mv %s, a0", reg(top++));
+
         return;
     }
     }

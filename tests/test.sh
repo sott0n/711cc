@@ -94,11 +94,11 @@ assert 5 'static int ret5() { return 5; } int main() { return ret5(); }'
 assert 8 'static int add(int a, int b) { return a + b; } int main() { return add(3, 5); }'
 assert 2 'static int sub(int a, int b) { return a - b; } int main() { return sub(5, 3); }'
 assert 21 'static int add6(int a, int b, int c, int d, int e, int f) { return a+b+c+d+e+f; } int main() { return add6(1,2,3,4,5,6); }'
-#
-#assert 32 'int main() { return ret32(); } int ret32() { return 32; }'	
-#assert 7 'int main() { return add2(3,4); } int add2(int x, int y) { return x+y; }'	
-#assert 1 'int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; }'	
-#assert 55 'int main() { return fib(9); } int fib(int x) { if (x<=1) return 1; return fib(x-1) + fib(x-2); }'	
+
+assert 32 'static int ret32() { return 32; } int main() { return ret32(); }'
+assert 7 'static int add2(int x, int y) { return x+y; } int main() { return add2(3,4); }'
+assert 1 'static int sub2(int x, int y) { return x-y; } int main() { return sub2(4,3); }'
+assert 55 'static int fib(int x) { if (x<=1) return 1; return fib(x-1) + fib(x-2); } int main() { return fib(9); }'
 #
 #assert 3 'int main() { int x[2]; int *y=&x; *y=3; return *x; }'	
 #
