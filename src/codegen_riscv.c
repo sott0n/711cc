@@ -143,17 +143,23 @@ static void load(Type *ty) {
     
     char *rs = reg(top - 1);
     char *rd = reg(top - 1);
-    char *insn = ty->is_unsigned ? "movz" : "movs";
 
     // When we load a char or a short value to a register, we always
     // extend them to the size of int, so we can assume the lower half of
     // a register always contains a valid value. The upper half of a
     // register for char, short and int may contain garbage. When we load
     // a long value to a register, it simply occupies the entire register.
-    if (ty->size == 1)
-        println("  %sbl (%s), %s", insn, rs, rd);
+    if (ty->size == 1) {
+        if (ty->is_unsigned)
+            println("  lbu %s, 0(%s)", rd, rs);
+        else
+            println("  lb %s, 0(%s)", rd, rs);
+    }
     else if (ty->size == 2)
-        println("  %swl (%s), %s", insn, rs, rd);
+        if (ty->is_unsigned)
+            println("  lhu %s, 0(%s)", rd, rs);
+        else
+            println("  lh %s, 0(%s)", rd, rs);
     else if (ty->size == 4)
         println("  lw %s, 0(%s)", rd, rs);
     else {
@@ -593,11 +599,10 @@ static void gen_expr(Node *node) {
         println("  sd t5, 56(sp)");
         println("  sd t6, 64(sp)");
 
-        gen_expr(node->lhs);
         int memarg_size = load_args(node);
 
         // Call a function
-        println("  jalr ra, %s, %%lo(%s)", reg(--top), node->lhs->var->name);
+        println("  call %s", node->lhs->var->name);
 
         if (memarg_size)
             println("  sub s0, s0, %d", memarg_size);
