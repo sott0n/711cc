@@ -181,9 +181,9 @@ static void store(Type *ty) {
     } else if (ty->kind == TY_DOUBLE) {
         println("  movsd %s, (%s)", freg(top - 2), rd);
     } else if (ty->size == 1) {
-        println("  mov %sb, (%s)", rs, rd);
+        println("  sb %s, 0(%s)", rs, rd);
     } else if (ty->size == 2) {
-        println("  mov %sw, (%s)", rs, rd);
+        println("  sh %s, 0(%s)", rs, rd);
     } else if (ty->size == 4) {
         println("  sw %s, 0(%s)", rs, rd);
     } else {
@@ -286,12 +286,10 @@ static void cast(Type *from, Type *to) {
         return;
     }
 
-    char *insn = to->is_unsigned ? "movzx" : "movsx";
-
     if (to->size == 1) {
-        println("  %s %sb, %s", insn, r, r);
+        return;
     } else if (to->size == 2) {
-        println("  %s %sw, %s", insn, r, r);
+        return;
     } else if (to->size == 4) {
         return;
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
@@ -451,9 +449,6 @@ static void gen_expr(Node *node) {
         } else if (node->ty->kind == TY_DOUBLE) {
             println("  movabs $%lu, %%rax", *(long *)&node->fval);
             println("  movq %%rax, %s", freg(top++));
-        } else if (node->ty->kind == TY_LONG) {
-            println("  li %s, %lu", reg(top++), node->val);
-            //println("  movabs $%lu, %s", node->val, reg(top++));
         } else {
             println("  li %s, %lu", reg(top++), node->val);
         }
@@ -1001,7 +996,14 @@ static void emit_text(Program *prog) {
                 println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
             } else {
                 char *r = argreg[--gp];
-                println("  sw %s, -%d(s0)", r, var->offset);
+                if (var->ty->size == 1)
+                    println("  sb %s, -%d(s0)", r, var->offset);
+                else if (var->ty->size == 2)
+                    println("  sh %s, -%d(s0)", r, var->offset);
+                else if (var->ty->size == 4)
+                    println("  sw %s, -%d(s0)", r, var->offset);
+                else
+                    println("  sd %s, -%d(s0)", r, var->offset);
             }
         }
     
