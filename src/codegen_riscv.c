@@ -671,13 +671,13 @@ static void gen_expr(Node *node) {
         divmod(node, rs, rd, "%rdx");
         return;
     case ND_BITAND:
-        println("  and %s, %s", rs, rd);
+        println("  and %s, %s, %s", rd, rd, rs);
         return;
     case ND_BITOR:
-        println("  or %s, %s", rs, rd);
+        println("  or %s, %s, %s", rd, rd, rs);
         return;
     case ND_BITXOR:
-        println("  xor %s, %s", rs, rd);
+        println("  xor %s, %s, %s", rd, rd, rs);
         return;
     case ND_EQ:
         if (node->lhs->ty->kind == TY_FLOAT)
@@ -732,15 +732,13 @@ static void gen_expr(Node *node) {
         }
         return;
     case ND_SHL:
-        println("  mov %s, %%rcx", reg(top));
-        println("  shl %%cl, %s", rd);
+        println("  sll %s, %s, %s", rd, rd, reg(top));
         return;
     case ND_SHR:
-        println("  mov %s, %%rcx", reg(top));
         if (node->lhs->ty->is_unsigned)
-            println("  shr %%cl, %s", rd);
+            println("  srl %s, %s, %s", rd, rd, reg(top));
         else
-            println("  sar %%cl, %s", rd);
+            println("  sra %s, %s, %s", rd, rd, reg(top));
         return;
     default:
         error_tok(node->tok, "invalid expression");
@@ -756,7 +754,7 @@ static void gen_stmt(Node *node) {
         int c = count();
         if (node->els) {
             gen_expr(node->cond);
-            println("  seqz %s, .L.else.%d", reg(--top), c);
+            println("  beqz %s, .L.else.%d", reg(--top), c);
             gen_stmt(node->then);
             println("  j .L.end.%d", c);
             println(".L.else.%d:", c);
