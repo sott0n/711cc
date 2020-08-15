@@ -95,8 +95,10 @@ static void gen_addr(Node *node) {
             // Load a 32-bit fixed address to a register.
             println("  mov $%s, %s", node->var->name, reg(top++));
         } else if (node->var->is_static) {
-            // Load an high address(offset[31:12])
-            println("  lui %s, %%hi(%s)", reg(top++), node->var->name);
+            // Load an address to a register.
+            println("  lui %s, %%hi(%s)", reg(top), node->var->name);
+            println("  addi %s, %s, %%lo(%s)", reg(top), reg(top), node->var->name);
+            top++;
         } else {
             // Load a 64-bit address value from memory and set it to a register.
             println("  la %s, %s", reg(top++), node->var->name);
@@ -921,9 +923,17 @@ static void emit_data(Program *prog) {
                 rel = rel->next;
                 pos += 8;
             } else {
-                println("  .byte %d", var->init_data[pos++]);
+                if (var->init_data[pos] == '\0')
+                    break;
+                if (var->init_data[pos] == '\n') {
+                    var->init_data[pos++] = '\\';
+                    var->init_data[pos++] = 'n';
+                    continue;
+                }
+                pos++;
             }
         }
+        println("  .string \"%s\"", var->init_data);
     }
 }
 
