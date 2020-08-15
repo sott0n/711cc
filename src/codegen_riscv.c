@@ -14,7 +14,7 @@ static int count(void) {
 
 static char *reg(int idx) {
     static char *r[] = {
-        "t0", "t1", "t2", "t3", "t4", "t5", "t6", "s0", "s1", "s2", "s3",
+        "t1", "t2", "t3", "t4", "t5", "t6", "s0", "s1", "s2", "s3",
         "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
     };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
@@ -44,7 +44,8 @@ static void gen_addr(Node *node) {
         if (node->var->is_local) {
             // A local variable resides on the stack and has a fixed offset
             // from the base pointer.
-            println("  addi %s, s0, -%d", reg(top++), node->var->offset);
+            println("  li t0, %d", node->var->offset);
+            println("  sub %s, s0, t0", reg(top++));
             return;
         }
 
@@ -347,9 +348,13 @@ static void load_gp_arg(Type *ty, int offset, int r) {
         else
             println("  lhu %s, -%d(s0)", argreg[r], offset);
     } else if (ty->size == 4) {
-        println("  lw %s, -%d(s0)", argreg[r], offset);
+        println("  li t0, %d", offset);
+        println("  sub t0, s0, t0");
+        println("  lw %s, 0(t0)", argreg[r]);
     } else {
-        println("  ld %s, -%d(s0)", argreg[r], offset);
+        println("  li t0, %d", offset);
+        println("  sub t0, s0, t0");
+        println("  ld %s, 0(t0)", argreg[r]);
     }
 }
 
@@ -952,25 +957,53 @@ static void emit_text(Program *prog) {
         int stack_size = fn->stack_size;
     
         // Prologue. s0-11, fs0-11 are callee-saved retisters.
-        println("  addi sp, sp, -%d", fn->stack_size);
+        println("  li t0, %d", fn->stack_size);
+        println("  sub sp, sp, t0");
         if (strcmp(fn->name, "main") == 0) {
-            println("  sd ra, %d(sp)", fn->stack_size - 8);
+            println("  li t0, %d", fn->stack_size - 8);
+            println("  add t0, sp, t0");
+            println("  sd ra, 0(t0)");
             stack_size = stack_size - 8;
         }
-        println("  sd s0, %d(sp)", stack_size - 8);
-        println("  sd s1, %d(sp)", stack_size - 16);
-        println("  sd s2, %d(sp)", stack_size - 32);
-        println("  sd s3, %d(sp)", stack_size - 40);
-        println("  sd s4, %d(sp)", stack_size - 48);
-        println("  sd s5, %d(sp)", stack_size - 56);
-        println("  sd s6, %d(sp)", stack_size - 64);
-        println("  sd s7, %d(sp)", stack_size - 72);
-        println("  sd s8, %d(sp)", stack_size - 80);
-        println("  sd s9, %d(sp)", stack_size - 88);
-        println("  sd s10, %d(sp)", stack_size - 96);
-        println("  sd s11, %d(sp)", stack_size - 104);
+        println("  li t0, %d", stack_size - 8);
+        println("  add t0, sp, t0");
+        println("  sd s0, 0(t0)");
+        println("  li t0, %d", stack_size - 16);
+        println("  add t0, sp, t0");
+        println("  sd s1, 0(t0)");
+        println("  li t0, %d", stack_size - 32);
+        println("  add t0, sp, t0");
+        println("  sd s2, 0(t0)");
+        println("  li t0, %d", stack_size - 40);
+        println("  add t0, sp, t0");
+        println("  sd s3, 0(t0)");
+        println("  li t0, %d", stack_size - 48);
+        println("  add t0, sp, t0");
+        println("  sd s4, 0(t0)");
+        println("  li t0, %d", stack_size - 56);
+        println("  add t0, sp, t0");
+        println("  sd s5, 0(t0)");
+        println("  li t0, %d", stack_size - 64);
+        println("  add t0, sp, t0");
+        println("  sd s6, 0(t0)");
+        println("  li t0, %d", stack_size - 72);
+        println("  add t0, sp, t0");
+        println("  sd s7, 0(t0)");
+        println("  li t0, %d", stack_size - 80);
+        println("  add t0, sp, t0");
+        println("  sd s8, 0(t0)");
+        println("  li t0, %d", stack_size - 88);
+        println("  add t0, sp, t0");
+        println("  sd s9, 0(t0)");
+        println("  li t0, %d", stack_size - 96);
+        println("  add t0, sp, t0");
+        println("  sd s10, 0(t0)");
+        println("  li t0, %d", stack_size - 104);
+        println("  add t0, sp, t0");
+        println("  sd s11, 0(t0)");
 
-        println("  addi s0, sp, %d", fn->stack_size);
+        println("  li t0, %d", fn->stack_size);
+        println("  add s0, sp, t0");
 
         //// Save arg registers if function is variadic
         //if (fn->is_variadic) {
@@ -1028,23 +1061,51 @@ static void emit_text(Program *prog) {
     
         // Epilogue
         println(".L.return.%s:", fn->name);
-        println("  ld s0, %d(sp)", stack_size - 8);
-        println("  ld s1, %d(sp)", stack_size - 16);
-        println("  ld s2, %d(sp)", stack_size - 32);
-        println("  ld s3, %d(sp)", stack_size - 40);
-        println("  ld s4, %d(sp)", stack_size - 48);
-        println("  ld s5, %d(sp)", stack_size - 56);
-        println("  ld s6, %d(sp)", stack_size - 64);
-        println("  ld s7, %d(sp)", stack_size - 72);
-        println("  ld s8, %d(sp)", stack_size - 80);
-        println("  ld s9, %d(sp)", stack_size - 88);
-        println("  ld s10, %d(sp)", stack_size - 96);
-        println("  ld s11, %d(sp)", stack_size - 104);
+        println("  li t0, %d", stack_size - 8);
+        println("  add t0, sp, t0");
+        println("  ld s0, 0(t0)");
+        println("  li t0, %d", stack_size - 16);
+        println("  add t0, sp, t0");
+        println("  ld s1, 0(t0)");
+        println("  li t0, %d", stack_size - 32);
+        println("  add t0, sp, t0");
+        println("  ld s2, 0(t0)");
+        println("  li t0, %d", stack_size - 40);
+        println("  add t0, sp, t0");
+        println("  ld s3, 0(t0)");
+        println("  li t0, %d", stack_size - 48);
+        println("  add t0, sp, t0");
+        println("  ld s4, 0(t0)");
+        println("  li t0, %d", stack_size - 56);
+        println("  add t0, sp, t0");
+        println("  ld s5, 0(t0)");
+        println("  li t0, %d", stack_size - 64);
+        println("  add t0, sp, t0");
+        println("  ld s6, 0(t0)");
+        println("  li t0, %d", stack_size - 72);
+        println("  add t0, sp, t0");
+        println("  ld s7, 0(t0)");
+        println("  li t0, %d", stack_size - 80);
+        println("  add t0, sp, t0");
+        println("  ld s8, 0(t0)");
+        println("  li t0, %d", stack_size - 88);
+        println("  add t0, sp, t0");
+        println("  ld s9, 0(t0)");
+        println("  li t0, %d", stack_size - 96);
+        println("  add t0, sp, t0");
+        println("  ld s10, 0(t0)");
+        println("  li t0, %d", stack_size - 104);
+        println("  add t0, sp, t0");
+        println("  ld s11, 0(t0)");
 
-        if (strcmp(fn->name, "main") == 0)
-            println("  ld ra, %d(sp)", fn->stack_size - 8);
+        if (strcmp(fn->name, "main") == 0) {
+            println("  li t0, %d", fn->stack_size - 8);
+            println("  add t0, sp, t0");
+            println("  ld ra, 0(t0)");
+        }
 
-        println("  addi sp, sp, %d", fn->stack_size);
+        println("  li t0, %d", fn->stack_size);
+        println("  add sp, sp, t0");
         println("  jr ra");
         println("  .size %s, .-%s", fn->name, fn->name);
     }
