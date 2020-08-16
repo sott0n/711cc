@@ -917,98 +917,98 @@ int main() {
     assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //    assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //
-//    assert(1, sizeof(char), "sizeof(char)");
-//    assert(1, sizeof(signed char), "sizeof(signed char)");
-//    assert(1, sizeof(signed char signed), "sizeof(signed char signed)");
-//    assert(1, sizeof(unsigned char), "sizeof(unsigned char)");
-//    assert(1, sizeof(unsigned char unsigned), "sizeof(unsigned char unsigned)");
-//
-//    assert(2, sizeof(short), "sizeof(short)");
-//    assert(2, sizeof(int short), "sizeof(int short)");
-//    assert(2, sizeof(short int), "sizeof(short int)");
-//    assert(2, sizeof(signed short), "sizeof(signed short)");
-//    assert(2, sizeof(int short signed), "sizeof(int short signed)");
-//    assert(2, sizeof(unsigned short), "sizeof(unsigned short)");
-//    assert(2, sizeof(int short unsigned), "sizeof(int short unsigned)");
-//
-//    assert(4, sizeof(int), "sizeof(int)");
-//    assert(4, sizeof(signed int), "sizeof(signed int)");
-//    assert(4, sizeof(signed), "sizeof(signed)");
-//    assert(4, sizeof(signed signed), "sizeof(signed signed)");
-//    assert(4, sizeof(unsigned int), "sizeof(unsigned int)");
-//    assert(4, sizeof(unsigned), "sizeof(unsigned)");
-//    assert(4, sizeof(unsigned unsigned), "sizeof(unsigned unsigned)");
-//
-//    assert(8, sizeof(long), "sizeof(long)");
-//    assert(8, sizeof(signed long), "sizeof(signed long)");
-//    assert(8, sizeof(signed long int), "sizeof(signed long int)");
-//    assert(8, sizeof(unsigned long), "sizeof(unsigned long)");
-//    assert(8, sizeof(unsigned long int), "sizeof(unsigned long int)");
-//
-//    assert(8, sizeof(long long), "sizeof(long long)");
-//    assert(8, sizeof(signed long long), "sizeof(signed long long)");
-//    assert(8, sizeof(signed long long int), "sizeof(signed long long int)");
-//    assert(8, sizeof(unsigned long long), "sizeof(unsigned long long)");
-//    assert(8, sizeof(unsigned long long int), "sizeof(unsigned long long int)");
-//
-//    assert(1, sizeof((char)1), "sizeof((char)1)");
-//    assert(2, sizeof((short)1), "sizeof((short)1)");
-//    assert(4, sizeof((int)1), "sizeof((int)1)");
-//    assert(8, sizeof((long)1), "sizeof((long)1)");
-//    assert(-1, (char)255, "(char)255");
-//    assert(-1, (signed char)255, "(signed char)255");
-//    assert(255, (unsigned char)255, "(unsigned char)255");
-//    assert(-1, (short)65535, "(short)65535");
-//    assert(65535, (unsigned short)65535, "(unsigned short)65535");
-//    assert(-1, (int)0xffffffff, "(int)0xffffffff");
-//    assert(0xffffffff, (unsigned)0xffffffff, "(unsigned)0xffffffff");
-//
-//    assert(4, sizeof((char)1 + (char)1), "sizeof((char)1 + (char)1)");
-//    assert(4, sizeof((short)1 + (short)1), "sizeof((short)1 + (short)1)");
-//    assert(4, sizeof(1?2:3), "sizeof(1?2:3)");
-//    assert(4, sizeof(1?(short)2:(char)3), "sizeof(1?(short)2:(char)3)");
-//    assert(8, sizeof(1?(long)2:(char)3), "sizeof(1?(long)2:(char)3)");
-//
-//    assert(1, -1<1, "-1<1");
-//    assert(0, -1<(unsigned)1, "-1<(unsigned)1");
-//    assert(254, (char)127+(char)127, "(char)127+(char)127");
-//    assert(65534, (short)32767+(short)32767, "(short)32767+(short)32767");
-//    assert(-1, -1>>1, "-1>>1");
-//    assert(-1, (unsigned long)-1, "(unsigned long)-1");
-//    assert(2147483647, ((unsigned)-1)>>1, "((unsigned)-1)>>1");
-//    assert(-50, (-100)/2, "(-100)/2");
-//    assert(2147483598, ((unsigned)-100)/2, "((unsigned)-100)/2");
-//    assert(9223372036854775758, ((unsigned long)-100)/2, "((unsigned long)-100)/2");
-//    assert(0, ((long)-1)/(unsigned)100, "((long)-1)/(unsigned)100");
-//    assert(-2, (-100)%7, "(-100)%7");
-//    assert(2, ((unsigned)-100)%7, "((unsigned)-100)%7");
-//    assert(6, ((unsigned long)-100)%9, "((unsigned long)-100)%9");
-//
-//    assert(65535, (int)(unsigned short)65535, "(int)(unsigned short)65535");
-//    assert(65535, ({ unsigned short x = 65535; x; }), "({ unsigned short x = 65535; x; })");
-//    assert(65535, ({ unsigned short x = 65535; (int)x; }), "({ unsigned short x = 65535; (int)x; })");
-//
-//    assert(-1, ({ typedef short T; T x = 65535; (int)x; }), "({ typedef short T; T x = 65535; (int)x; })");
-//    assert(65535, ({ typedef unsigned short T; T x = 65535; (int)x; }), "({ typedef unsigned short T; T x = 65535; (int)x; })");
-//
-//    assert(4, sizeof(0), "sizeof(0)");
-//    assert(8, sizeof(0L), "sizeof(0L)");
-//    assert(8, sizeof(0LU), "sizeof(0LU)");
-//    assert(8, sizeof(0UL), "sizeof(0UL)");
-//    assert(8, sizeof(0LL), "sizeof(0LL)");
-//    assert(8, sizeof(0LLU), "sizeof(0LLU)");
-//    assert(8, sizeof(0Ull), "sizeof(0Ull)");
-//    assert(8, sizeof(0l), "sizeof(0l)");
-//    assert(8, sizeof(0ll), "sizeof(0ll)");
-//    assert(8, sizeof(0x0L), "sizeof(0x0L)");
-//    assert(8, sizeof(0b0L), "sizeof(0b0L)");
-//    assert(4, sizeof(2147483647), "sizeof(2147483647)");
-//    assert(8, sizeof(2147483648), "sizeof(2147483648)");
-//    assert(-1, 0xffffffffffffffff, "0xffffffffffffffff");
-//    assert(8, sizeof(0xffffffffffffffff), "sizeof(0xffffffffffffffff)");
-//    assert(4, sizeof(4294967295U), "sizeof(4294967295U)");
-//    assert(8, sizeof(4294967296U), "sizeof(4294967296U)");
-//
+    assert(1, sizeof(char), "sizeof(char)");
+    assert(1, sizeof(signed char), "sizeof(signed char)");
+    assert(1, sizeof(signed char signed), "sizeof(signed char signed)");
+    assert(1, sizeof(unsigned char), "sizeof(unsigned char)");
+    assert(1, sizeof(unsigned char unsigned), "sizeof(unsigned char unsigned)");
+
+    assert(2, sizeof(short), "sizeof(short)");
+    assert(2, sizeof(int short), "sizeof(int short)");
+    assert(2, sizeof(short int), "sizeof(short int)");
+    assert(2, sizeof(signed short), "sizeof(signed short)");
+    assert(2, sizeof(int short signed), "sizeof(int short signed)");
+    assert(2, sizeof(unsigned short), "sizeof(unsigned short)");
+    assert(2, sizeof(int short unsigned), "sizeof(int short unsigned)");
+
+    assert(4, sizeof(int), "sizeof(int)");
+    assert(4, sizeof(signed int), "sizeof(signed int)");
+    assert(4, sizeof(signed), "sizeof(signed)");
+    assert(4, sizeof(signed signed), "sizeof(signed signed)");
+    assert(4, sizeof(unsigned int), "sizeof(unsigned int)");
+    assert(4, sizeof(unsigned), "sizeof(unsigned)");
+    assert(4, sizeof(unsigned unsigned), "sizeof(unsigned unsigned)");
+
+    assert(8, sizeof(long), "sizeof(long)");
+    assert(8, sizeof(signed long), "sizeof(signed long)");
+    assert(8, sizeof(signed long int), "sizeof(signed long int)");
+    assert(8, sizeof(unsigned long), "sizeof(unsigned long)");
+    assert(8, sizeof(unsigned long int), "sizeof(unsigned long int)");
+
+    assert(8, sizeof(long long), "sizeof(long long)");
+    assert(8, sizeof(signed long long), "sizeof(signed long long)");
+    assert(8, sizeof(signed long long int), "sizeof(signed long long int)");
+    assert(8, sizeof(unsigned long long), "sizeof(unsigned long long)");
+    assert(8, sizeof(unsigned long long int), "sizeof(unsigned long long int)");
+
+    assert(1, sizeof((char)1), "sizeof((char)1)");
+    assert(2, sizeof((short)1), "sizeof((short)1)");
+    assert(4, sizeof((int)1), "sizeof((int)1)");
+    assert(8, sizeof((long)1), "sizeof((long)1)");
+    assert(-1, (char)255, "(char)255");
+    assert(-1, (signed char)255, "(signed char)255");
+    assert(255, (unsigned char)255, "(unsigned char)255");
+    assert(-1, (short)65535, "(short)65535");
+    assert(65535, (unsigned short)65535, "(unsigned short)65535");
+    assert(-1, (int)0xffffffff, "(int)0xffffffff");
+    assert(0xffffffff, (unsigned)0xffffffff, "(unsigned)0xffffffff");
+
+    assert(4, sizeof((char)1 + (char)1), "sizeof((char)1 + (char)1)");
+    assert(4, sizeof((short)1 + (short)1), "sizeof((short)1 + (short)1)");
+    assert(4, sizeof(1?2:3), "sizeof(1?2:3)");
+    assert(4, sizeof(1?(short)2:(char)3), "sizeof(1?(short)2:(char)3)");
+    assert(8, sizeof(1?(long)2:(char)3), "sizeof(1?(long)2:(char)3)");
+
+    assert(1, -1<1, "-1<1");
+    assert(0, -1<(unsigned)1, "-1<(unsigned)1");
+    assert(254, (char)127+(char)127, "(char)127+(char)127");
+    assert(65534, (short)32767+(short)32767, "(short)32767+(short)32767");
+    assert(-1, -1>>1, "-1>>1");
+    assert(-1, (unsigned long)-1, "(unsigned long)-1");
+    assert(2147483647, ((unsigned)-1)>>1, "((unsigned)-1)>>1");
+    assert(-50, (-100)/2, "(-100)/2");
+    assert(2147483598, ((unsigned)-100)/2, "((unsigned)-100)/2");
+    assert(9223372036854775758, ((unsigned long)-100)/2, "((unsigned long)-100)/2");
+    assert(0, ((long)-1)/(unsigned)100, "((long)-1)/(unsigned)100");
+    assert(-2, (-100)%7, "(-100)%7");
+    assert(2, ((unsigned)-100)%7, "((unsigned)-100)%7");
+    assert(6, ((unsigned long)-100)%9, "((unsigned long)-100)%9");
+
+    assert(65535, (int)(unsigned short)65535, "(int)(unsigned short)65535");
+    assert(65535, ({ unsigned short x = 65535; x; }), "({ unsigned short x = 65535; x; })");
+    assert(65535, ({ unsigned short x = 65535; (int)x; }), "({ unsigned short x = 65535; (int)x; })");
+
+    assert(-1, ({ typedef short T; T x = 65535; (int)x; }), "({ typedef short T; T x = 65535; (int)x; })");
+    assert(65535, ({ typedef unsigned short T; T x = 65535; (int)x; }), "({ typedef unsigned short T; T x = 65535; (int)x; })");
+
+    assert(4, sizeof(0), "sizeof(0)");
+    assert(8, sizeof(0L), "sizeof(0L)");
+    assert(8, sizeof(0LU), "sizeof(0LU)");
+    assert(8, sizeof(0UL), "sizeof(0UL)");
+    assert(8, sizeof(0LL), "sizeof(0LL)");
+    assert(8, sizeof(0LLU), "sizeof(0LLU)");
+    assert(8, sizeof(0Ull), "sizeof(0Ull)");
+    assert(8, sizeof(0l), "sizeof(0l)");
+    assert(8, sizeof(0ll), "sizeof(0ll)");
+    assert(8, sizeof(0x0L), "sizeof(0x0L)");
+    assert(8, sizeof(0b0L), "sizeof(0b0L)");
+    assert(4, sizeof(2147483647), "sizeof(2147483647)");
+    assert(8, sizeof(2147483648), "sizeof(2147483648)");
+    assert(-1, 0xffffffffffffffff, "0xffffffffffffffff");
+    assert(8, sizeof(0xffffffffffffffff), "sizeof(0xffffffffffffffff)");
+    assert(4, sizeof(4294967295U), "sizeof(4294967295U)");
+    assert(8, sizeof(4294967296U), "sizeof(4294967296U)");
+
 //    assert(3, -1U>>30, "-1U>>30");
 //    assert(3, -1Ul>>62, "-1Ul>>62");
 //    assert(3, -1ull>>62, "-1ull>>62");

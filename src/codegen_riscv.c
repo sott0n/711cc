@@ -308,7 +308,10 @@ static void cast(Type *from, Type *to) {
             println("  lh %s, 0(s0)", r);
     } else if (to->size == 4) {
         println("  sd %s, 0(s0)", r);
-        println("  lw %s, 0(s0)", r);
+        if (to->is_unsigned)
+            println("  lwu %s, 0(s0)", r);
+        else
+            println("  lw %s, 0(s0)", r);
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
         println("  sd %s, 0(s0)", r);
         println("  ld %s, 0(s0)", r);
@@ -739,7 +742,7 @@ static void gen_expr(Node *node) {
             println("  setb %%al");
         } else {
             if (node->lhs->ty->is_unsigned)
-                println("  setb %%al");
+                println("  sltu %s, %s, %s", rd, rd, rs);
             else
                 println("  slt %s, %s, %s", rd, rd, rs);
         }
