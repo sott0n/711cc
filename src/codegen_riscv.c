@@ -794,7 +794,10 @@ static void gen_expr(Node *node) {
         if (node->lhs->ty->is_unsigned)
             println("  srl %s, %s, %s", rd, rd, reg(top));
         else
-            println("  sra %s, %s, %s", rd, rd, reg(top));
+            if (node->lhs->ty->size == 4)
+                println("  sraw %s, %s, %s", rd, rd, reg(top));
+            else
+                println("  sra %s, %s, %s", rd, rd, reg(top));
         return;
     default:
         error_tok(node->tok, "invalid expression");
