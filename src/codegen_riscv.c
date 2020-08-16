@@ -844,8 +844,8 @@ static void gen_stmt(Node *node) {
         for (Node *n = node->case_next; n; n = n->case_next) {
             n->case_label = count();
             n->case_end_label = c;
-            println("  cmp $%ld, %s", n->val, reg(top - 1));
-            println("  je .L.case.%d", n->case_label);
+            println("  addi t0, %s, -%ld", reg(top - 1), n->val);
+            println("  beqz t0, .L.case.%d", n->case_label);
         }
         top--;
 
@@ -853,10 +853,10 @@ static void gen_stmt(Node *node) {
             int i = count();
             node->default_case->case_end_label = c;
             node->default_case->case_label = i;
-            println("  jmp .L.case.%d", i);
+            println("  j .L.case.%d", i);
         }
 
-        println("  jmp .L.break.%d", c);
+        println("  j .L.break.%d", c);
         gen_stmt(node->then);
         println(".L.break.%d:", c);
 
@@ -874,15 +874,15 @@ static void gen_stmt(Node *node) {
     case ND_BREAK:
         if (brknum == 0)
             error_tok(node->tok, "stray break");
-        println("  jmp .L.break.%d", brknum);
+        println("  j .L.break.%d", brknum);
         return;
     case ND_CONTINUE:
         if (contnum == 0)
             error_tok(node->tok, "stray continue");
-        println("  jmp .L.continue.%d", contnum);
+        println("  j .L.continue.%d", contnum);
         return;
     case ND_GOTO:
-        println("  jmp .L.label.%s.%s", current_fn->name, node->label_name);
+        println("  j .L.label.%s.%s", current_fn->name, node->label_name);
         return;
     case ND_LABEL:
         println(".L.label.%s.%s:", current_fn->name, node->label_name);
