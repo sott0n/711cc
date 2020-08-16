@@ -19,9 +19,9 @@ char main_line = __LINE__;
 //typedef unsigned short char16_t;
 //typedef unsigned int char32_t;
 //typedef int wchar_t;
-//
-//int g1, g2[4];
-//
+
+int g1, g2[4];
+
 //typedef int MyInt, MyInt2[4];
 //
 //char g3 = 3;
@@ -106,14 +106,14 @@ int add6(int a, int b, int c, int d, int e, int f) {
     return a + b + c + d + e + f;
 }
 
-//int addx(int *x, int y) {
-//    return *x + y;
-//}
-//
-//int sub_char(char a, char b, char c) {
-//    return a - b - c;
-//}
-//
+int addx(int *x, int y) {
+    return *x + y;
+}
+
+int sub_char(char a, char b, char c) {
+    return a - b - c;
+}
+
 //int sub_short(short a, short b, short c) {
 //    return a - b - c;
 //}
@@ -308,64 +308,64 @@ int main() {
     assert(3, ({ int x[2][3]; int *y=x; y[3]=3; x[1][0]; }), "({ int x[2][3]; int *y=x; y[3]=3; x[1][0]; })");
     assert(4, ({ int x[2][3]; int *y=x; y[4]=4; x[1][1]; }), "({ int x[2][3]; int *y=x; y[4]=4; x[1][1]; })");
     assert(5, ({ int x[2][3]; int *y=x; y[5]=5; x[1][2]; }), "({ int x[2][3]; int *y=x; y[5]=5; x[1][2]; })");
-//
-//    assert(4, ({ int x; sizeof(x); }), "({ int x; sizeof(x); })");
-//    assert(4, ({ int x; sizeof x; }), "({ int x; sizeof x; })");
-//    assert(8, ({ int *x; sizeof(x); }), "({ int *x; sizeof(x); })");
-//    assert(16, ({ int x[4]; sizeof(x); }), "({ int x[4]; sizeof(x); })");
-//    assert(48, ({ int x[3][4]; sizeof(x); }), "({ int x[3][4]; sizeof(x); })");
-//    assert(16, ({ int x[3][4]; sizeof(*x); }), "({ int x[3][4]; sizeof(*x); })");
-//    assert(4, ({ int x[3][4]; sizeof(**x); }), "({ int x[3][4]; sizeof(**x); })");
-//    assert(5, ({ int x[3][4]; sizeof(**x) + 1; }), "({ int x[3][4]; sizeof(**x) + 1; })");
-//    assert(5, ({ int x[3][4]; sizeof **x + 1; }), "({ int x[3][4]; sizeof **x + 1; })");
-//    assert(4, ({ int x[3][4]; sizeof(**x + 1); }), "({ int x[3][4]; sizeof(**x + 1); })");
-//    assert(4, ({ int x=1; sizeof(x=2); }), "({ int x=1; sizeof(x=2); })");
-//    assert(1, ({ int x=1; sizeof(x=2); x; }), "({ int x=1; sizeof(x=2); x; })");
-//
-//    assert(0, g1, "g1");
-//    assert(3, ({ g1=3; g1; }), "({ g1=3; g1; })");
-//    assert(0, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; })");
-//    assert(1, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; })");
-//    assert(2, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[2]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[2]; })");
-//    assert(3, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[3]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[3]; })");
-//
-//    assert(4, sizeof(g1), "sizeof(g1)");
-//    assert(16, sizeof(g2), "sizeof(g2)");
-//
-//    assert(1, ({ char x=1; x; }), "({ char x=1; x; })");
-//    assert(1, ({ char x=1; char y=2; x; }), "({ char x=1; char y=2; x; })");
-//    assert(2, ({ char x=1; char y=2; y; }), "({ char x=1; char y=2; y; })");
-//
-//    assert(1, ({ char x; sizeof(x); }), "({ char x; sizeof(x); })");
-//    assert(10, ({ char x[10]; sizeof(x); }), "({ char x[10]; sizeof(x); })");
-//    assert(1, ({ sub_char(7, 3, 3); }), "({ sub_char(7, 3, 3); })");
-//
-//    assert(0, ""[0], "\"\"[0]");
-//    assert(1, sizeof(""), "sizeof(\"\")");
-//
-//    assert(97, "abc"[0], "\"abc\"[0]");
-//    assert(98, "abc"[1], "\"abc\"[1]");
-//    assert(99, "abc"[2], "\"abc\"[2]");
-//    assert(0, "abc"[3], "\"abc\"[3]");
-//    assert(4, sizeof("abc"), "sizeof(\"abc\")");
-//
-//    assert(7, "\a"[0], "\"\\a\"[0]");
-//    assert(8, "\b"[0], "\"\\b\"[0]");
-//    assert(9, "\t"[0], "\"\\t\"[0]");
-//    assert(10, "\n"[0], "\"\\n\"[0]");
-//    assert(11, "\v"[0], "\"\\v\"[0]");
-//    assert(12, "\f"[0], "\"\\f\"[0]");
-//    assert(13, "\r"[0], "\"\\r\"[0]");
-//    assert(27, "\e"[0], "\"\\e\"[0]");
 
-//    assert(106, "\j"[0], "\"\\j\"[0]");
-//    assert(107, "\k"[0], "\"\\k\"[0]");
-//    assert(108, "\l"[0], "\"\\l\"[0]");
-//
-//    assert(7, "\ax\ny"[0], "\"\\ax\\ny\"[0]");
-//    assert(120, "\ax\ny"[1], "\"\\ax\\ny\"[1]");
-//    assert(10, "\ax\ny"[2], "\"\\ax\\ny\"[2]");
-//    assert(121, "\ax\ny"[3], "\"\\ax\\ny\"[3]");
+    assert(4, ({ int x; sizeof(x); }), "({ int x; sizeof(x); })");
+    assert(4, ({ int x; sizeof x; }), "({ int x; sizeof x; })");
+    assert(8, ({ int *x; sizeof(x); }), "({ int *x; sizeof(x); })");
+    assert(16, ({ int x[4]; sizeof(x); }), "({ int x[4]; sizeof(x); })");
+    assert(48, ({ int x[3][4]; sizeof(x); }), "({ int x[3][4]; sizeof(x); })");
+    assert(16, ({ int x[3][4]; sizeof(*x); }), "({ int x[3][4]; sizeof(*x); })");
+    assert(4, ({ int x[3][4]; sizeof(**x); }), "({ int x[3][4]; sizeof(**x); })");
+    assert(5, ({ int x[3][4]; sizeof(**x) + 1; }), "({ int x[3][4]; sizeof(**x) + 1; })");
+    assert(5, ({ int x[3][4]; sizeof **x + 1; }), "({ int x[3][4]; sizeof **x + 1; })");
+    assert(4, ({ int x[3][4]; sizeof(**x + 1); }), "({ int x[3][4]; sizeof(**x + 1); })");
+    assert(4, ({ int x=1; sizeof(x=2); }), "({ int x=1; sizeof(x=2); })");
+    assert(1, ({ int x=1; sizeof(x=2); x; }), "({ int x=1; sizeof(x=2); x; })");
+
+    assert(0, g1, "g1");
+    assert(3, ({ g1=3; g1; }), "({ g1=3; g1; })");
+    assert(0, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; })");
+    assert(1, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; })");
+    assert(2, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[2]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[2]; })");
+    assert(3, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[3]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[3]; })");
+
+    assert(4, sizeof(g1), "sizeof(g1)");
+    assert(16, sizeof(g2), "sizeof(g2)");
+
+    assert(1, ({ char x=1; x; }), "({ char x=1; x; })");
+    assert(1, ({ char x=1; char y=2; x; }), "({ char x=1; char y=2; x; })");
+    assert(2, ({ char x=1; char y=2; y; }), "({ char x=1; char y=2; y; })");
+
+    assert(1, ({ char x; sizeof(x); }), "({ char x; sizeof(x); })");
+    assert(10, ({ char x[10]; sizeof(x); }), "({ char x[10]; sizeof(x); })");
+    assert(1, ({ sub_char(7, 3, 3); }), "({ sub_char(7, 3, 3); })");
+
+    assert(0, ""[0], "\"\"[0]");
+    assert(1, sizeof(""), "sizeof(\"\")");
+
+    assert(97, "abc"[0], "\"abc\"[0]");
+    assert(98, "abc"[1], "\"abc\"[1]");
+    assert(99, "abc"[2], "\"abc\"[2]");
+    assert(0, "abc"[3], "\"abc\"[3]");
+    assert(4, sizeof("abc"), "sizeof(\"abc\")");
+
+    assert(7, "\a"[0], "\"\\a\"[0]");
+    assert(8, "\b"[0], "\"\\b\"[0]");
+    assert(9, "\t"[0], "\"\\t\"[0]");
+    assert(10, "\n"[0], "\"\\n\"[0]");
+    assert(11, "\v"[0], "\"\\v\"[0]");
+    assert(12, "\f"[0], "\"\\f\"[0]");
+    assert(13, "\r"[0], "\"\\r\"[0]");
+    assert(27, "\e"[0], "\"\\e\"[0]");
+
+    assert(106, "\j"[0], "\"\\j\"[0]");
+    assert(107, "\k"[0], "\"\\k\"[0]");
+    assert(108, "\l"[0], "\"\\l\"[0]");
+
+    assert(7, "\ax\ny"[0], "\"\\ax\\ny\"[0]");
+    assert(120, "\ax\ny"[1], "\"\\ax\\ny\"[1]");
+    assert(10, "\ax\ny"[2], "\"\\ax\\ny\"[2]");
+    assert(121, "\ax\ny"[3], "\"\\ax\\ny\"[3]");
 //
 //    assert(0, "\0"[0], "\"\\0\"[0]");
 //    assert(16, "\20"[0], "\"\\20\"[0]");

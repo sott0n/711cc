@@ -922,23 +922,37 @@ static void emit_data(Program *prog) {
 
         Relocation *rel = var->rel;
         int pos = 0;
+        int buf_pos = 0;
+        char buf[256];
         while (pos < var->ty->size) {
             if (rel && rel->offset == pos) {
                 println("  .quad %s%+ld", rel->label, rel->addend);
                 rel = rel->next;
                 pos += 8;
             } else {
-                if (var->init_data[pos] == '\0')
-                    break;
-                if (var->init_data[pos] == '\n') {
-                    var->init_data[pos++] = '\\';
-                    var->init_data[pos++] = 'n';
+                switch (var->init_data[pos]) {
+                case '\0': break;
+                case '"':
+                case '\a':
+                case '\b':
+                case '\t':
+                case '\v':
+                case '\f':
+                case '\r': {
+                    buf[buf_pos++] = '\\';
+                    buf[buf_pos++] = var->init_data[pos++];
                     continue;
                 }
-                pos++;
+                case '\n':
+                    buf[buf_pos++] = '\\';
+                    buf[buf_pos++] = 'n';
+                    pos++;
+                    continue;
+                }
+                buf[buf_pos++] = var->init_data[pos++];
             }
         }
-        println("  .string \"%s\"", var->init_data);
+        println("  .string \"%s\"", buf);
     }
 }
 

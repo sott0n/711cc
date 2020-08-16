@@ -1498,8 +1498,8 @@ of(char), \
 #include M13
     assert(3, foo, "foo");
 
-#define M13 < include4.h
-#include M13 >
+#define M13 <include4.h>
+#include M13
     assert(4, foo, "foo");
 
 #undef foo
