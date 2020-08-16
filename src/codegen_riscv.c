@@ -938,12 +938,8 @@ static void emit_data(Program *prog) {
         int pos = 0;
         int buf_pos = 0;
         char buf[256];
-        while (pos < var->ty->size) {
-            if (rel && rel->offset == pos) {
-                println("  .quad %s%+ld", rel->label, rel->addend);
-                rel = rel->next;
-                pos += 8;
-            } else {
+        if (var->ty->kind == TY_CHAR) {
+            while (pos < var->ty->size) {
                 // Follow escape sequence
                 switch (var->init_data[pos]) {
                 case '\0': break;
@@ -966,8 +962,19 @@ static void emit_data(Program *prog) {
                 }
                 buf[buf_pos++] = var->init_data[pos++];
             }
+            println("  .string \"%s\"", buf);
+            return;
         }
-        println("  .string \"%s\"", buf);
+
+        while (pos < var->ty->size) {
+            if (rel && rel->offset == pos) {
+                println("  .quad %s%+ld", rel->label, rel->addend);
+                rel = rel->next;
+                pos += 8;
+            } else {
+                println("  .byte %d", var->init_data[pos++]);
+            }
+        }
     }
 }
 
