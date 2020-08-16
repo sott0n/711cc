@@ -1052,34 +1052,34 @@ int main() {
     assert(-1, 0x1 << 31 >> 31, "0x1 << 31 >> 31");
     assert(-1, 0b1 << 31 >> 31, "0b1 << 31 >> 31");
 
-//    assert(1, sizeof(char) << 31 >> 31, "sizeof(char) << 31 >> 31");
-//    assert(1, sizeof(char) << 63 >> 63, "sizeof(char) << 63 >> 63");
-//    assert(1, _Alignof(char) << 31 >> 31, "_Alignof(char) << 31 >> 31");
-//    assert(1, _Alignof(char) << 63 >> 63, "_Alignof(char) << 63 >> 63");
-//
-//    assert(4, ({ char x[(-1>>31)+5]; sizeof(x); }), "({ char x[(-1>>31)+5]; sizeof(x); })");
-//    assert(255, ({ char x[(unsigned char)0xffffffff]; sizeof(x); }), "({ char x[(unsigned char)0xffffffff]; sizeof(x); })");
-//    assert(0x800f, ({ char x[(unsigned short)0xffff800f]; sizeof(x); }), "({ char x[(unsigned short)0xffff800f]; sizeof(x); })");
-//    assert(1, ({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); }), "({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); })");
-//    assert(1, ({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); })");
-//    assert(4, ({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); })");
-//    assert(1, ({ char x[(unsigned)1<-1]; sizeof(x); }), "({ char x[(unsigned)1<-1]; sizeof(x); })");
-//    assert(1, ({ char x[(unsigned)1<=-1]; sizeof(x); }), "({ char x[(unsigned)1<=-1]; sizeof(x); })");
-//
-//    { const x; }
-//    { int const x; }
-//    { const int x; }
-//    { const int const const x; }
-//    assert(5, ({ const x = 5; x; }), "({ const x = 5; x; })");
-//    assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
-//    assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
-//
-//    { volatile x; }
-//    { int volatile x; }
-//    { volatile int x; }
-//    { volatile int volatile volatile x; }
-//    { int volatile * volatile volatile x; }
-//    { int ** restrict const volatile *x; }
+    assert(1, sizeof(char) << 31 >> 31, "sizeof(char) << 31 >> 31");
+    assert(1, sizeof(char) << 63 >> 63, "sizeof(char) << 63 >> 63");
+    assert(1, _Alignof(char) << 31 >> 31, "_Alignof(char) << 31 >> 31");
+    assert(1, _Alignof(char) << 63 >> 63, "_Alignof(char) << 63 >> 63");
+
+    assert(4, ({ char x[(-1>>31)+5]; sizeof(x); }), "({ char x[(-1>>31)+5]; sizeof(x); })");
+    assert(255, ({ char x[(unsigned char)0xffffffff]; sizeof(x); }), "({ char x[(unsigned char)0xffffffff]; sizeof(x); })");
+    assert(0x800f, ({ char x[(unsigned short)0xffff800f]; sizeof(x); }), "({ char x[(unsigned short)0xffff800f]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); }), "({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); })");
+    assert(1, ({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(long)-1/((long)1<<62)+1]; sizeof(x); })");
+    assert(4, ({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); }), "({ char x[(unsigned long)-1/((long)1<<62)+1]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned)1<-1]; sizeof(x); }), "({ char x[(unsigned)1<-1]; sizeof(x); })");
+    assert(1, ({ char x[(unsigned)1<=-1]; sizeof(x); }), "({ char x[(unsigned)1<=-1]; sizeof(x); })");
+
+    { const x; }
+    { int const x; }
+    { const int x; }
+    { const int const const x; }
+    assert(5, ({ const x = 5; x; }), "({ const x = 5; x; })");
+    assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
+    assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
+
+    { volatile x; }
+    { int volatile x; }
+    { volatile int x; }
+    { volatile int volatile volatile x; }
+    { int volatile * volatile volatile x; }
+    { int ** restrict const volatile *x; }
 //
 //    0.0;
 //    1.0;
@@ -1696,5 +1696,4 @@ int main() {
 
 
     printf("OK\n");
-    return 0;
 }

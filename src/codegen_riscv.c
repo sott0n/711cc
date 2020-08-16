@@ -87,11 +87,6 @@ static void gen_addr(Node *node) {
         //      entry within the same ELF module doesn't change whenever the
         //      module is loaded, we can use the RIP-relative memory access to
         //      load a 8-byte value from GOT.
-        //
-        //      Not all variables need a GOT entry. By appending "@GOT" or
-        //      "@GOTPCREL" to a variable name, you can tell the linker you need
-        //      a GOT entry for that variable. "foo@GOTPCREL(%RIP)" refers a GOT
-        //      entry of variable foo at runtime.
         if (!opt_fpic) {
             // Load a 32-bit fixed address to a register.
             println("  mov $%s, %s", node->var->name, reg(top++));
@@ -299,32 +294,29 @@ static void cast(Type *from, Type *to) {
     // In this code, temporary stack is 0(s0), so save value on
     // 0(s0) to t0 register, and re-store it to 0(s0) after cast.
     println("  ld t0, 0(s0)");
+    println("  sd %s, 0(s0)", r);
     if (to->size == 1) {
-        println("  sd %s, 0(s0)", r);
         if (to->is_unsigned)
             println("  lbu %s, 0(s0)", r);
         else
             println("  lb %s, 0(s0)", r);
     } else if (to->size == 2) {
-        println("  sd %s, 0(s0)", r);
         if (to->is_unsigned)
             println("  lhu %s, 0(s0)", r);
         else
             println("  lh %s, 0(s0)", r);
     } else if (to->size == 4) {
-        println("  sd %s, 0(s0)", r);
         if (to->is_unsigned)
             println("  lwu %s, 0(s0)", r);
         else
             println("  lw %s, 0(s0)", r);
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        println("  sd %s, 0(s0)", r);
         println("  ld %s, 0(s0)", r);
     }
     println("  sd t0, 0(s0)");
 }
 
-static void divmod(Node *node, char *rs, char *rd, char *r64) {
+static void divmod(Node *node, char *rs, char *rd) {
     if (node->ty->is_unsigned) {
         println("  divu %s, %s, %s", rd, rd, rs);
     } else {
@@ -408,10 +400,9 @@ static void push_arg(Type *ty, int offset) {
 // Load function call arguments. Arguments are already evaluated and
 // stored to the stack as local variables. What we need to do in this
 // function is to load them to registers or push them to the stack as
-// specified by the x86-64 psABI. Here is what the spec says:
+// specified by the RISC-V ABI. Here is what the spec says:
 //
-// - Up to 6 arguments of integral type are passed using RDI, RSI,
-//   RDX, RCX, R8 and R9.
+// - Up to 8 arguments of integral type are passed using a0 to a7.
 //
 // - Up to 8 arguments of floating-point type are passed using XMM0 to
 //   XMM7.
@@ -450,6 +441,7 @@ static int load_args(Node *node) {
         stack_size += 8;
     }
 
+    // TODO: Push arguments to stack.
     // If we have arguments passed on the stack, push them to the stack.
     //if (stack_size) {
     //    if (stack_size % 16) {
@@ -718,7 +710,7 @@ static void gen_expr(Node *node) {
         else if (node->ty->kind == TY_DOUBLE)
             println("  divsd %s, %s", fs, fd);
         else
-            divmod(node, rs, rd, "%rax");
+            divmod(node, rs, rd);
         return;
     case ND_MOD:
         if (node->ty->is_unsigned)
@@ -779,9 +771,9 @@ static void gen_expr(Node *node) {
             println("  ucomisd %s, %s", fs, fd);
             println("  setbe %%al");
         } else {
-            if (node->lhs->ty->is_unsigned)
+            if (node->lhs->ty->is_unsigned) {
                 println("  setbe %%al");
-            else {
+            } else {
                 println("  addi %s, %s, 1", rs, rs);
                 println("  slt %s, %s, %s", rd, rd, rs);
             }
@@ -973,11 +965,13 @@ static void emit_data(Program *prog) {
 
         Relocation *rel = var->rel;
         int pos = 0;
-        int buf_pos = 0;
-        char buf[256];
+
+        // Add '\' before escape sequence to set `.string`
+        // section as string type.
         if (var->ty->kind == TY_CHAR) {
+            int buf_pos = 0;
+            char buf[256];
             while (pos < var->ty->size) {
-                // Follow escape sequence
                 switch (var->init_data[pos]) {
                 case '\0': break;
                 case '"':
@@ -1078,6 +1072,7 @@ static void emit_text(Program *prog) {
         println("  li t0, %d", fn->stack_size);
         println("  add s0, sp, t0");
 
+        // TODO: Support variadic
         //// Save arg registers if function is variadic
         //if (fn->is_variadic) {
         //    println("  mov %%rdi, -128(%%rbp)");
@@ -1129,8 +1124,8 @@ static void emit_text(Program *prog) {
         // Reaching the end of the main function is equivalent to
         // returning 0, even though the behavior is undefined for the
         // other functions. See C11 5.1.2.2.3.
-        //if (strcmp(fn->name, "main") == 0)
-        //    println("  mov $0, %%rax");
+        if (strcmp(fn->name, "main") == 0)
+            println("  mv a0, zero");
     
         // Epilogue
         println(".L.return.%s:", fn->name);
