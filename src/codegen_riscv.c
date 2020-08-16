@@ -620,6 +620,14 @@ static void gen_expr(Node *node) {
         if (memarg_size)
             println("  sub s0, s0, %d", memarg_size);
 
+        // If a type of function is boolean, returns value
+        // that only the lower 8bits are valid for it and
+        // the upper 56bits may contain garbage.
+        if (node->ty->kind == TY_BOOL) {
+            println("  sd a0, 0(sp)");
+            println("  lb a0, 0(sp)");
+        }
+
         // Restore caller-saved registers
         println("  ld ra, 8(sp)");
         println("  ld t0, 16(sp)");
@@ -825,8 +833,7 @@ static void gen_stmt(Node *node) {
         gen_stmt(node->then);
         println(".L.continue.%d:", c);
         gen_expr(node->cond);
-        cmp_zero(node->cond->ty);
-        println("  jne .L.begin.%d", c);
+        println("  bnez %s, .L.begin.%d", reg(--top), c);
         println(".L.break.%d:", c);
 
         brknum = brk;

@@ -60,22 +60,22 @@ char *g34 = {"foo"};
 //    int c : 10;
 //} g45 = {1, 2, 3};
 //
-//typedef struct Tree {
-//    int val;
-//    struct Tree *lhs;
-//    struct Tree *rhs;
-//} Tree;
-//
-//Tree *tree = &(Tree) {
-//    1,
-//    &(Tree) {
-//        2,
-//        &(Tree){ 3, 0, 0 },
-//        &(Tree){ 4, 0, 0 },
-//    },
-//    0
-//};
-//
+typedef struct Tree {
+    int val;
+    struct Tree *lhs;
+    struct Tree *rhs;
+} Tree;
+
+Tree *tree = &(Tree) {
+    1,
+    &(Tree) {
+        2,
+        &(Tree){ 3, 0, 0 },
+        &(Tree){ 4, 0, 0 },
+    },
+    0
+};
+
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
         printf("%s => %ld\n", code, actual);
@@ -157,15 +157,15 @@ typedef struct {char a; int b;} Ty1;
 //int _Alignas(512) g_aligned1;
 //int _Alignas(512) g_aligned2;
 
-//int counter() {
-//    static int i;
-//    static int j = 1+1;
-//    return i++ + j++;
-//}
-//
-//_Bool true_fn();
-//_Bool false_fn();
-//
+int counter() {
+    static int i;
+    static int j = 1+1;
+    return i++ + j++;
+}
+
+_Bool true_fn();
+_Bool false_fn();
+
 //typedef struct {
 //    int gp_offset;
 //    int fp_offset;
@@ -173,11 +173,11 @@ typedef struct {char a; int b;} Ty1;
 //    void *reg_save_area;
 //} va_list[1];
 //
-//int add_all1(int x, ...);
-//int add_all3(int z, int b, int c, ...);
+int add_all1(int x, ...);
+int add_all3(int z, int b, int c, ...);
 //int add10_int(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9, int x10);
 //int add10_double(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8, double x9, double x10);
-//int sprintf(char *buf, char *fmt, ...);
+int sprintf(char *buf, char *fmt, ...);
 //int vsprintf(char *buf, char *fmt, va_list ap);
 //
 //char *fmt(char *buf, char *fmt, ...) {
@@ -870,51 +870,51 @@ int main() {
     assert(1, _Alignof(struct {char a; char b;}[2]), "_Alignof(struct {char a; char b;}[2])");
     assert(16, _Alignof(struct {char a; long b;}[2]), "_Alignof(struct {char a; long b;}[2])");
 
-//    assert(1, ({ _Alignas(char) char x, y; &y-&x; }), "({ _Alignas(char) char x, y; &y-&x; })");
-//    assert(8, ({ _Alignas(long) char x, y; &y-&x; }), "({ _Alignas(long) char x, y; &y-&x; })");
-//    assert(32, ({ _Alignas(32) char x, y; &y-&x; }), "({ _Alignas(32) char x, y; &y-&x; })");
-//    assert(32, ({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); }), "({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); })");
-//    assert(16, ({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; }), "({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; })");
-//    assert(8, ({ struct T { _Alignas(8) char a; }; _Alignof(struct T); }), "({ struct T { _Alignas(8) char a; }; _Alignof(struct T); })");
-//    assert(0, (long)(char *)&g_aligned1 % 512, "(long)(char *)&g_aligned1 % 512");
+    assert(1, ({ _Alignas(char) char x, y; &y-&x; }), "({ _Alignas(char) char x, y; &y-&x; })");
+    assert(8, ({ _Alignas(long) char x, y; &y-&x; }), "({ _Alignas(long) char x, y; &y-&x; })");
+    assert(32, ({ _Alignas(32) char x, y; &y-&x; }), "({ _Alignas(32) char x, y; &y-&x; })");
+    assert(32, ({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); }), "({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); })");
+    assert(16, ({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; }), "({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; })");
+    assert(8, ({ struct T { _Alignas(8) char a; }; _Alignof(struct T); }), "({ struct T { _Alignas(8) char a; }; _Alignof(struct T); })");
+//    assert(0, (long)(char *)&g_aligned2 % 512, "(long)(char *)&g_aligned1 % 512");
 //    assert(0, (long)(char *)&g_aligned2 % 512, "(long)(char *)&g_aligned2 % 512");
-//
-//    assert(2, counter(), "counter()");
-//    assert(4, counter(), "counter()");
-//    assert(6, counter(), "counter()");
-//
-//    assert(1, (int){1}, "(int){1}");
-//    assert(2, ((int[]){0,1,2})[2], "((int[]){0,1,2})[2]");
-//    assert('a', ((struct {char a; int b;}){'a', 3}).a, "((struct {char a; int b;}){'a', 3}).a");
-//    assert(3, ({ int x=3; (int){x}; }), "({ int x=3; (int){x}; })");
-//    (int){3} = 5;
-//
-//    assert(1, tree->val, "tree->val");
-//    assert(2, tree->lhs->val, "tree->lhs->val");
-//    assert(3, tree->lhs->lhs->val, "tree->lhs->lhs->val");
-//    assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
-//
-//    ret_none();
-//
-//    assert(3, ext3, "ext3");
-//
-//    assert(2, ({ int i=6; i&=3; i; }), "({ int i=6; i&=3; i; }");
-//    assert(7, ({ int i=6; i|=3; i; }), "({ int i=6; i|=3; i; }");
-//    assert(10, ({ int i=15; i^=5; i; }), "({ int i=15; i^=5; i; }");
-//
-//    assert(7, ({ int i=0; int j=0; do { j++; } while (i++ < 6); j; }), "({ int i=0; int j=0; do { j++; } while (i++ < 6); j; })");
-//    assert(4, ({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; }), "({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; })");
-//
-//    assert(1, true_fn(), "true_fn()");
-//    assert(0, false_fn(), "false_fn()");
-//
-//    assert(6, add_all1(1,2,3,0), "add_all1(1,2,3,0)");
-//    assert(5, add_all1(1,2,3,-1,0), "add_all1(1,2,3,-1,0)");
-//
-//    assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
-//    assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
-//
-//    assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
+
+    assert(2, counter(), "counter()");
+    assert(4, counter(), "counter()");
+    assert(6, counter(), "counter()");
+
+    assert(1, (int){1}, "(int){1}");
+    assert(2, ((int[]){0,1,2})[2], "((int[]){0,1,2})[2]");
+    assert('a', ((struct {char a; int b;}){'a', 3}).a, "((struct {char a; int b;}){'a', 3}).a");
+    assert(3, ({ int x=3; (int){x}; }), "({ int x=3; (int){x}; })");
+    (int){3} = 5;
+
+    assert(1, tree->val, "tree->val");
+    assert(2, tree->lhs->val, "tree->lhs->val");
+    assert(3, tree->lhs->lhs->val, "tree->lhs->lhs->val");
+    assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
+
+    ret_none();
+
+    assert(3, ext3, "ext3");
+
+    assert(2, ({ int i=6; i&=3; i; }), "({ int i=6; i&=3; i; }");
+    assert(7, ({ int i=6; i|=3; i; }), "({ int i=6; i|=3; i; }");
+    assert(10, ({ int i=15; i^=5; i; }), "({ int i=15; i^=5; i; }");
+
+    assert(7, ({ int i=0; int j=0; do { j++; } while (i++ < 6); j; }), "({ int i=0; int j=0; do { j++; } while (i++ < 6); j; })");
+    assert(4, ({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; }), "({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; })");
+
+    assert(1, true_fn(), "true_fn()");
+    assert(0, false_fn(), "false_fn()");
+
+    assert(6, add_all1(1,2,3,0), "add_all1(1,2,3,0)");
+    assert(5, add_all1(1,2,3,-1,0), "add_all1(1,2,3,-1,0)");
+
+    assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
+    assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
+
+    assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //    assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //
 //    assert(1, sizeof(char), "sizeof(char)");
