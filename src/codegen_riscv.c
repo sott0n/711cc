@@ -177,8 +177,8 @@ static void store(Type *ty) {
 
     if (ty->kind == TY_STRUCT) {
         for (int i = 0; i < ty->size; i++) {
-            println("  mov %d(%s), %%al", i, rs);
-            println("  mov %%al, %d(%s)", i, rd);
+            println("  lb t0, %d(%s)", i, rs);
+            println("  sb t0, %d(%s)", i, rd);
         }
     } else if (ty->kind == TY_FLOAT) {
         println("  movss %s, (%s)", freg(top - 2), rd);
