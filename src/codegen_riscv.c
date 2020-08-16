@@ -115,7 +115,8 @@ static void gen_addr(Node *node) {
         return;
     case ND_MEMBER:
         gen_addr(node->lhs);
-        println("  add $%d, %s", node->member->offset, reg(top - 1));
+        println("  li t0, %d", node->member->offset);
+        println("  add %s, %s, t0", reg(top - 1), reg(top - 1));
         return;
     }
 
@@ -930,6 +931,7 @@ static void emit_data(Program *prog) {
                 rel = rel->next;
                 pos += 8;
             } else {
+                // Follow escape sequence
                 switch (var->init_data[pos]) {
                 case '\0': break;
                 case '"':

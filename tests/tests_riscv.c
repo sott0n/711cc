@@ -366,31 +366,31 @@ int main() {
     assert(120, "\ax\ny"[1], "\"\\ax\\ny\"[1]");
     assert(10, "\ax\ny"[2], "\"\\ax\\ny\"[2]");
     assert(121, "\ax\ny"[3], "\"\\ax\\ny\"[3]");
-//
-//    assert(0, "\0"[0], "\"\\0\"[0]");
-//    assert(16, "\20"[0], "\"\\20\"[0]");
-//    assert(65, "\101"[0], "\"\\101\"[0]");
-//    assert(104, "\1500"[0], "\"\\1500\"[0]");
-//    assert(0, "\x00"[0], "\"\\x00\"[0]");
-//    assert(119, "\x77"[0], "\"\\x77\"[0]");
-//
-//    assert(2, ({ int x=2; { int x=3; } x; }), "({ int x=2; { int x=3; } x; })");
-//    assert(2, ({ int x=2; { int x=3; } int y=4; x; }), "({ int x=2; { int x=3; } int y=4; x; })");
-//    assert(3, ({ int x=2; { x=3; } x; }), "({ int x=2; { x=3; } x; })");
-//
-//    assert(3, (1,2,3), "(1,2,3)");
-//    assert(5, ({ int i=2, j=3; (i=5,j)=6; i; }), "({ int i=2, j=3; (i=5,j)=6; i; })");
-//    assert(6, ({ int i=2, j=3; (i=5,j)=6; j; }), "({ int i=2, j=3; (i=5,j)=6; j; })");
-//
-//    assert(21, add6(1,2,3,4,5,6), "add6(1,2,3,4,5,6)");
-//
-//    assert(2, ({ int x[5]; int *y=x+2; y-x; }), "({ int x[5]; int *y=x+2; y-x; })");
-//
-//    assert(1, ({ struct {int a; int b;} x; x.a=1, x.b=2; x.a; }), "({ struct {int a; int b;} x; x.a=1, x.b=2; x.a; })");
-//    assert(2, ({ struct {int a; int b;} x; x.a=1, x.b=2; x.b; }), "({ struct {int a; int b;} x; x.a=1, x.b=2; x.b; })");
-//    assert(1, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.a; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.a; })");
-//    assert(2, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.b; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.b; })");
-//    assert(3, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.c; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.c; })");
+
+    assert(0, "\0"[0], "\"\\0\"[0]");
+    assert(16, "\20"[0], "\"\\20\"[0]");
+    assert(65, "\101"[0], "\"\\101\"[0]");
+    assert(104, "\1500"[0], "\"\\1500\"[0]");
+    assert(0, "\x00"[0], "\"\\x00\"[0]");
+    assert(119, "\x77"[0], "\"\\x77\"[0]");
+
+    assert(2, ({ int x=2; { int x=3; } x; }), "({ int x=2; { int x=3; } x; })");
+    assert(2, ({ int x=2; { int x=3; } int y=4; x; }), "({ int x=2; { int x=3; } int y=4; x; })");
+    assert(3, ({ int x=2; { x=3; } x; }), "({ int x=2; { x=3; } x; })");
+
+    assert(3, (1,2,3), "(1,2,3)");
+    assert(5, ({ int i=2, j=3; (i=5,j)=6; i; }), "({ int i=2, j=3; (i=5,j)=6; i; })");
+    assert(6, ({ int i=2, j=3; (i=5,j)=6; j; }), "({ int i=2, j=3; (i=5,j)=6; j; })");
+
+    assert(21, add6(1,2,3,4,5,6), "add6(1,2,3,4,5,6)");
+
+    assert(2, ({ int x[5]; int *y=x+2; y-x; }), "({ int x[5]; int *y=x+2; y-x; })");
+
+    assert(1, ({ struct {int a; int b;} x; x.a=1, x.b=2; x.a; }), "({ struct {int a; int b;} x; x.a=1, x.b=2; x.a; })");
+    assert(2, ({ struct {int a; int b;} x; x.a=1, x.b=2; x.b; }), "({ struct {int a; int b;} x; x.a=1, x.b=2; x.b; })");
+    assert(1, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.a; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.a; })");
+    assert(2, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.b; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.b; })");
+    assert(3, ({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.c; }), "({ struct {int a; int b; char c;} x; x.a=1, x.b=2; x.c=3; x.c; })");
 //
 //    assert(0, ({ struct {char a; char b;} x[3]; char *p=x; p[0]=0; x[0].a; }), "({ struct {char a; char b;} x[3]; char *p=x; p[0]=0; x[0].a; })");
 //    assert(1, ({ struct {char a; char b;} x[3]; char *p=x; p[1]=1; x[0].b; }), "({ struct {char a; char b;} x[3]; char *p=x; p[1]=1; x[0].b; })");
