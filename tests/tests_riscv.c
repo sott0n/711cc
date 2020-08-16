@@ -127,17 +127,17 @@ int fib(int x) {
         return 1;
     return fib(x-1) + fib(x-2);
 }
-//
-//int *g1_ptr() { return &g1; }
-//char int_to_char(int x) { return x; }
-//
-//int div_long(long a, long b) {
-//    return a / b;
-//}
-//
-//_Bool bool_fn_add(_Bool x) { return x + 1; }
-//_Bool bool_fn_sub(_Bool x) { return x - 1; }
-//
+
+int *g1_ptr() { return &g1; }
+char int_to_char(int x) { return x; }
+
+int div_long(long a, long b) {
+    return a / b;
+}
+
+_Bool bool_fn_add(_Bool x) { return x + 1; }
+_Bool bool_fn_sub(_Bool x) { return x - 1; }
+
 //void ret_none() {
 //    return;
 //}
@@ -492,61 +492,61 @@ int main() {
     assert(0, (long)&*(int *)0, "(long)&*(int *)0");
     assert(513, ({ int x=512; *(char *)&x=1; x; }), "({ int x=512; *(char *)&x=1; x; })");
     assert(5, ({ int x=5; long y=(long)&x; *(int*)y; }), "({ int x=5; long y=(long)&x; *(int*)y; })");
-//
-//    (void)1;
-//
-//    assert(4, sizeof(-10 + 5), "sizeof(-10 + 5)");
-//    assert(4, sizeof(-10 - 5), "sizeof(-10 - 5)");
-//    assert(4, sizeof(-10 * 5), "sizeof(-10 * 5)");
-//    assert(4, sizeof(-10 / 5), "sizeof(-10 / 5)");
-//  
-//    assert(8, sizeof(-10 + (long)5), "sizeof(-10 + (long)5)");
-//    assert(8, sizeof(-10 - (long)5), "sizeof(-10 - (long)5)");
-//    assert(8, sizeof(-10 * (long)5), "sizeof(-10 * (long)5)");
-//    assert(8, sizeof(-10 / (long)5), "sizeof(-10 / (long)5)");
-//    assert(8, sizeof((long)-10 + 5), "sizeof((long)-10 + 5)");
-//    assert(8, sizeof((long)-10 - 5), "sizeof((long)-10 - 5)");
-//    assert(8, sizeof((long)-10 * 5), "sizeof((long)-10 * 5)");
-//    assert(8, sizeof((long)-10 / 5), "sizeof((long)-10 / 5)");
-//  
-//    assert((long)-5, -10 + (long)5, "-10 + (long)5");
-//    assert((long)-15, -10 - (long)5, "-10 - (long)5");
-//    assert((long)-50, -10 * (long)5, "-10 * (long)5");
-//    assert((long)-2, -10 / (long)5, "-10 / (long)5");
-//  
-//    assert(1, -2 < (long)-1, "-2 < (long)-1");
-//    assert(1, -2 <= (long)-1, "-2 <= (long)-1");
-//    assert(0, -2 > (long)-1, "-2 > (long)-1");
-//    assert(0, -2 >= (long)-1, "-2 >= (long)-1");
-//  
-//    assert(1, (long)-2 < -1, "(long)-2 < -1");
-//    assert(1, (long)-2 <= -1, "(long)-2 <= -1");
-//    assert(0, (long)-2 > -1, "(long)-2 > -1");
-//    assert(0, (long)-2 >= -1, "(long)-2 >= -1");
-//  
-//    assert(0, 2147483647 + 2147483647 + 2, "2147483647 + 2147483647 + 2");
-//    assert((long)-1, ({ long x; x=-1; x; }), "({ long x; x=-1; x; })");
-//  
-//    assert(1, ({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[0]; }), "({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[0]; })");
-//    assert(0, ({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; }), "({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; })");
-//    assert(5, ({ struct t {char a;} x, y; x.a=5; y=x; y.a; }), "({ struct t {char a;} x, y; x.a=5; y=x; y.a; })");
-//
-//    assert(3, *g1_ptr(), "*g1_ptr()");
-//    assert(5, int_to_char(261), "int_to_char(261)");
-//    assert(-5, div_long(-10, 2), "div_long(-10, 2)");
-//
-//    assert(0, ({ _Bool x=0; x; }), "({ _Bool x=0; x; })");
-//    assert(1, ({ _Bool x=1; x; }), "({ _Bool x=1; x; })");
-//    assert(1, ({ _Bool x=2; x; }), "({ _Bool x=2; x; })");
-//    assert(1, (_Bool)1, "(_Bool)1");
-//    assert(1, (_Bool)2, "(_Bool)2");
-//    assert(0, (_Bool)(char)256, "(_Bool)(char)256");
-//    assert(1, bool_fn_add(3), "bool_fn_add(3)");
-//    assert(0, bool_fn_sub(3), "bool_fn_sub(3)");
-//    assert(1, bool_fn_add(-3), "bool_fn_add(-3)");
-//    assert(0, bool_fn_sub(-3), "bool_fn_sub(-3)");
-//    assert(1, bool_fn_add(0), "bool_fn_add(0)");
-//    assert(1, bool_fn_sub(0), "bool_fn_sub(0)");
+
+    (void)1;
+
+    assert(4, sizeof(-10 + 5), "sizeof(-10 + 5)");
+    assert(4, sizeof(-10 - 5), "sizeof(-10 - 5)");
+    assert(4, sizeof(-10 * 5), "sizeof(-10 * 5)");
+    assert(4, sizeof(-10 / 5), "sizeof(-10 / 5)");
+  
+    assert(8, sizeof(-10 + (long)5), "sizeof(-10 + (long)5)");
+    assert(8, sizeof(-10 - (long)5), "sizeof(-10 - (long)5)");
+    assert(8, sizeof(-10 * (long)5), "sizeof(-10 * (long)5)");
+    assert(8, sizeof(-10 / (long)5), "sizeof(-10 / (long)5)");
+    assert(8, sizeof((long)-10 + 5), "sizeof((long)-10 + 5)");
+    assert(8, sizeof((long)-10 - 5), "sizeof((long)-10 - 5)");
+    assert(8, sizeof((long)-10 * 5), "sizeof((long)-10 * 5)");
+    assert(8, sizeof((long)-10 / 5), "sizeof((long)-10 / 5)");
+  
+    assert((long)-5, -10 + (long)5, "-10 + (long)5");
+    assert((long)-15, -10 - (long)5, "-10 - (long)5");
+    assert((long)-50, -10 * (long)5, "-10 * (long)5");
+    assert((long)-2, -10 / (long)5, "-10 / (long)5");
+  
+    assert(1, -2 < (long)-1, "-2 < (long)-1");
+    assert(1, -2 <= (long)-1, "-2 <= (long)-1");
+    assert(0, -2 > (long)-1, "-2 > (long)-1");
+    assert(0, -2 >= (long)-1, "-2 >= (long)-1");
+  
+    assert(1, (long)-2 < -1, "(long)-2 < -1");
+    assert(1, (long)-2 <= -1, "(long)-2 <= -1");
+    assert(0, (long)-2 > -1, "(long)-2 > -1");
+    assert(0, (long)-2 >= -1, "(long)-2 >= -1");
+  
+    assert(0, 2147483647 + 2147483647 + 2, "2147483647 + 2147483647 + 2");
+    assert((long)-1, ({ long x; x=-1; x; }), "({ long x; x=-1; x; })");
+  
+    assert(1, ({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[0]; }), "({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[0]; })");
+    assert(0, ({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; }), "({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; })");
+    assert(5, ({ struct t {char a;} x, y; x.a=5; y=x; y.a; }), "({ struct t {char a;} x, y; x.a=5; y=x; y.a; })");
+
+    assert(3, *g1_ptr(), "*g1_ptr()");
+    assert(5, int_to_char(261), "int_to_char(261)");
+    assert(-5, div_long(-10, 2), "div_long(-10, 2)");
+
+    assert(0, ({ _Bool x=0; x; }), "({ _Bool x=0; x; })");
+    assert(1, ({ _Bool x=1; x; }), "({ _Bool x=1; x; })");
+    assert(1, ({ _Bool x=2; x; }), "({ _Bool x=2; x; })");
+    assert(1, (_Bool)1, "(_Bool)1");
+    assert(1, (_Bool)2, "(_Bool)2");
+    assert(0, (_Bool)(char)256, "(_Bool)(char)256");
+    assert(1, bool_fn_add(3), "bool_fn_add(3)");
+    assert(0, bool_fn_sub(3), "bool_fn_sub(3)");
+    assert(1, bool_fn_add(-3), "bool_fn_add(-3)");
+    assert(0, bool_fn_sub(-3), "bool_fn_sub(-3)");
+    assert(1, bool_fn_add(0), "bool_fn_add(0)");
+    assert(1, bool_fn_sub(0), "bool_fn_sub(0)");
 //
 //    assert(97, 'a', "'a'");
 //    assert(10, '\n', "'\n'");

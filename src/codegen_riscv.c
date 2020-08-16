@@ -248,9 +248,8 @@ static void cast(Type *from, Type *to) {
     char *fr = freg(top - 1);
 
     if (to->kind == TY_BOOL) {
-        cmp_zero(from);
-        println("  setne %sb", reg(top));
-        println("  movzx %sb, %s", reg(top), reg(top));
+        char *tr = reg(--top);
+        println("  snez %s, %s", tr, tr);
         top++;
         return;
     }
@@ -547,7 +546,6 @@ static void gen_expr(Node *node) {
     case ND_COND: {
         int c = count();
         gen_expr(node->cond);
-        //cmp_zero(node->cond->ty);
         println("  beqz %s, .L.else.%d", reg(--top), c);
         gen_expr(node->then);
         top--;
