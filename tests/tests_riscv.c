@@ -1009,9 +1009,9 @@ int main() {
     assert(4, sizeof(4294967295U), "sizeof(4294967295U)");
     assert(8, sizeof(4294967296U), "sizeof(4294967296U)");
 
-//    assert(3, -1U>>30, "-1U>>30");
-//    assert(3, -1Ul>>62, "-1Ul>>62");
-//    assert(3, -1ull>>62, "-1ull>>62");
+    assert(3, -1U>>30, "-1U>>30");
+    assert(3, -1Ul>>62, "-1Ul>>62");
+    assert(3, -1ull>>62, "-1ull>>62");
 //
 //    assert(1, 0xffffffffffffffffl>>63, "0xffffffffffffffffl>>63");
 //    assert(1, 0xffffffffffffffffll>>63, "0xffffffffffffffffll>>63");

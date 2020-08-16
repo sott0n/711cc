@@ -159,13 +159,18 @@ static void load(Type *ty) {
         else
             println("  lb %s, 0(%s)", rd, rs);
     }
-    else if (ty->size == 2)
+    else if (ty->size == 2) {
         if (ty->is_unsigned)
             println("  lhu %s, 0(%s)", rd, rs);
         else
             println("  lh %s, 0(%s)", rd, rs);
-    else if (ty->size == 4)
-        println("  lw %s, 0(%s)", rd, rs);
+    }
+    else if (ty->size == 4) {
+        if (ty->is_unsigned)
+            println("  lwu %s, 0(%s)", rd, rs);
+        else
+            println("  lw %s, 0(%s)", rd, rs);
+    }
     else {
         println("  ld %s, 0(%s)", rd, rs);
     }
@@ -360,16 +365,19 @@ static void load_gp_arg(Type *ty, int offset, int r) {
     println("  sub t0, s0, t0");
     if (ty->size == 1) {
         if (ty->is_unsigned)
-            println("  lb %s, 0(t0)", argreg[r]);
-        else
             println("  lbu %s, 0(t0)", argreg[r]);
+        else
+            println("  lb %s, 0(t0)", argreg[r]);
     } else if (ty->size == 2) {
         if (ty->is_unsigned)
-            println("  lh %s, 0(t0)", argreg[r]);
-        else
             println("  lhu %s, 0(t0)", argreg[r]);
+        else
+            println("  lh %s, 0(t0)", argreg[r]);
     } else if (ty->size == 4) {
-        println("  lw %s, 0(t0)", argreg[r]);
+        if (ty->is_unsigned)
+            println("  lwu %s, 0(t0)", argreg[r]);
+        else
+            println("  lw %s, 0(t0)", argreg[r]);
     } else {
         println("  ld %s, 0(t0)", argreg[r]);
     }
@@ -673,12 +681,28 @@ static void gen_expr(Node *node) {
             println("  add %s, %s, %s", rd, rd, rs);
         return;
     case ND_SUB:
-        if (node->ty->kind == TY_FLOAT)
+        if (node->ty->kind == TY_FLOAT) {
             println("  subss %s, %s", fs, fd);
-        else if (node->ty->kind == TY_DOUBLE)
+        } else if (node->ty->kind == TY_DOUBLE) {
             println("  subsd %s, %s", fs, fd);
-        else
+        } else {
             println("  sub %s, %s, %s", rd, rd, rs);
+            // For minus value, it be cast unsigned or not.
+            if (!node->ty->is_unsigned)
+                return;
+            println("  ld t0, 0(s0)");
+            if (node->ty->size == 1) {
+                println("  sb %s, 0(s0)", rd);
+                println("  lbu %s, 0(s0)", rd);
+            } else if (node->ty->size == 2) {
+                println("  sh %s, 0(s0)", rd);
+                println("  lhu %s, 0(s0)", rd);
+            } else if (node->ty->size == 4) {
+                println("  sw %s, 0(s0)", rd);
+                println("  lwu %s, 0(s0)", rd);
+            }
+            println("  sd t0, 0(s0)");
+        }
         return;
     case ND_MUL:
         if (node->ty->kind == TY_FLOAT)
