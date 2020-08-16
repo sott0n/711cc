@@ -555,44 +555,42 @@ static void gen_expr(Node *node) {
         println(".L.end.%d:", c);
         return;
     }
-    case ND_NOT:
+    case ND_NOT: {
         gen_expr(node->lhs);
-        cmp_zero(node->lhs->ty);
-        println("  sete %sb", reg(top));
-        println("  movzx %sb, %s", reg(top), reg(top));
+        char *tr = reg(--top);
+        println("  seqz %s, %s", tr, tr);
         top++;
         return;
-    case ND_BITNOT:
+    }
+    case ND_BITNOT: {
         gen_expr(node->lhs);
-        println("  not %s", reg(top - 1));
+        char *tr = reg(top - 1);
+        println("  not %s, %s", tr, tr);
         return;
+    }
     case ND_LOGAND: {
         int c = count();
         gen_expr(node->lhs);
-        cmp_zero(node->lhs->ty);
-        println("  je .L.false.%d", c);
+        println("  beqz %s, .L.false.%d", reg(--top), c);
         gen_expr(node->rhs);
-        cmp_zero(node->rhs->ty);
-        println("  je .L.false.%d", c);
-        println("  mov $1, %s", reg(top));
-        println("  jmp .L.end.%d", c);
+        println("  beqz %s, .L.false.%d", reg(--top), c);
+        println("  li %s, 1", reg(top));
+        println("  j .L.end.%d", c);
         println(".L.false.%d:", c);
-        println("  mov $0, %s", reg(top++));
+        println("  mv %s, zero", reg(top++));
         println(".L.end.%d:", c);
         return;
     }
     case ND_LOGOR: {
         int c = count();
         gen_expr(node->lhs);
-        cmp_zero(node->lhs->ty);
-        println("  jne .L.true.%d", c);
+        println("  bnez %s, .L.true.%d", reg(--top), c);
         gen_expr(node->rhs);
-        cmp_zero(node->rhs->ty);
-        println("  jne .L.true.%d", c);
-        println("  mov $0, %s", reg(top));
-        println("  jmp .L.end.%d", c);
+        println("  bnez %s, .L.true.%d", reg(--top), c);
+        println("  mv %s, zero", reg(top));
+        println("  j .L.end.%d", c);
         println(".L.true.%d:", c);
-        println("  mov $1, %s", reg(top++));
+        println("  li %s, 1", reg(top++));
         println(".L.end.%d:", c);
         return;
     }
@@ -688,7 +686,10 @@ static void gen_expr(Node *node) {
             divmod(node, rs, rd, "%rax");
         return;
     case ND_MOD:
-        divmod(node, rs, rd, "%rdx");
+        if (node->ty->is_unsigned)
+            println("  remu %s, %s, %s", rd, rd, rs);
+        else
+            println("  rem %s, %s, %s", rd, rd, rs);
         return;
     case ND_BITAND:
         println("  and %s, %s, %s", rd, rd, rs);

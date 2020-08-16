@@ -138,12 +138,12 @@ int div_long(long a, long b) {
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
 
-//void ret_none() {
-//    return;
-//}
-//
-//static int static_fn() { return 3; }
-//
+void ret_none() {
+    return;
+}
+
+static int static_fn() { return 3; }
+
 //int param_decay(int x[]) { return x[0]; }
 //
 //extern int ext1;
@@ -547,105 +547,105 @@ int main() {
     assert(0, bool_fn_sub(-3), "bool_fn_sub(-3)");
     assert(1, bool_fn_add(0), "bool_fn_add(0)");
     assert(1, bool_fn_sub(0), "bool_fn_sub(0)");
-//
-//    assert(97, 'a', "'a'");
-//    assert(10, '\n', "'\n'");
-//    assert(4, sizeof('a'), "sizeof('a')");
-//
-//    assert(0, ({ enum { zero, one, two }; zero; }), "({ enum { zero, one, two }; zero; })");
-//    assert(1, ({ enum { zero, one, two }; one; }), "({ enum { zero, one, two }; one; })");
-//    assert(2, ({ enum { zero, one, two }; two; }), "({ enum { zero, one, two }; two; })");
-//    assert(5, ({ enum { five=5, six, seven }; five; }), "({ enum { five=5, six, seven }; five; })");
-//    assert(6, ({ enum { five=5, six, seven }; six; }), "({ enum { five=5, six, seven }; six; })");
-//    assert(0, ({ enum { zero, five=5, three=3, four }; zero; }), "({ enum { zero, five=5, three, four }; zero; })");
-//    assert(5, ({ enum { zero, five=5, three=3, four }; five; }), "({ enum { zero, five=5, three, four }; five; })");
-//    assert(3, ({ enum { zero, five=5, three=3, four }; three; }), "({ enum { zero, five=5, three, four }; three; })");
-//    assert(4, ({ enum { zero, five=5, three=3, four }; four; }), "({ enum { zero, five=5, three, four }; four; })");
-//    assert(4, ({ enum { zero, one, two } x; sizeof(x); }), "({ enum { zero, one, two } x; sizeof(x); })");
-//    assert(4, ({ enum t { zero, one, two }; enum t y; sizeof(y); }), "({ enum t { zero, one, two }; enum t y; sizeof(y); })");
-//
-//    assert(3, static_fn(), "static_fn()");
-//
-//    assert(55, ({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j; }), "({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j; })");
-//    assert(3, ({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i; }), "({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i; })");
-//
-//    assert(7, ({ int i=2; i+=5; i; }), "({ int i=2; i+=5; i; })");
-//    assert(7, ({ int i=2; i+=5; }), "({ int i=2; i+=5; })");
-//    assert(3, ({ int i=5; i-=2; i; }), "({ int i=5; i-=2; i; })");
-//    assert(3, ({ int i=5; i-=2; }), "({ int i=5; i-=2; })");
-//    assert(6, ({ int i=3; i*=2; i; }), "({ int i=3; i*=2; i; })");
-//    assert(6, ({ int i=3; i*=2; }), "({ int i=3; i*=2; })");
-//    assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
-//    assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })"); assert(3, ({ int i=2; ++i; }), "({ int i=2; ++i; })");
-//    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; })");
-//    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; })");
-//
-//    assert(2, ({int i=2; i++; }), "({int i=2; i++; })");
-//    assert(2, ({int i=2; i--; }), "({int i=2; i--; })");
-//    assert(3, ({int i=2; i++; i; }), "({int i=2; i++; i; })");
-//    assert(1, ({int i=2; i--; i; }), "({int i=2; i--; i; })");
-//    assert(1, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p++; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p++; })");
-//    assert(1, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p--; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p--; })");
-//
-//    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; })");
-//    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*(p--))--; a[1]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*(p--))--; a[1]; })");
-//    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; a[2]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; a[2]; })");
-//    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; p++; *p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; p++; *p; })");
-//
-//    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; })");
-//    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; })");
-//    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; })");
-//    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; })");
-//
-//    assert(511, 0777, "0777");
-//    assert(0, 0x0, "0x0");
-//    assert(10, 0xa, "0xa");
-//    assert(10, 0XA, "0XA");
-//    assert(48879, 0xbeef, "0xbeef");
-//    assert(48879, 0xBEEF, "0xBEEF");
-//    assert(48879, 0XBEEF, "0XBEEF");
-//    assert(0, 0b0, "0b0");
-//    assert(1, 0b1, "0b1");
-//    assert(47, 0b101111, "0b101111");
-//    assert(47, 0B101111, "0B101111");
-//
-//    assert(0, !1, "!1");
-//    assert(0, !2, "!2");
-//    assert(1, !0, "!0");
-//    assert(1, !(char)0, "!(char)0");
-//    assert(0, !(long)3, "!(long)3");
-//    assert(4, sizeof(!(char)0), "sizeof(!(char)0)");
-//    assert(4, sizeof(!(long)0), "sizeof(!(long)0)");
-//
-//    assert(-1, ~0, "~0");
-//    assert(0, ~-1, "~-1");
-//
-//    assert(5, 17%6, "17%6");
-//    assert(5, ((long)17)%6, "((long)17)%6");
-//    assert(2, ({ int i=10; i%=4; i; }), "({ int i=10; i%4; i; })");
-//    assert(2, ({ long i=10; i%=4; i; }), "({ long i=10; i%4; i; })");
-//
-//    assert(0, 0&1, "0&1");
-//    assert(1, 3&1, "3&1");
-//    assert(3, 7&3, "7&3");
-//    assert(10, -1&10, "-1&10");
-//
-//    assert(0, 0^0, "0^0");
-//    assert(0, 0b1111^0b1111, "0b1111^0b1111");
-//    assert(0b110100, 0b111000^0b001100, "0b111000^0b001100");
-//
-//    assert(2, ({ int i=6; i&=3; i; }), "({ int i=6; i&=3; i; })");
-//    assert(7, ({ int i=6; i|=3; i; }), "({ int i=6; i|=3; i; })");
-//    assert(10, ({ int i=15; i^=5; i; }), "({ int i=15; i^=5; i; })");
-//
-//    assert(1, 0||1, "0||1");
-//    assert(1, 0||(2-2)||5, "0||(2-2)||5");
-//    assert(0, 0||0, "0||0");
-//    assert(0, 0||(2-2), "0||(2-2)");
-//
-//    assert(0, 0&&1, "0&&1");
-//    assert(0, (2-2)&&5, "(2-2)&&5");
-//    assert(1, 1&&5, "1&&5");
+
+    assert(97, 'a', "'a'");
+    assert(10, '\n', "'\n'");
+    assert(4, sizeof('a'), "sizeof('a')");
+
+    assert(0, ({ enum { zero, one, two }; zero; }), "({ enum { zero, one, two }; zero; })");
+    assert(1, ({ enum { zero, one, two }; one; }), "({ enum { zero, one, two }; one; })");
+    assert(2, ({ enum { zero, one, two }; two; }), "({ enum { zero, one, two }; two; })");
+    assert(5, ({ enum { five=5, six, seven }; five; }), "({ enum { five=5, six, seven }; five; })");
+    assert(6, ({ enum { five=5, six, seven }; six; }), "({ enum { five=5, six, seven }; six; })");
+    assert(0, ({ enum { zero, five=5, three=3, four }; zero; }), "({ enum { zero, five=5, three, four }; zero; })");
+    assert(5, ({ enum { zero, five=5, three=3, four }; five; }), "({ enum { zero, five=5, three, four }; five; })");
+    assert(3, ({ enum { zero, five=5, three=3, four }; three; }), "({ enum { zero, five=5, three, four }; three; })");
+    assert(4, ({ enum { zero, five=5, three=3, four }; four; }), "({ enum { zero, five=5, three, four }; four; })");
+    assert(4, ({ enum { zero, one, two } x; sizeof(x); }), "({ enum { zero, one, two } x; sizeof(x); })");
+    assert(4, ({ enum t { zero, one, two }; enum t y; sizeof(y); }), "({ enum t { zero, one, two }; enum t y; sizeof(y); })");
+
+    assert(3, static_fn(), "static_fn()");
+
+    assert(55, ({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j; }), "({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j; })");
+    assert(3, ({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i; }), "({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i; })");
+
+    assert(7, ({ int i=2; i+=5; i; }), "({ int i=2; i+=5; i; })");
+    assert(7, ({ int i=2; i+=5; }), "({ int i=2; i+=5; })");
+    assert(3, ({ int i=5; i-=2; i; }), "({ int i=5; i-=2; i; })");
+    assert(3, ({ int i=5; i-=2; }), "({ int i=5; i-=2; })");
+    assert(6, ({ int i=3; i*=2; i; }), "({ int i=3; i*=2; i; })");
+    assert(6, ({ int i=3; i*=2; }), "({ int i=3; i*=2; })");
+    assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
+    assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })"); assert(3, ({ int i=2; ++i; }), "({ int i=2; ++i; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; })");
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; })");
+
+    assert(2, ({int i=2; i++; }), "({int i=2; i++; })");
+    assert(2, ({int i=2; i--; }), "({int i=2; i--; })");
+    assert(3, ({int i=2; i++; i; }), "({int i=2; i++; i; })");
+    assert(1, ({int i=2; i--; i; }), "({int i=2; i--; i; })");
+    assert(1, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p++; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p++; })");
+    assert(1, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p--; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; *p--; })");
+
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; })");
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*(p--))--; a[1]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*(p--))--; a[1]; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; a[2]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; a[2]; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; p++; *p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p)--; p++; *p; })");
+
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[0]; })");
+    assert(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[1]; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; })");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; }), "({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; })");
+
+    assert(511, 0777, "0777");
+    assert(0, 0x0, "0x0");
+    assert(10, 0xa, "0xa");
+    assert(10, 0XA, "0XA");
+    assert(48879, 0xbeef, "0xbeef");
+    assert(48879, 0xBEEF, "0xBEEF");
+    assert(48879, 0XBEEF, "0XBEEF");
+    assert(0, 0b0, "0b0");
+    assert(1, 0b1, "0b1");
+    assert(47, 0b101111, "0b101111");
+    assert(47, 0B101111, "0B101111");
+
+    assert(0, !1, "!1");
+    assert(0, !2, "!2");
+    assert(1, !0, "!0");
+    assert(1, !(char)0, "!(char)0");
+    assert(0, !(long)3, "!(long)3");
+    assert(4, sizeof(!(char)0), "sizeof(!(char)0)");
+    assert(4, sizeof(!(long)0), "sizeof(!(long)0)");
+
+    assert(-1, ~0, "~0");
+    assert(0, ~-1, "~-1");
+
+    assert(5, 17%6, "17%6");
+    assert(5, ((long)17)%6, "((long)17)%6");
+    assert(2, ({ int i=10; i%=4; i; }), "({ int i=10; i%4; i; })");
+    assert(2, ({ long i=10; i%=4; i; }), "({ long i=10; i%4; i; })");
+
+    assert(0, 0&1, "0&1");
+    assert(1, 3&1, "3&1");
+    assert(3, 7&3, "7&3");
+    assert(10, -1&10, "-1&10");
+
+    assert(0, 0^0, "0^0");
+    assert(0, 0b1111^0b1111, "0b1111^0b1111");
+    assert(0b110100, 0b111000^0b001100, "0b111000^0b001100");
+
+    assert(2, ({ int i=6; i&=3; i; }), "({ int i=6; i&=3; i; })");
+    assert(7, ({ int i=6; i|=3; i; }), "({ int i=6; i|=3; i; })");
+    assert(10, ({ int i=15; i^=5; i; }), "({ int i=15; i^=5; i; })");
+
+    assert(1, 0||1, "0||1");
+    assert(1, 0||(2-2)||5, "0||(2-2)||5");
+    assert(0, 0||0, "0||0");
+    assert(0, 0||(2-2), "0||(2-2)");
+
+    assert(0, 0&&1, "0&&1");
+    assert(0, (2-2)&&5, "(2-2)&&5");
+    assert(1, 1&&5, "1&&5");
 //
 //    assert(8, sizeof(int(*)[10]), "sizeof(int(*)[10])");
 //    assert(8, sizeof(int(*)[][10]), "sizeof(int(*)[][10])");
