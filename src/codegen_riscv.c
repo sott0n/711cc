@@ -290,15 +290,31 @@ static void cast(Type *from, Type *to) {
         return;
     }
 
+    // Cast instruction stored a value to a stack as temporary,
+    // and load a value with casted specified size from stack.
+    // In this code, temporary stack is 0(s0), so save value on
+    // 0(s0) to t0 register, and re-store it to 0(s0) after cast.
+    println("  ld t0, 0(s0)");
     if (to->size == 1) {
-        return;
+        println("  sd %s, 0(s0)", r);
+        if (to->is_unsigned)
+            println("  lbu %s, 0(s0)", r);
+        else
+            println("  lb %s, 0(s0)", r);
     } else if (to->size == 2) {
-        return;
+        println("  sd %s, 0(s0)", r);
+        if (to->is_unsigned)
+            println("  lhu %s, 0(s0)", r);
+        else
+            println("  lh %s, 0(s0)", r);
     } else if (to->size == 4) {
-        return;
+        println("  sd %s, 0(s0)", r);
+        println("  lw %s, 0(s0)", r);
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        return;
+        println("  sd %s, 0(s0)", r);
+        println("  ld %s, 0(s0)", r);
     }
+    println("  sd t0, 0(s0)");
 }
 
 static void divmod(Node *node, char *rs, char *rd, char *r64) {
@@ -338,23 +354,21 @@ static void load_fp_arg(Type *ty, int offset, int r) {
 
 // Load a local variable at RSP+offset to argreg[r].
 static void load_gp_arg(Type *ty, int offset, int r) {
+    println("  li t0, %d", offset);
+    println("  sub t0, s0, t0");
     if (ty->size == 1) {
         if (ty->is_unsigned)
-            println("  lb %s, -%d(s0)", argreg[r], offset);
+            println("  lb %s, 0(t0)", argreg[r]);
         else
-            println("  lbu %s, -%d(s0)", argreg[r], offset);
+            println("  lbu %s, 0(t0)", argreg[r]);
     } else if (ty->size == 2) {
         if (ty->is_unsigned)
-            println("  lh %s, -%d(s0)", argreg[r], offset);
+            println("  lh %s, 0(t0)", argreg[r]);
         else
-            println("  lhu %s, -%d(s0)", argreg[r], offset);
+            println("  lhu %s, 0(t0)", argreg[r]);
     } else if (ty->size == 4) {
-        println("  li t0, %d", offset);
-        println("  sub t0, s0, t0");
         println("  lw %s, 0(t0)", argreg[r]);
     } else {
-        println("  li t0, %d", offset);
-        println("  sub t0, s0, t0");
         println("  ld %s, 0(t0)", argreg[r]);
     }
 }
