@@ -197,18 +197,6 @@ static void store(Type *ty) {
     top--;
 }
 
-static void cmp_zero(Type *ty) {
-    if (ty->kind == TY_FLOAT) {
-        println("  xorps %%xmm0, %%xmm0");
-        println("  ucomiss %%xmm0, %s", freg(--top));
-    } else if (ty->kind == TY_DOUBLE) {
-        println("  xorpd %%xmm0, %%xmm0");
-        println("  ucomisd %%xmm0, %s", freg(--top));
-    } else {
-        println("  cmp $0, %s", reg(--top));
-    }
-}
-
 // Convert uint64 to double.
 static void convert_ulong_double(char *r, char *fr) {
     // This conversion is little tricky because x86 doesn't have an
@@ -377,24 +365,39 @@ static void load_gp_arg(Type *ty, int offset, int r) {
 
 // Pushs a local variable at RSP+offset to the stack.
 static void push_arg(Type *ty, int offset) {
+    println("  li t0, %d", offset);
+    println("  sub t0, s0, t0");
+
     if (is_flonum(ty)) {
         if (ty->kind == TY_FLOAT)
             println("  mov -%d(%%rbp), %%eax", offset);
         else
             println("  mov -%d(%%rbp), %%rax", offset);
     } else {
-        char *insn = ty->is_unsigned ? "movz" : "movs";
-        if (ty->size == 1)
-            println("  %sbl -%d(%%rbp), %%eax", insn, offset);
-        else if (ty->size == 2)
-            println("  %swl -%d(%%rbp), %%eax", insn, offset);
-        else if (ty->size == 4)
-            println("  mov -%d(%%rbp), %%eax", offset);
-        else
-            println("  mov -%d(%%rbp), %%rax", offset);
+        if (ty->size == 1) {
+            if (ty->is_unsigned)
+                println("  lbu t0, 0(t0)");
+            else
+                println("  lb t0, 0(t0)");
+            println("  sb t0, 0(s0)");
+        } else if (ty->size == 2) {
+            if (ty->is_unsigned)
+                println("  lhu t0, 0(t0)");
+            else
+                println("  lh t0, 0(t0)");
+            println("  sh t0, 0(s0)");
+        } else if (ty->size == 4) {
+            if (ty->is_unsigned)
+                println("  lwu t0, 0(t0)");
+            else
+                println("  lw t0, 0(t0)");
+            println("  sw t0, 0(s0)");
+        } else {
+            println("  ld t0, 0(t0)");
+            println("  sd t0, 0(s0)");
+        }
     }
-
-    println("  push %%rax");
+    println("  sub s0 s0 8");
 }
 
 // Load function call arguments. Arguments are already evaluated and
@@ -441,21 +444,20 @@ static int load_args(Node *node) {
         stack_size += 8;
     }
 
-    // TODO: Push arguments to stack.
     // If we have arguments passed on the stack, push them to the stack.
-    //if (stack_size) {
-    //    if (stack_size % 16) {
-    //        println("  sub s0, s0, 8");
-    //        stack_size += 8;
-    //    }
+    if (stack_size) {
+        if (stack_size % 16) {
+            println("  sub sp, sp, 8");
+            stack_size += 8;
+        }
 
-    //    for (int i = node->nargs - 1; i >= 0; i--) {
-    //        if (!pass_stack[i])
-    //            continue;
-    //        Var *arg = node->args[i];
-    //        push_arg(arg->ty, arg->offset);
-    //    }
-    //}
+        for (int i = node->nargs - 1; i >= 0; i--) {
+            if (!pass_stack[i])
+                continue;
+            Var *arg = node->args[i];
+            push_arg(arg->ty, arg->offset);
+        }
+    }
 
     return stack_size;
 }
