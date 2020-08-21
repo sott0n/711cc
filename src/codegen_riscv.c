@@ -970,12 +970,16 @@ static void emit_data(Program *prog) {
 
         // Add '\' before escape sequence to set `.string`
         // section as string type.
-        if (var->ty->kind == TY_CHAR) {
+        if (var->ty->kind == TY_ARRAY && var->ty->base->kind == TY_CHAR) {
             int buf_pos = 0;
             char buf[256];
             while (pos < var->ty->size) {
                 switch (var->init_data[pos]) {
-                case '\0': break;
+                case '\0':
+                    buf[buf_pos++] = '\\';
+                    buf[buf_pos++] = '0';
+                    pos++;
+                    continue;
                 case '"':
                 case '\a':
                 case '\b':
@@ -996,7 +1000,8 @@ static void emit_data(Program *prog) {
                 buf[buf_pos++] = var->init_data[pos++];
             }
             println("  .string \"%s\"", buf);
-            return;
+            memset(&buf[0], 0, sizeof(buf));
+            continue;
         }
 
         while (pos < var->ty->size) {

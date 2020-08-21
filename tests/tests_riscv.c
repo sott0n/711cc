@@ -4,8 +4,6 @@ char main_line = __LINE__;
  * This is a C compiler tests.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "include1.h"
 
 int printf();
@@ -916,7 +914,7 @@ int main() {
 
     assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //    assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
-//
+
     assert(1, sizeof(char), "sizeof(char)");
     assert(1, sizeof(signed char), "sizeof(signed char)");
     assert(1, sizeof(signed char signed), "sizeof(signed char signed)");
@@ -1207,51 +1205,51 @@ int main() {
 //    assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
 //    assert(3, fnptr()(), "fnptr()()");
 //
-//#
-//
-//    assert(5, include1, "include1");
-//    assert(7, include2, "include2");
-//
-//#if 0
-//#include "/no/such/file"
-//    assert(0, 1, "1");
-//# if nested
-//# endif
-//#endif
-//
-//    int m = 0;
-//
-//#if 1
-//    m = 5;
-//#endif
-//    assert(5, m, "m");
-//
-//#if 1
-//# if 0
-//#  if 1
-//    foo bar
-//#  endif
-//# endif
-//    m = 3;
-//#endif
-//    assert(3, m, "m");
-//
-//#if 1-1
-//# if 1
-//# endif
-//# if 1
-//# else
-//# endif
-//# if 0
-//# else
-//# endif
-//    m = 2;
-//#else
-//# if 1
-//    m = 3;
-//# endif
-//#endif
-//    assert(3, m, "m");
+#
+
+    assert(5, include1, "include1");
+    assert(7, include2, "include2");
+
+#if 0
+#include "/no/such/file"
+    assert(0, 1, "1");
+# if nested
+# endif
+#endif
+
+    int m = 0;
+
+#if 1
+    m = 5;
+#endif
+    assert(5, m, "m");
+
+#if 1
+# if 0
+#  if 1
+    foo bar
+#  endif
+# endif
+    m = 3;
+#endif
+    assert(3, m, "m");
+
+#if 1-1
+# if 1
+# endif
+# if 1
+# else
+# endif
+# if 0
+# else
+# endif
+    m = 2;
+#else
+# if 1
+    m = 3;
+# endif
+#endif
+    assert(3, m, "m");
 //
 //#if 1
 //    m = 2;
