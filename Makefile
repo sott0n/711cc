@@ -34,7 +34,7 @@ test-stage3: 711cc-stage3
 	diff 711cc-stage2 711cc-stage3
 
 test-riscv: 711cc
-	(cd tests; ../711cc --feature=riscv64 -I. -S -c -o ../tmp.s tests_riscv.c)
+	(cd tests; ../711cc --feature=riscv64 -I. -S -c -o ../tmp.s -DANSWER=42 tests_riscv.c)
 	riscv64-linux-gnu-gcc -static -o tmp tmp.s tests/extern.c
 	qemu-riscv64 ./tmp
 
