@@ -17,7 +17,7 @@ jobs:
           cd qemu
           ./configure --static --disable-system --target-list=riscv64-linux-user --python=/usr/bin/python3.6
           make -j $(nproc)
-          sudo cp riscv64-linux-user/qemu-riscv64 /usr/bin/
+          sudo cp build/riscv64-linux-user/qemu-riscv64 /usr/bin/
 
     - name: Install gcc cross-compiler for riscv
       run: |
