@@ -1,7 +1,7 @@
 # 711cc C Compiler
 [![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master)](https://github.com/sott0n/711cc/actions?query=workflow%3A%22C%2FC%2B%2B+CI%22) ![x86-64/riscv-64](https://img.shields.io/badge/Feature-x86--64%2Friscv--64-orange) [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-A small C compiler named 711cc.
+A small C compiler named 711cc as toy programming.
 
 ## Feature
 
@@ -10,6 +10,13 @@ A small C compiler named 711cc.
 - Support the preprocesser for macro
 - Support multibyte UTF-8 character in identifier
 - This compiler is able to compiler itself (self-hosting)
+
+## Status
+- For x86-64, This compiler could compile [all example programs](https://github.com/sott0n/711cc/tree/master/examples)
+- For RISC-V, Not yet supported variadic
+- For RISC-V, Not yet supported floating points
+
+This project started for fun and understanding C-Compiler deeply.
 
 ## Build
 
