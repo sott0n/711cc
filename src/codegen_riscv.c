@@ -31,6 +31,18 @@ static char *freg(int idx) {
     return r[idx];
 }
 
+// In RISC-V, `addi` can take only sign-extended 12-bit immediated [-2048, 2047].
+// This function allows to take larger/smaller immedeates.
+static void gen_addi(char *rd, char *rs, long imm) {
+    if (-2048 <= imm && imm <= 2047) {
+        println("  addi %s, %s, %ld", rd, rs, imm);
+        return;
+    }
+
+    println("  li t1, %ld", imm);
+    println("  add %s, %s, t1", rd, rs);
+}
+
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
@@ -40,10 +52,10 @@ static void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR:
         if (node->var->is_local) {
+            //TODO: rem
             // A local variable resides on the stack and has a fixed offset
             // from the base pointer.
-            println("  li t0, %d", node->var->offset);
-            println("  sub %s, s0, t0", reg(top++));
+            gen_addi(reg(top++), "s0", -1 * node->var->offset);
             return;
         }
 
@@ -108,8 +120,7 @@ static void gen_addr(Node *node) {
         return;
     case ND_MEMBER:
         gen_addr(node->lhs);
-        println("  li t0, %d", node->member->offset);
-        println("  add %s, %s, t0", reg(top - 1), reg(top - 1));
+        gen_addi(reg(top - 1), reg(top - 1), node->member->offset);
         return;
     }
 
@@ -1041,8 +1052,7 @@ static void emit_text(Program *prog) {
         int stack_size = fn->stack_size;
     
         // Prologue. s0-11, fs0-11 are callee-saved retisters.
-        println("  li t0, %d", fn->stack_size);
-        println("  sub sp, sp, t0");
+        gen_addi("sp", "sp", -1 * fn->stack_size);
         if (strcmp(fn->name, "main") == 0) {
             save_reg("ra", fn->stack_size - 8);
             stack_size = stack_size - 8;
