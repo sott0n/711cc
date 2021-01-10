@@ -348,27 +348,36 @@ static void load_fp_arg(Type *ty, int offset, int r) {
         println("  movsd -%d(%%rbp), %%xmm%d", offset, r);
 }
 
+static void gen_offset_instr(char *instr, char *rd, char *r1, long offset) {
+    if (-2048 <= offset && offset <= 2047) {
+        println("  %s %s, %ld(%s)", instr, rd, offset, r1);
+        return;
+    }
+
+    println("  li t1, %ld", offset);
+    println("  add t2, %s, t1", r1);
+    println("  %s %s, (t2)", instr, rd);
+}
+
 // Load a local variable at RSP+offset to argreg[r].
 static void load_gp_arg(Type *ty, int offset, int r) {
-    println("  li t0, %d", offset);
-    println("  sub t0, s0, t0");
     if (ty->size == 1) {
         if (ty->is_unsigned)
-            println("  lbu %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lbu", argreg[r], "s0", -1 * offset);
         else
-            println("  lb %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lb", argreg[r], "s0", -1 * offset);
     } else if (ty->size == 2) {
         if (ty->is_unsigned)
-            println("  lhu %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lhu", argreg[r], "s0", -1 * offset);
         else
-            println("  lh %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lh", argreg[r], "s0", -1 * offset);
     } else if (ty->size == 4) {
         if (ty->is_unsigned)
-            println("  lwu %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lwu", argreg[r], "s0", -1 * offset);
         else
-            println("  lw %s, 0(t0)", argreg[r]);
+            gen_offset_instr("lw", argreg[r], "s0", -1 * offset);
     } else {
-        println("  ld %s, 0(t0)", argreg[r]);
+        gen_offset_instr("ld", argreg[r], "s0", -1 * offset);
     }
 }
 
