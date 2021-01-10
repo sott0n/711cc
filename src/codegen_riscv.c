@@ -52,7 +52,6 @@ static void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR:
         if (node->var->is_local) {
-            //TODO: rem
             // A local variable resides on the stack and has a fixed offset
             // from the base pointer.
             gen_addi(reg(top++), "s0", -1 * node->var->offset);
@@ -140,12 +139,12 @@ static void load(Type *ty) {
     }
 
     if (ty->kind == TY_FLOAT) {
-        println("  movss (%s), %s", reg(top - 1), freg(top - 1));
+        println("  flw %s, (%s)", reg(top - 1), freg(top - 1));
         return;
     }
 
     if (ty->kind == TY_DOUBLE) {
-        println("  movsd (%s), %s", reg(top - 1), freg(top - 1));
+        println("  fld %s, (%s)", reg(top - 1), freg(top - 1));
         return;
     }
     
@@ -190,9 +189,9 @@ static void store(Type *ty) {
             println("  sb t0, %d(%s)", i, rd);
         }
     } else if (ty->kind == TY_FLOAT) {
-        println("  movss %s, (%s)", freg(top - 2), rd);
+        println("  fsw %s, (%s)", freg(top - 2), rd);
     } else if (ty->kind == TY_DOUBLE) {
-        println("  movsd %s, (%s)", freg(top - 2), rd);
+        println("  fsd %s, (%s)", freg(top - 2), rd);
     } else if (ty->size == 1) {
         println("  sb %s, 0(%s)", rs, rd);
     } else if (ty->size == 2) {
@@ -256,9 +255,9 @@ static void cast(Type *from, Type *to) {
             return;
 
         if (to->kind == TY_DOUBLE)
-            println("  cvtss2sd %s, %s", fr, fr);
-        else
-            println("  cvttss2si %s, %s", fr, r);
+            println("  fcvt.d.s %s, %s", fr, fr);
+        else /* integer */
+            println("  fcvt.l.s %s, %s, rtz", r, fr);
         return;
     }
 
@@ -267,14 +266,14 @@ static void cast(Type *from, Type *to) {
             return;
 
         if (to->kind == TY_FLOAT)
-            println("  cvtsd2ss %s, %s", fr, fr);
-        else
-            println("  cvttsd2si %s, %s", fr, r);
+            println("  fcvt.s.d %s, %s", fr, fr);
+        else /* integer */
+            println("  fcvt.l.d %s, %s, rtz", r, fr);
         return;
     }
 
     if (to->kind == TY_FLOAT) {
-        println("  cvtsi2ss %s, %s", r, fr);
+        println("  fcvt.d.l %s, %s", fr, r);
         return;
     }
 
@@ -282,7 +281,7 @@ static void cast(Type *from, Type *to) {
         if (from->size == 8 && from->is_unsigned)
             convert_ulong_double(r, fr);
         else
-            println("  cvtsi2sd %s, %s", r, fr);
+            println("  fcvt.d.l %s, %s", fr, r);
         return;
     }
 
@@ -488,11 +487,18 @@ static void gen_expr(Node *node) {
     case ND_NUM:
         if (node->ty->kind == TY_FLOAT) {
             float val = node->fval;
-            println("  mov $%u, %%eax", *(int *)&val);
-            println("  movd %%eax, %s", freg(top++));
+            println("  li t1, %lu", *(unsigned *)(&val));
+            println("  addi sp, sp, -8");
+            println("  sw t1, (sp)");
+            println("  flw %s, (sp)", freg(top++));
+            println("  addi sp, sp, 8");
         } else if (node->ty->kind == TY_DOUBLE) {
-            println("  movabs $%lu, %%rax", *(long *)&node->fval);
-            println("  movq %%rax, %s", freg(top++));
+            float val = node->fval;
+            println("  li t1, %lu", *(unsigned long *)(&val));
+            println("  addi sp, sp, -8");
+            println("  sd t1, (sp)");
+            println("  fld %s, (sp)", freg(top++));
+            println("  addi sp, sp, 8");
         } else {
             println("  li %s, %lu", reg(top++), node->val);
         }
