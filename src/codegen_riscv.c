@@ -139,12 +139,12 @@ static void load(Type *ty) {
     }
 
     if (ty->kind == TY_FLOAT) {
-        println("  flw %s, (%s)", reg(top - 1), freg(top - 1));
+        println("  flw %s, (%s)", freg(top - 1), reg(top - 1));
         return;
     }
 
     if (ty->kind == TY_DOUBLE) {
-        println("  fld %s, (%s)", reg(top - 1), freg(top - 1));
+        println("  fld %s, (%s)", freg(top - 1), reg(top - 1));
         return;
     }
     
@@ -158,24 +158,24 @@ static void load(Type *ty) {
     // a long value to a register, it simply occupies the entire register.
     if (ty->size == 1) {
         if (ty->is_unsigned)
-            println("  lbu %s, 0(%s)", rd, rs);
+            println("  lbu %s, (%s)", rd, rs);
         else
-            println("  lb %s, 0(%s)", rd, rs);
+            println("  lb %s, (%s)", rd, rs);
     }
     else if (ty->size == 2) {
         if (ty->is_unsigned)
-            println("  lhu %s, 0(%s)", rd, rs);
+            println("  lhu %s, (%s)", rd, rs);
         else
-            println("  lh %s, 0(%s)", rd, rs);
+            println("  lh %s, (%s)", rd, rs);
     }
     else if (ty->size == 4) {
         if (ty->is_unsigned)
-            println("  lwu %s, 0(%s)", rd, rs);
+            println("  lwu %s, (%s)", rd, rs);
         else
-            println("  lw %s, 0(%s)", rd, rs);
+            println("  lw %s, (%s)", rd, rs);
     }
     else {
-        println("  ld %s, 0(%s)", rd, rs);
+        println("  ld %s, (%s)", rd, rs);
     }
 }
 
@@ -193,47 +193,34 @@ static void store(Type *ty) {
     } else if (ty->kind == TY_DOUBLE) {
         println("  fsd %s, (%s)", freg(top - 2), rd);
     } else if (ty->size == 1) {
-        println("  sb %s, 0(%s)", rs, rd);
+        println("  sb %s, (%s)", rs, rd);
     } else if (ty->size == 2) {
-        println("  sh %s, 0(%s)", rs, rd);
+        println("  sh %s, (%s)", rs, rd);
     } else if (ty->size == 4) {
-        println("  sw %s, 0(%s)", rs, rd);
+        println("  sw %s, (%s)", rs, rd);
     } else {
-        println("  sd %s, 0(%s)", rs, rd);
+        println("  sd %s, (%s)", rs, rd);
     }
 
     top--;
 }
 
-// Convert uint64 to double.
-static void convert_ulong_double(char *r, char *fr) {
-    // This conversion is little tricky because x86 doesn't have an
-    // instruction to convert uint64 to double. All we have is cvtsi2sd
-    // which takes a signed 64-bit integer. Here is the strategy:
-    //
-    // 1. If the "sign" bit of a given uint64 value is 0, then we can
-    //    simply use cvtsi2sd.
-    //
-    // 2. Otherwise, We halve a uint64 value first to clear the most
-    //    significant bit, convert it to double using cvtsi2sd and then
-    //    double the result.
-    //
-    //    This is a lossy conversion because double's fraction part (52
-    //    bits long) can't represent all 64-bit integers. We need to
-    //    keep the least significant bit to prevent a rounding error.
-    int c = count();
-    println("  cmp $0, %s", r);
-    println("  jl .L.cast.%d", c);
-    println("  cvtsi2sd %s, %s", r, fr);
-    println("  jmp .L.cast.end.%d", c);
-    println(".L.cast.%d:", c);
-    println("  mov %s, %%rax", r);
-    println("  and $1, %%rax");
-    println("  shr %s", r);
-    println("  or %%rax, %s", r);
-    println("  cvtsi2sd %s, %s", r, fr);
-    println("  addsd %s, %s", fr, fr);
-    println(".L.cast.end.%d:", c);
+static void cmp_zero(Type *ty) {
+    if (ty->kind == TY_FLOAT) {
+        char *fs = freg(--top);
+        char *rd = reg(top);
+        println("  fmv.s.x ft0, zero");
+        println("  feq.s %s, %s, ft0", rd, fs);
+    } else if (ty->kind == TY_DOUBLE) {
+        char *fs = freg(--top);
+        char *rd = reg(top);
+        println("  fmv.d.x ft0, zero");
+        println("  feq.d %s, %s, ft0", rd, fs);
+    } else {
+        char *rd = reg(--top);
+        char *rs = rd;
+        println("  seqz %s, %s", rd, rs);
+    }
 }
 
 static void cast(Type *from, Type *to) {
@@ -244,8 +231,9 @@ static void cast(Type *from, Type *to) {
     char *fr = freg(top - 1);
 
     if (to->kind == TY_BOOL) {
-        char *tr = reg(--top);
-        println("  snez %s, %s", tr, tr);
+        cmp_zero(from);
+        println("  seqz %s, %s", reg(top), reg(top));
+        println("  andi %s, %s, 0xff", reg(top), reg(top));
         top++;
         return;
     }
@@ -273,43 +261,38 @@ static void cast(Type *from, Type *to) {
     }
 
     if (to->kind == TY_FLOAT) {
-        println("  fcvt.d.l %s, %s", fr, r);
+        println("  fcvt.s.l %s, %s", fr, r);
         return;
     }
 
     if (to->kind == TY_DOUBLE) {
-        if (from->size == 8 && from->is_unsigned)
-            convert_ulong_double(r, fr);
-        else
-            println("  fcvt.d.l %s, %s", fr, r);
+        println("  fcvt.d.l %s, %s", fr, r);
         return;
     }
 
     // Cast instruction stored a value to a stack as temporary,
     // and load a value with casted specified size from stack.
-    // In this code, temporary stack is 0(s0), so save value on
-    // 0(s0) to t0 register, and re-store it to 0(s0) after cast.
-    println("  ld t0, 0(s0)");
-    println("  sd %s, 0(s0)", r);
+    // In this code, temporary stack is (sp), so save value on
+    // (sp) to t0 register, and re-store it to (sp) after cast.
+    char *suffix = to->is_unsigned ? "u" : "";
     if (to->size == 1) {
-        if (to->is_unsigned)
-            println("  lbu %s, 0(s0)", r);
-        else
-            println("  lb %s, 0(s0)", r);
+        println("  addi sp, sp, -8");
+        println("  sd %s, (sp)", r);
+        println("  lb%s %s, (sp)", suffix, r);
+        println("  addi sp, sp, 8");
     } else if (to->size == 2) {
-        if (to->is_unsigned)
-            println("  lhu %s, 0(s0)", r);
-        else
-            println("  lh %s, 0(s0)", r);
+        println("  addi sp, sp, -8");
+        println("  sd %s, (sp)", r);
+        println("  lh%s %s, (sp)", suffix, r);
+        println("  addi sp, sp, 8");
     } else if (to->size == 4) {
-        if (to->is_unsigned)
-            println("  lwu %s, 0(s0)", r);
-        else
-            println("  lw %s, 0(s0)", r);
+        println("  addi sp, sp, -8");
+        println("  sd %s, (sp)", r);
+        println("  lw%s %s, (sp)", suffix, r);
+        println("  addi sp, sp, 8");
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        println("  ld %s, 0(s0)", r);
+        println("  mv %s, %s", r, r);
     }
-    println("  sd t0, 0(s0)");
 }
 
 static void divmod(Node *node, char *rs, char *rd) {
@@ -380,6 +363,13 @@ static void load_gp_arg(Type *ty, int offset, int r) {
     }
 }
 
+static void cast_cond_zero(int kind) {
+     if (kind == TY_DOUBLE)
+         println("  fcvt.l.d %s, %s, rtz", reg(top - 1), freg(top - 1));
+     if (kind == TY_FLOAT)
+         println("  fcvt.l.s %s, %s, rtz", reg(top - 1), freg(top - 1));
+}
+
 // Pushs a local variable at RSP+offset to the stack.
 static void push_arg(Type *ty, int offset) {
     println("  li t0, %d", offset);
@@ -393,25 +383,25 @@ static void push_arg(Type *ty, int offset) {
     } else {
         if (ty->size == 1) {
             if (ty->is_unsigned)
-                println("  lbu t0, 0(t0)");
+                println("  lbu t0, (t0)");
             else
-                println("  lb t0, 0(t0)");
-            println("  sb t0, 0(s0)");
+                println("  lb t0, (t0)");
+            println("  sb t0, (s0)");
         } else if (ty->size == 2) {
             if (ty->is_unsigned)
-                println("  lhu t0, 0(t0)");
+                println("  lhu t0, (t0)");
             else
-                println("  lh t0, 0(t0)");
-            println("  sh t0, 0(s0)");
+                println("  lh t0, (t0)");
+            println("  sh t0, (s0)");
         } else if (ty->size == 4) {
             if (ty->is_unsigned)
-                println("  lwu t0, 0(t0)");
+                println("  lwu t0, (t0)");
             else
-                println("  lw t0, 0(t0)");
-            println("  sw t0, 0(s0)");
+                println("  lw t0, (t0)");
+            println("  sw t0, (s0)");
         } else {
-            println("  ld t0, 0(t0)");
-            println("  sd t0, 0(s0)");
+            println("  ld t0, (t0)");
+            println("  sd t0, (s0)");
         }
     }
     println("  sub s0 s0 8");
@@ -493,8 +483,7 @@ static void gen_expr(Node *node) {
             println("  flw %s, (sp)", freg(top++));
             println("  addi sp, sp, 8");
         } else if (node->ty->kind == TY_DOUBLE) {
-            float val = node->fval;
-            println("  li t1, %lu", *(unsigned long *)(&val));
+            println("  li t1, %lu", *(unsigned long *)(&(node->fval)));
             println("  addi sp, sp, -8");
             println("  sd t1, (sp)");
             println("  fld %s, (sp)", freg(top++));
@@ -575,7 +564,8 @@ static void gen_expr(Node *node) {
     case ND_COND: {
         int c = count();
         gen_expr(node->cond);
-        println("  beqz %s, .L.else.%d", reg(--top), c);
+        cmp_zero(node->cond->ty);
+        println("  bne %s, zero, .L.else.%d", reg(top), c);
         gen_expr(node->then);
         top--;
         println("  j .L.end.%d", c);
@@ -586,8 +576,9 @@ static void gen_expr(Node *node) {
     }
     case ND_NOT: {
         gen_expr(node->lhs);
-        char *tr = reg(--top);
-        println("  seqz %s, %s", tr, tr);
+        cmp_zero(node->lhs->ty);
+        println(" snez %s, %s", reg(top), reg(top));
+        println(" andi %s, %s, 0xff", reg(top), reg(top));
         top++;
         return;
     }
@@ -653,8 +644,8 @@ static void gen_expr(Node *node) {
         // that only the lower 8bits are valid for it and
         // the upper 56bits may contain garbage.
         if (node->ty->kind == TY_BOOL) {
-            println("  sd a0, 0(sp)");
-            println("  lb a0, 0(sp)");
+            println("  sd a0, (sp)");
+            println("  lb a0, (sp)");
         }
 
         // Restore caller-saved registers
@@ -669,9 +660,9 @@ static void gen_expr(Node *node) {
         println("  addi sp, sp, 72");
 
         if (node->ty->kind == TY_FLOAT)
-            println("  movss %%xmm0, %s", freg(top++));
+            println("  fmv.s %s, fa0", freg(top++));
         else if (node->ty->kind == TY_DOUBLE)
-            println("  movsd %%xmm0, %s", freg(top++));
+            println("  fmv.d %s, fa0", freg(top++));
         else
             println("  mv %s, a0", reg(top++));
 
@@ -692,49 +683,49 @@ static void gen_expr(Node *node) {
     switch (node->kind) {
     case ND_ADD:
         if (node->ty->kind == TY_FLOAT)
-            println("  addss %s, %s", fs, fd);
+            println("  fadd.s %s, %s, %s", fd, fd, fs);
         else if (node->ty->kind == TY_DOUBLE)
-            println("  addsd %s, %s", fs, fd);
+            println("  fadd.d %s, %s, %s", fd, fd, fs);
         else
             println("  add %s, %s, %s", rd, rd, rs);
         return;
     case ND_SUB:
         if (node->ty->kind == TY_FLOAT) {
-            println("  subss %s, %s", fs, fd);
+            println("  fsub.s %s, %s, %s", fd, fd, fs);
         } else if (node->ty->kind == TY_DOUBLE) {
-            println("  subsd %s, %s", fs, fd);
+            println("  fsub.d %s, %s, %s", fd, fd, fs);
         } else {
             println("  sub %s, %s, %s", rd, rd, rs);
             // For minus value, it be cast unsigned or not.
             if (!node->ty->is_unsigned)
                 return;
-            println("  ld t0, 0(s0)");
+            println("  ld t0, (s0)");
             if (node->ty->size == 1) {
-                println("  sb %s, 0(s0)", rd);
-                println("  lbu %s, 0(s0)", rd);
+                println("  sb %s, (s0)", rd);
+                println("  lbu %s, (s0)", rd);
             } else if (node->ty->size == 2) {
-                println("  sh %s, 0(s0)", rd);
-                println("  lhu %s, 0(s0)", rd);
+                println("  sh %s, (s0)", rd);
+                println("  lhu %s, (s0)", rd);
             } else if (node->ty->size == 4) {
-                println("  sw %s, 0(s0)", rd);
-                println("  lwu %s, 0(s0)", rd);
+                println("  sw %s, (s0)", rd);
+                println("  lwu %s, (s0)", rd);
             }
-            println("  sd t0, 0(s0)");
+            println("  sd t0, (s0)");
         }
         return;
     case ND_MUL:
         if (node->ty->kind == TY_FLOAT)
-            println("  mulss %s, %s", fs, fd);
+            println("  fmul.s %s, %s, %s", fd, fd, fs);
         else if (node->ty->kind == TY_DOUBLE)
-            println("  mulsd %s, %s", fs, fd);
+            println("  fmul.d %s, %s, %s", fd, fd, fs);
         else
             println("  mul %s, %s, %s", rd, rd, rs);
         return;
     case ND_DIV:
         if (node->ty->kind == TY_FLOAT)
-            println("  divss %s, %s", fs, fd);
+            println("  fdiv.s %s, %s, %s", fd, fd, fs);
         else if (node->ty->kind == TY_DOUBLE)
-            println("  divsd %s, %s", fs, fd);
+            println("  fdiv.d %s, %s, %s", fd, fd, fs);
         else
             divmod(node, rs, rd);
         return;
@@ -755,33 +746,33 @@ static void gen_expr(Node *node) {
         return;
     case ND_EQ:
         if (node->lhs->ty->kind == TY_FLOAT)
-            println("  ucomiss %s, %s", fs, fd);
+            println("  feq.s %s, %s, %s", rd, fd, fs);
         else if (node->lhs->ty->kind == TY_DOUBLE)
-            println("  ucomisd %s, %s", fs, fd);
+            println("  feq.d %s, %s, %s", rd, fd, fs);
         else {
-            println("  sub %s, zero, %s", rs, rs);
-            println("  add %s, %s, %s", rd, rd, rs);
+            println("  sub %s, %s, %s", rd, rd, rs);
+            println("  seqz %s, %s", rd, rd);
         }
-        println("  seqz %s, %s", rd, rd);
         return;
     case ND_NE:
-        if (node->lhs->ty->kind == TY_FLOAT)
-            println("  ucomiss %s, %s", fs, fd);
-        else if (node->lhs->ty->kind == TY_DOUBLE)
-            println("  ucomisd %s, %s", fs, fd);
-        else {
-            println("  sub %s, zero, %s", rs, rs);
-            println("  add %s, %s, %s", rd, rd, rs);
+        if (node->lhs->ty->kind == TY_FLOAT) {
+            println("  feq.s %s, %s, %s", rd, fd, fs);
+            println("  seqz %s, %s", rd, rd);
         }
-        println("  snez %s, %s", rd, rd);
+        else if (node->lhs->ty->kind == TY_DOUBLE) {
+            println("  feq.d %s, %s, %s", rd, fd, fs);
+            println("  seqz %s, %s", rd, rd);
+        }
+        else {
+            println("  sub %s, %s, %s", rd, rd, rs);
+            println("  snez %s, %s", rd, rd);
+        }
         return;
     case ND_LT:
         if (node->lhs->ty->kind == TY_FLOAT) {
-            println("  ucomiss %s, %s", fs, fd);
-            println("  setb %%al");
+            println("  flt.s %s, %s, %s", rd, fd, fs);
         } else if (node->lhs->ty->kind == TY_DOUBLE) {
-            println("  ucomisd %s, %s", fs, fd);
-            println("  setb %%al");
+            println("  flt.d %s, %s, %s", rd, fd, fs);
         } else {
             if (node->lhs->ty->is_unsigned)
                 println("  sltu %s, %s, %s", rd, rd, rs);
@@ -791,18 +782,15 @@ static void gen_expr(Node *node) {
         return;
     case ND_LE:
         if (node->lhs->ty->kind == TY_FLOAT) {
-            println("  ucomiss %s, %s", fs, fd);
-            println("  setbe %%al");
+            println("  fle.s %s, %s, %s", rd, fd, fs);
         } else if (node->lhs->ty->kind == TY_DOUBLE) {
-            println("  ucomisd %s, %s", fs, fd);
-            println("  setbe %%al");
+            println("  fle.d %s, %s, %s", rd, fd, fs);
         } else {
-            if (node->lhs->ty->is_unsigned) {
+            if (node->lhs->ty->is_unsigned)
                 println("  setbe %%al");
-            } else {
-                println("  addi %s, %s, 1", rs, rs);
-                println("  slt %s, %s, %s", rd, rd, rs);
-            }
+            else
+                println("  slt %s, %s, %s", rd, rs, rd);
+            println("  seqz %s, %s", rd, rd);
         }
         return;
     case ND_SHL:
@@ -831,15 +819,17 @@ static void gen_stmt(Node *node) {
         int c = count();
         if (node->els) {
             gen_expr(node->cond);
-            println("  beqz %s, .L.else.%d", reg(--top), c);
+            cmp_zero(node->cond->ty);
+            println("  bnez %s, .L.else.%d", reg(top), c);
             gen_stmt(node->then);
-            println("  j .L.end.%d", c);
+            println("  jal zero, .L.end.%d", c);
             println(".L.else.%d:", c);
             gen_stmt(node->els);
             println(".L.end.%d:", c);
         } else {
             gen_expr(node->cond);
-            println("  beqz %s, .L.end.%d", reg(--top), c);
+            cmp_zero(node->cond->ty);
+            println("  bnez %s, .L.end.%d", reg(top), c);
             gen_stmt(node->then);
             println(".L.end.%d:", c);
         }
@@ -856,6 +846,7 @@ static void gen_stmt(Node *node) {
         println(".L.begin.%d:", c);
         if (node->cond) {
             gen_expr(node->cond);
+            cast_cond_zero(node->cond->ty->kind);
             println("  beqz %s, .L.break.%d", reg(--top), c);
         }
         gen_stmt(node->then);
@@ -881,6 +872,7 @@ static void gen_stmt(Node *node) {
         gen_stmt(node->then);
         println(".L.continue.%d:", c);
         gen_expr(node->cond);
+        cast_cond_zero(node->cond->ty->kind);
         println("  bnez %s, .L.begin.%d", reg(--top), c);
         println(".L.break.%d:", c);
 
@@ -947,7 +939,7 @@ static void gen_stmt(Node *node) {
         if (node->lhs) {
             gen_expr(node->lhs);
             if (is_flonum(node->lhs->ty))
-                println("  movsd %s, %%xmm0", freg(--top));
+                println("  fmv.d fa0, %s", freg(--top));
             else
                 println("  mv a0, %s", reg(--top));
         }
@@ -1043,13 +1035,13 @@ static void emit_data(Program *prog) {
 static void save_reg(char *reg, int addr) {
     println("  li t0, %d", addr);
     println("  add t0, sp, t0");
-    println("  sd %s, 0(t0)", reg);
+    println("  sd %s, (t0)", reg);
 }
 
 static void load_reg(char *reg, int addr) {
     println("  li t0, %d", addr);
     println("  add t0, sp, t0");
-    println("  ld %s, 0(t0)", reg);
+    println("  ld %s, (t0)", reg);
 }
 
 static void emit_text(Program *prog) {
@@ -1117,9 +1109,9 @@ static void emit_text(Program *prog) {
 
         for (Var *var = fn->params; var; var = var->next) {
             if (var->ty->kind == TY_FLOAT) {
-                println("  movss %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+                gen_offset_instr("fsw", fargreg[--fp], "s0", -1 * var->offset);
             } else if (var->ty->kind == TY_DOUBLE) {
-                println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+                gen_offset_instr("fsd", fargreg[--fp], "s0", -1 * var->offset);
             } else {
                 char *r = argreg[--gp];
                 if (var->ty->size == 1)
