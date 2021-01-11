@@ -10,13 +10,13 @@ int printf();
 int exit();
 int strcmp(char *p, char *q);
 int memcmp(char *, char *);
-//long strlen(char *);
-//double add_double(double x, double y);
-//float add_float(float x, float y);
-//float ret_float(float x);
-//typedef unsigned short char16_t;
-//typedef unsigned int char32_t;
-//typedef int wchar_t;
+long strlen(char *);
+double add_double(double x, double y);
+float add_float(float x, float y);
+float ret_float(float x);
+typedef unsigned short char16_t;
+typedef unsigned int char32_t;
+typedef int wchar_t;
 
 int g1, g2[4];
 
@@ -47,8 +47,8 @@ struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
 
-//float g40 = 1.5;
-//double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
+float g40 = 1.5;
+double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
 //
 //int Σ = 18;
 //
@@ -173,33 +173,33 @@ _Bool false_fn();
 
 int add_all1(int x, ...);
 int add_all3(int z, int b, int c, ...);
-//int add10_int(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9, int x10);
-//int add10_double(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8, double x9, double x10);
+int add10_int(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9, int x10);
+int add10_double(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8, double x9, double x10);
 int sprintf(char *buf, char *fmt, ...);
 //int vsprintf(char *buf, char *fmt, va_list ap);
-//
+
 //char *fmt(char *buf, char *fmt, ...) {
 //    va_list ap;
 //    __builtin_va_start(ap, fmt);
 //    vsprintf(buf, fmt, ap);
 //}
 
-//_Noreturn noreturn_fn(void) {
-//    exit(0);
-//}
-//
-//double add_double3(double x, double y, double z) {
-//    return x + y + z;
-//}
-//
-//float add_float3(float x, float y, float z) {
-//    return x + y + z;
-//}
-//
-//int (*fnptr(void))(int) {
-//    return ret3;
-//}
-//
+_Noreturn noreturn_fn(void) {
+    exit(0);
+}
+
+double add_double3(double x, double y, double z) {
+    return x + y + z;
+}
+
+float add_float3(float x, float y, float z) {
+    return x + y + z;
+}
+
+int (*fnptr(void))(int) {
+    return ret3;
+}
+
 int M9(int x) { return x*x; }
 
 char *func_fn(void) {
@@ -1186,21 +1186,21 @@ int main() {
     assert(10, ({ double i=10.0; int j=0; for (; i; i--, j++); j; }), "({ double i=10.0; int j=0; for (; i; i--, j++); j; })");
     assert(10, ({ double i=10.0; int j=0; do j++; while(--i); j; }), "({ double i=10.0; int j=0; do j++; while(--i); j; })");
 
-    //assert(2, ret_float(2.8), "ret_float(2.8)");
-    //assert(6, add_float(2.3, 3.8), "add_float(2.3, 3.8)");
-    //assert(6, add_double(2.3, 3.8), "add_double(2.3, 3.8)");
+    assert(2, ret_float(2.8), "ret_float(2.8)");
+    assert(6, add_float(2.3, 3.8), "add_float(2.3, 3.8)");
+    assert(6, add_double(2.3, 3.8), "add_double(2.3, 3.8)");
 
-//    assert(7, add_float3(2.5, 2.5, 2.5), "add_float3(2.5, 2.5, 2.5)");
-//    assert(7, add_double3(2.5, 2.5, 2.5), "add_double3(2.5, 2.5, 2.5)");
-//
-//    assert(0, ({ char buf[100]; sprintf(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; sprintf(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
-//
-//    assert(0, ({ char buf[100]; fmt(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; fmt(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
-//
-//    assert(1, g40==1.5, "g40==1.5");
-//    assert(1, g41==11, "g41==11");
-//
-//    assert(5, (add2)(2,3), "(add2)(2,3)");
+    assert(7, add_float3(2.5, 2.5, 2.5), "add_float3(2.5, 2.5, 2.5)");
+    assert(7, add_double3(2.5, 2.5, 2.5), "add_double3(2.5, 2.5, 2.5)");
+
+    assert(0, ({ char buf[100]; sprintf(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; sprintf(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
+
+    //assert(0, ({ char buf[100]; fmt(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }), "({ char buf[100]; fmt(buf, \"%.1f\", (float)3.5); strcmp(buf, \"3.5\"); })");
+
+    assert(1, g40==1.5, "g40==1.5");
+    assert(1, g41==11, "g41==11");
+
+    assert(5, (add2)(2,3), "(add2)(2,3)");
 //    assert(5, (&add2)(2,3), "(&add2)(2,3)");
 //    assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
 //    assert(3, fnptr()(), "fnptr()()");

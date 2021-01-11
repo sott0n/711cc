@@ -322,14 +322,6 @@ static void builtin_va_start(Node *node) {
     top++;
 }
 
-// Load a local variable at RSP+offset to a xmm register.
-static void load_fp_arg(Type *ty, int offset, int r) {
-    if (ty->kind == TY_FLOAT)
-        println("  movss -%d(%%rbp), %%xmm%d", offset, r);
-    else
-        println("  movsd -%d(%%rbp), %%xmm%d", offset, r);
-}
-
 static void gen_offset_instr(char *instr, char *rd, char *r1, long offset) {
     if (-2048 <= offset && offset <= 2047) {
         println("  %s %s, %ld(%s)", instr, rd, offset, r1);
@@ -339,6 +331,17 @@ static void gen_offset_instr(char *instr, char *rd, char *r1, long offset) {
     println("  li t1, %ld", offset);
     println("  add t2, %s, t1", r1);
     println("  %s %s, (t2)", instr, rd);
+}
+
+// Load a local variable at RSP+offset to a floating register.
+static void load_fp_arg(Type *ty, int offset, int fr, int gr) {
+    if (ty->kind == TY_FLOAT) {
+        gen_offset_instr("flw", fargreg[fr], "s0", -1 * offset);
+        println("  fmv.x.w %s, %s", argreg[gr], fargreg[fr]);
+    } else {
+        gen_offset_instr("fld", fargreg[fr], "s0", -1 * offset);
+        println("  fmv.x.d %s, %s", argreg[gr], fargreg[fr]);
+    }
 }
 
 // Load a local variable at RSP+offset to argreg[r].
@@ -414,8 +417,8 @@ static void push_arg(Type *ty, int offset) {
 //
 // - Up to 8 arguments of integral type are passed using a0 to a7.
 //
-// - Up to 8 arguments of floating-point type are passed using XMM0 to
-//   XMM7.
+// - Up to 8 arguments of floating-point type are passed using fa0 to
+//   fa7.
 //
 // - If all registers of an appropriate type are already used, push an
 //   argument to the stack in the right-to-left order.
@@ -437,7 +440,7 @@ static int load_args(Node *node) {
 
         if (is_flonum(arg->ty)) {
             if (fp < 8) {
-                load_fp_arg(arg->ty, arg->offset, fp++);
+                load_fp_arg(arg->ty, arg->offset, fp++, gp++);
                 continue;
             }
         } else {
