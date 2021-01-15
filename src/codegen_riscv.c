@@ -5,6 +5,8 @@ static int brknum;
 static int contnum;
 static char *argreg[] = {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
 static char *fargreg[] = {"fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7"};
+static int reg_save_area_offset[] = {-248/*a0*/, -240/*a1*/, -232/*a2*/, -224/*a3*/,
+                                     -216/*a4*/, -208/*a5*/, -200/*a6*/, -192/*a7*/};
 static Function *current_fn;
 
 static int count(void) {
@@ -1035,18 +1037,6 @@ static void emit_data(Program *prog) {
     }
 }
 
-static void save_reg(char *reg, int addr) {
-    println("  li t0, %d", addr);
-    println("  add t0, sp, t0");
-    println("  sd %s, (t0)", reg);
-}
-
-static void load_reg(char *reg, int addr) {
-    println("  li t0, %d", addr);
-    println("  add t0, sp, t0");
-    println("  ld %s, (t0)", reg);
-}
-
 static void emit_text(Program *prog) {
     println("  .text");
 
@@ -1059,47 +1049,48 @@ static void emit_text(Program *prog) {
         println("%s:", fn->name);
         current_fn = fn;
 
-        int stack_size = fn->stack_size;
-    
         // Prologue. s0-11, fs0-11 are callee-saved retisters.
+        println("  addi sp, sp, -8");
+        println("  sd s0, (sp)");
+
+        println("  mv s0, sp");
         gen_addi("sp", "sp", -1 * fn->stack_size);
-        if (strcmp(fn->name, "main") == 0) {
-            save_reg("ra", fn->stack_size - 8);
-            stack_size = stack_size - 8;
-        }
+        println("  sd s1, -8(s0)");
+        println("  sd s2, -16(s0)");
+        println("  sd s3, -24(s0)");
+        println("  sd s4, -32(s0)");
+        println("  sd s5, -40(s0)");
+        println("  sd s6, -48(s0)");
+        println("  sd s7, -56(s0)");
+        println("  sd s8, -64(s0)");
+        println("  sd s9, -72(s0)");
+        println("  sd s10, -80(s0)");
+        println("  sd s11, -88(s0)");
 
-        save_reg("s0", stack_size - 8);
-        save_reg("s1", stack_size - 16);
-        save_reg("s2", stack_size - 32);
-        save_reg("s3", stack_size - 40);
-        save_reg("s4", stack_size - 48);
-        save_reg("s5", stack_size - 56);
-        save_reg("s6", stack_size - 64);
-        save_reg("s7", stack_size - 72);
-        save_reg("s8", stack_size - 80);
-        save_reg("s9", stack_size - 88);
-        save_reg("s10", stack_size - 96);
-        save_reg("s11", stack_size - 104);
+        println("  fsd fs0, -96(s0)");
+        println("  fsd fs1, -104(s0)");
+        println("  fsd fs2, -112(s0)");
+        println("  fsd fs3, -120(s0)");
+        println("  fsd fs4, -128(s0)");
+        println("  fsd fs5, -136(s0)");
+        println("  fsd fs6, -144(s0)");
+        println("  fsd fs7, -152(s0)");
+        println("  fsd fs8, -160(s0)");
+        println("  fsd fs9, -168(s0)");
+        println("  fsd fs10, -176(s0)");
+        println("  fsd fs11, -184(s0)");
 
-        println("  li t0, %d", fn->stack_size);
-        println("  add s0, sp, t0");
-
-        // TODO: Support variadic
         //// Save arg registers if function is variadic
-        //if (fn->is_variadic) {
-        //    println("  mov %%rdi, -128(%%rbp)");
-        //    println("  mov %%rsi, -120(%%rbp)");
-        //    println("  mov %%rdx, -112(%%rbp)");
-        //    println("  mov %%rcx, -104(%%rbp)");
-        //    println("  mov %%r8, -96(%%rbp)");
-        //    println("  mov %%r9, -88(%%rbp)");
-        //    println("  movsd %%xmm0, -80(%%rbp)");
-        //    println("  movsd %%xmm1, -72(%%rbp)");
-        //    println("  movsd %%xmm2, -64(%%rbp)");
-        //    println("  movsd %%xmm3, -56(%%rbp)");
-        //    println("  movsd %%xmm4, -48(%%rbp)");
-        //    println("  movsd %%xmm5, -40(%%rbp)");
-        //}
+        if (fn->is_variadic) {
+            println("  sd a0, %d(s0)", reg_save_area_offset[0]);
+            println("  sd a1, %d(s0)", reg_save_area_offset[1]);
+            println("  sd a2, %d(s0)", reg_save_area_offset[2]);
+            println("  sd a3, %d(s0)", reg_save_area_offset[3]);
+            println("  sd a4, %d(s0)", reg_save_area_offset[4]);
+            println("  sd a5, %d(s0)", reg_save_area_offset[5]);
+            println("  sd a6, %d(s0)", reg_save_area_offset[6]);
+            println("  sd a7, %d(s0)", reg_save_area_offset[7]);
+        }
 
         // Push arguments to the stack
         int gp = 0, fp = 0;
@@ -1141,26 +1132,36 @@ static void emit_text(Program *prog) {
     
         // Epilogue
         println(".L.return.%s:", fn->name);
-        load_reg("s0", stack_size - 8);
-        load_reg("s1", stack_size - 16);
-        load_reg("s2", stack_size - 32);
-        load_reg("s3", stack_size - 40);
-        load_reg("s4", stack_size - 48);
-        load_reg("s5", stack_size - 56);
-        load_reg("s6", stack_size - 64);
-        load_reg("s7", stack_size - 72);
-        load_reg("s8", stack_size - 80);
-        load_reg("s9", stack_size - 88);
-        load_reg("s10", stack_size - 96);
-        load_reg("s11", stack_size - 104);
 
-        if (strcmp(fn->name, "main") == 0)
-            load_reg("ra", fn->stack_size - 8);
+        println("  ld s1, -8(s0)");
+        println("  ld s2, -16(s0)");
+        println("  ld s3, -24(s0)");
+        println("  ld s4, -32(s0)");
+        println("  ld s5, -40(s0)");
+        println("  ld s6, -48(s0)");
+        println("  ld s7, -56(s0)");
+        println("  ld s8, -64(s0)");
+        println("  ld s9, -72(s0)");
+        println("  ld s10, -80(s0)");
+        println("  ld s11, -88(s0)");
 
-        println("  li t0, %d", fn->stack_size);
-        println("  add sp, sp, t0");
-        println("  jr ra");
-        println("  .size %s, .-%s", fn->name, fn->name);
+        println("  fld fs0, -96(s0)");
+        println("  fld fs1, -104(s0)");
+        println("  fld fs2, -112(s0)");
+        println("  fld fs3, -120(s0)");
+        println("  fld fs4, -128(s0)");
+        println("  fld fs5, -136(s0)");
+        println("  fld fs6, -144(s0)");
+        println("  fld fs7, -152(s0)");
+        println("  fld fs8, -160(s0)");
+        println("  fld fs9, -168(s0)");
+        println("  fld fs10, -176(s0)");
+        println("  fld fs11, -184(s0)");
+
+        println("  mv sp, s0");
+        println("  ld s0, (sp)");
+        println("  addi sp, sp, 8");
+        println("  ret");
     }
 }
 
