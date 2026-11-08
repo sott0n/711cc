@@ -15,6 +15,8 @@ long strlen(char *);
 double add_double(double x, double y);
 float add_float(float x, float y);
 float ret_float(float x);
+void array_qualifiers(int a[restrict], int b[const static 3],
+                      int c[volatile *]);
 typedef unsigned short char16_t;
 typedef unsigned int char32_t;
 typedef int wchar_t;

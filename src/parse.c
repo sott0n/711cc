@@ -596,8 +596,23 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
     return ty;
 }
 
-// array-dimentions = const-expr? "]" type-suffix
+// array-dimentions = ("static"? type-qualifier* "static"?)
+//                    (const-expr | "*")? "]" type-suffix
 static Type *array_dimentions(Token **rest, Token *tok, Type *ty) {
+    consume(&tok, tok, "static");
+
+    while (equal(tok, "const") || equal(tok, "volatile") ||
+           equal(tok, "restrict"))
+        tok = tok->next;
+
+    consume(&tok, tok, "static");
+
+    if (equal(tok, "*")) {
+        tok = skip(tok->next, "]");
+        ty = type_suffix(rest, tok, ty);
+        return array_of(ty, -1);
+    }
+
     if (equal(tok, "]")) {
         ty = type_suffix(rest, tok->next, ty);
         return array_of(ty, -1);
