@@ -1575,6 +1575,13 @@ static long eval(Node *node) {
     }
     case ND_NUM:
         return node->val;
+    case ND_ADDR: {
+        Var *var = NULL;
+        long val = eval_rval(node->lhs, &var);
+        if (var)
+            error_tok(node->tok, "not a constant expression");
+        return val;
+    }
     }
 
     error_tok(node->tok, "not a constant expression");

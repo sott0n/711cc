@@ -7,6 +7,7 @@ char main_line = __LINE__;
 #include "include1.h"
 #include "include/nested/parent.h"
 #include <stdarg.h>
+#include <stddef.h>
 
 int printf();
 int exit();
@@ -26,6 +27,9 @@ int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
 typedef int ParenFuncType(int, int);
+
+struct OffsetType { char tag; long value; };
+enum { OFFSET_VALUE = offsetof(struct OffsetType, value) };
 
 char g3 = 3;
 short g4 = 4;
@@ -1669,6 +1673,7 @@ of(char), \
     assert(5, ({ CONCAT(4,.57) + 0.5; }), "({ CONCAT(4,.57) + 0.5; })");
 
     assert(42, ANSWER, "ANSWER");
+    assert(8, OFFSET_VALUE, "offsetof(struct OffsetType, value)");
 
     assert(4, sizeof(struct {int x:1; }), "sizeof(struct {int x:1; })");
     assert(8, sizeof(struct {long x:1; }), "sizeof(struct {long x:1; })");
