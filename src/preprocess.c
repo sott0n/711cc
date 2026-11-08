@@ -673,6 +673,24 @@ static char *search_include_paths(char *filename, Token *start) {
     error_tok(start, "'%s': file not found", filename);
 }
 
+// Search a double-quoted include relative to the including file first.
+static char *search_quoted_include(char *filename, Token *start) {
+    if (filename[0] == '/' && file_exists(filename))
+        return filename;
+
+    char *slash = strrchr(start->filename, '/');
+    if (slash) {
+        char *dir = strndup(start->filename, slash - start->filename);
+        char *path = join_paths(dir, filename);
+        if (file_exists(path))
+            return path;
+    } else if (file_exists(filename)) {
+        return filename;
+    }
+
+    return search_include_paths(filename, start);
+}
+
 // Read an #include argument.
 static char *read_include_path(Token **rest, Token *tok) {
     // Pattern 1: #include "foo.h"
@@ -686,9 +704,7 @@ static char *read_include_path(Token **rest, Token *tok) {
         char *filename = strndup(tok->loc + 1, tok->len - 2);
         *rest = skip_line(tok->next);
 
-        if (file_exists(filename))
-            return filename;
-        return search_include_paths(filename, start);
+        return search_quoted_include(filename, start);
     }
 
     // Pattern 2: #include <foo.h>

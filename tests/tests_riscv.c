@@ -5,6 +5,7 @@ char main_line = __LINE__;
  */
 
 #include "include1.h"
+#include "include/nested/parent.h"
 
 int printf();
 int exit();
@@ -1519,6 +1520,7 @@ of(char), \
     assert(2, main_line, "main_line");
     assert(0, strcmp(include1_filename, "include1.h"), "strcmp(include1_filename, \"include1.h\")");
     assert(4, include1_line, "include1_line");
+    assert(11, relative_include, "relative_include");
 
 #define M14(...) 3
     assert(3, M14(), "M14()");
