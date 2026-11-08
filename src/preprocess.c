@@ -41,6 +41,7 @@ struct Macro {
     bool is_objlike;    // Object-like or function-like
     MacroParam *params;
     bool is_variadic;
+    char *va_args_name;
     Token *body;
     bool deleted;
     macro_handler_fn *handler;
@@ -325,7 +326,8 @@ static Macro *add_macro(char *name, bool is_objlike, Token *body) {
     return m;
 }
 
-static MacroParam *read_macro_params(Token **rest, Token *tok, bool *is_variadic) {
+static MacroParam *read_macro_params(Token **rest, Token *tok, bool *is_variadic,
+                                     char **va_args_name) {
     MacroParam head = {};
     MacroParam *cur = &head;
 
@@ -335,6 +337,7 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, bool *is_variadic
 
         if (equal(tok, "...")) {
             *is_variadic = true;
+            *va_args_name = "__VA_ARGS__";
             tok = tok->next;
             skip(tok, ")");
             break;
@@ -342,6 +345,17 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, bool *is_variadic
 
         if (tok->kind != TK_IDENT)
             error_tok(tok, "expected an identifier");
+
+        // GNU named variadic macro parameters use `args...` instead of
+        // standard C's `...` and `__VA_ARGS__`.
+        if (equal(tok->next, "...")) {
+            *is_variadic = true;
+            *va_args_name = strndup(tok->loc, tok->len);
+            tok = tok->next->next;
+            skip(tok, ")");
+            break;
+        }
+
         MacroParam *m = calloc(1, sizeof(MacroParam));
         m->name = strndup(tok->loc, tok->len);
         cur = cur->next = m;
@@ -361,11 +375,14 @@ static void read_macro_definition(Token **rest, Token *tok) {
     if (!tok->has_space && equal(tok, "(")) {
         // Function-like macro
         bool is_variadic = false;
-        MacroParam *params = read_macro_params(&tok, tok->next, &is_variadic);
+        char *va_args_name = NULL;
+        MacroParam *params = read_macro_params(&tok, tok->next, &is_variadic,
+                                               &va_args_name);
 
         Macro *m = add_macro(name, false, copy_line(rest, tok));
         m->params = params;
         m->is_variadic = is_variadic;
+        m->va_args_name = va_args_name;
     } else {
         // Object-like macro
         add_macro(name, true, copy_line(rest, tok));
@@ -404,7 +421,8 @@ static MacroArg *read_macro_arg_one(Token **rest, Token *tok, bool read_rest) {
 }
 
 static MacroArg *
-read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic) {
+read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic,
+                char *va_args_name) {
     Token *start = tok;
     tok = tok->next->next;
 
@@ -423,7 +441,7 @@ read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic) 
         if (pp != params)
             tok = skip(tok, ",");
         cur = cur->next = read_macro_arg_one(&tok, tok, true);
-        cur->name = "__VA_ARGS__";
+        cur->name = va_args_name;
     } else if (pp) {
         error_tok(start, "too many arguments");
     }
@@ -614,7 +632,8 @@ static bool expand_macro(Token **rest, Token *tok) {
 
     // Function-like macro application
     Token *macro_token = tok;
-    MacroArg *args = read_macro_args(&tok, tok, m->params, m->is_variadic);
+    MacroArg *args = read_macro_args(&tok, tok, m->params, m->is_variadic,
+                                     m->va_args_name);
     Token *rparen = tok;
 
     // Tokens that consist a func-like macro invocation may have different

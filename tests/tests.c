@@ -1536,6 +1536,12 @@ of(char), \
 #define M14(x, ...) add6(1,2,x,__VA_ARGS__,6)
     assert(21, M14(3,4,5), "M14(3,4,5)");
 
+#define M15(args...) add2(args)
+    assert(8, M15(3,5), "M15(3,5)");
+
+#define M15(x, args...) add6(1,2,x,args,6)
+    assert(21, M15(3,4,5), "M15(3,4,5)");
+
     assert(5, sizeof(__func__), "sizeof(__func__)");
     assert(0, strcmp("main", __func__), "strcmp(\"main\", __func__)");
     assert(0, strcmp("func_fn", func_fn()), "strcmp(\"func_fn\", func_fn())");
