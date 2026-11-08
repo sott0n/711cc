@@ -1246,7 +1246,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         return cur;
     }
 
-    if (ty->kind == TY_PTR) {
+    if (ty->kind == TY_PTR || (is_integer(ty) && ty->size == 8)) {
         Var *var = NULL;
         long val = eval_addr(init->expr, &var);
 
@@ -1616,7 +1616,7 @@ static long eval_addr(Node *node, Var **var) {
         return node->val;
     }
 
-    error_tok(node->tok, "not a constant expression");
+    return eval(node);
 }
 
 static long eval_rval(Node *node, Var **var) {

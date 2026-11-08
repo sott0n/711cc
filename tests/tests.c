@@ -71,6 +71,7 @@ int designated_array_global[6] = {[4] = 5, [1] = 2};
 int designated_array_inferred[] = {[3] = 4, 5};
 char designated_target = 7;
 struct { int pad; char *ptr; } designated_pointer = {.ptr = &designated_target};
+struct { long value; } integer_address = {.value = (long)"all"};
 
 float g40 = 1.5;
 double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
@@ -1633,6 +1634,8 @@ of(char), \
     assert(2, designated_array_global[1], "designated_array_global[1]");
     assert(0, designated_array_global[3], "designated_array_global[3]");
     assert(5, designated_array_global[4], "designated_array_global[4]");
+    assert(0, strcmp((char *)integer_address.value, "all"),
+           "integer address initializer");
     assert(5, sizeof(designated_array_inferred) / sizeof(int),
            "sizeof(designated_array_inferred) / sizeof(int)");
     assert(4, designated_array_inferred[3], "designated_array_inferred[3]");
