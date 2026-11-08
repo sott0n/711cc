@@ -391,6 +391,27 @@ static bool pass_by_stack(Type *ty) {
     return ty->kind == TY_STRUCT && ty->size > 16;
 }
 
+static int gp_arg_slots(Type *ty) {
+    if (ty->kind == TY_STRUCT)
+        return (ty->size + 7) / 8;
+    return 1;
+}
+
+static void load_small_struct_arg(Type *ty, int offset, int *gp) {
+    for (int start = 0; start < ty->size; start += 8) {
+        int len = ty->size - start < 8 ? ty->size - start : 8;
+        int r = (*gp)++;
+
+        println("  xor %s, %s", argreg32[r], argreg32[r]);
+        for (int i = len - 1; i >= 0; i--) {
+            if (i != len - 1)
+                println("  shl $8, %s", argreg64[r]);
+            println("  mov -%d(%%rbp), %s", offset - start - i,
+                    argreg8[r]);
+        }
+    }
+}
+
 static int stack_arg_align(Type *ty) {
     if (ty->align < 8)
         return 8;
@@ -439,6 +460,7 @@ static int load_args(Node *node) {
     // Load as many arguments as possible to the registers.
     for (int i = 0; i < node->nargs; i++) {
         Var *arg = node->args[i];
+        int gp_slots = gp_arg_slots(arg->ty);
 
         if (pass_by_stack(arg->ty)) {
             pass_stack[i] = true;
@@ -447,11 +469,12 @@ static int load_args(Node *node) {
                 load_fp_arg(arg->ty, arg->offset, fp++);
                 continue;
             }
-        } else {
-            if (gp < 6) {
+        } else if (gp + gp_slots <= 6) {
+            if (arg->ty->kind == TY_STRUCT)
+                load_small_struct_arg(arg->ty, arg->offset, &gp);
+            else
                 load_gp_arg(arg->ty, arg->offset, gp++);
-                continue;
-            }
+            continue;
         }
 
         pass_stack[i] = true;
@@ -1013,6 +1036,18 @@ static char *get_argreg(int sz, int idx) {
     return argreg64[idx];
 }
 
+static void store_small_struct_param(Var *var, int *gp) {
+    for (int start = 0; start < var->ty->size; start += 8) {
+        int len = var->ty->size - start < 8 ? var->ty->size - start : 8;
+        println("  mov %s, %%rax", argreg64[(*gp)++]);
+        for (int i = 0; i < len; i++) {
+            println("  mov %%al, -%d(%%rbp)", var->offset - start - i);
+            if (i + 1 < len)
+                println("  shr $8, %%rax");
+        }
+    }
+}
+
 static void copy_stack_param(Var *var, int src_offset) {
     for (int i = 0; i < var->ty->size; i++) {
         println("  mov %d(%%rbp), %%al", src_offset + i);
@@ -1069,8 +1104,9 @@ static void emit_text(Program *prog) {
         int stack_offset = 16;
         for (i = 0; i < nparams; i++) {
             Var *var = params[i];
+            int gp_slots = gp_arg_slots(var->ty);
             bool on_stack = pass_by_stack(var->ty) ||
-                (is_flonum(var->ty) ? fp >= 8 : gp >= 6);
+                (is_flonum(var->ty) ? fp >= 8 : gp + gp_slots > 6);
 
             if (on_stack) {
                 stack_offset = align_to(stack_offset, stack_arg_align(var->ty));
@@ -1080,6 +1116,8 @@ static void emit_text(Program *prog) {
                 println("  movss %%xmm%d, -%d(%%rbp)", fp++, var->offset);
             } else if (var->ty->kind == TY_DOUBLE) {
                 println("  movsd %%xmm%d, -%d(%%rbp)", fp++, var->offset);
+            } else if (var->ty->kind == TY_STRUCT) {
+                store_small_struct_param(var, &gp);
             } else {
                 char *r = get_argreg(var->ty->size, gp++);
                 println("  mov %s, -%d(%%rbp)", r, var->offset);
