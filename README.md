@@ -110,6 +110,9 @@ $ make test-stage2
 $ make test-stage3
 ```
 
+Compatibility tests for external projects are documented in
+[tests/compat/README.md](tests/compat/README.md).
+
 ## Example
 Compile a program of `cat` UNIX command:
 ```

@@ -40,7 +40,10 @@ test-riscv: 711cc
 
 test-all: test test-nopic test-stage2 test-stage3 test-riscv
 
+compat-git: 711cc
+	./tests/compat/git/run.sh "$(GIT_SOURCE_DIR)"
+
 clean:
 	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o examples/tmp*
 
-.PHONY: test clean
+.PHONY: test compat-git clean
