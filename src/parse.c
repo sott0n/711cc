@@ -2295,6 +2295,20 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
 //         | str
 //         | num
 static Node *primary(Token **rest, Token *tok) {
+    if (equal(tok, "__builtin_va_arg")) {
+        Token *start = tok;
+        tok = skip(tok->next, "(");
+        Node *ap = assign(&tok, tok);
+        add_type(ap);
+        tok = skip(tok, ",");
+        Type *ty = typename(&tok, tok);
+        *rest = skip(tok, ")");
+
+        Node *node = new_unary(ND_VA_ARG, ap, start);
+        node->ty = ty;
+        return node;
+    }
+
     if (equal(tok, "(") && equal(tok->next, "{")) {
         // This is a GNU statement expression
         Node *node = new_node(ND_STMT_EXPR, tok);

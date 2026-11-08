@@ -193,6 +193,16 @@ char *fmt(char *buf, char *fmt, ...) {
     vsprintf(buf, fmt, ap);
 }
 
+long va_sum(int n, ...) {
+    va_list ap;
+    __builtin_va_start(ap, n);
+
+    long sum = 0;
+    for (int i = 0; i < n; i++)
+        sum += __builtin_va_arg(ap, long);
+    return sum;
+}
+
 _Noreturn noreturn_fn(void) {
     exit(0);
 }
@@ -234,6 +244,8 @@ int main() {
     assert(42, 42, "42");
     assert(26, inline_fn(), "inline_fn()");
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
+    assert(36, va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L),
+           "va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)");
     assert(21, 5+20-4, "5+20-4");
     assert(41,  12 + 34 - 5 , " 12 + 34 - 5 ");
     assert(47, 5+6*7, "5+6*7");

@@ -333,9 +333,36 @@ static void builtin_va_start(Node *node) {
     println("  mov -%d(%%rbp), %%rax", node->args[0]->offset);
     println("  movl $%d, (%%rax)", gp * 8);
     println("  movl $%d, 4(%%rax)", 48 + fp * 8);;
+    println("  lea 16(%%rbp), %%rcx");
+    println("  mov %%rcx, 8(%%rax)");
     println("  mov %%rbp, 16(%%rax)");
     println("  subq $128, 16(%%rax)");
     top++;
+}
+
+static void builtin_va_arg(Node *node) {
+    gen_expr(node->lhs);
+
+    char *ap = reg(top - 1);
+    int offset = is_flonum(node->ty) ? 4 : 0;
+    int limit = is_flonum(node->ty) ? 96 : 48;
+    int c = count();
+
+    println("  mov %d(%s), %%eax", offset, ap);
+    println("  cmp $%d, %%eax", limit);
+    println("  jae .L.va_arg.stack.%d", c);
+    println("  mov 16(%s), %%rcx", ap);
+    println("  add %%rax, %%rcx");
+    println("  addl $8, %d(%s)", offset, ap);
+    println("  mov %%rcx, %s", ap);
+    println("  jmp .L.va_arg.end.%d", c);
+    println(".L.va_arg.stack.%d:", c);
+    println("  mov 8(%s), %%rax", ap);
+    println("  lea %d(%%rax), %%rcx", align_to(node->ty->size, 8));
+    println("  mov %%rcx, 8(%s)", ap);
+    println("  mov %%rax, %s", ap);
+    println(".L.va_arg.end.%d:", c);
+    load(node->ty);
 }
 
 // Load a local variable at RSP+offset to a xmm register.
@@ -662,6 +689,9 @@ static void gen_expr(Node *node) {
             println("  mov %%rax, %s", reg(top++));
         return;
     }
+    case ND_VA_ARG:
+        builtin_va_arg(node);
+        return;
     }
 
     // Binary expressions

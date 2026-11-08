@@ -148,7 +148,8 @@ typedef enum {
     ND_CONTINUE,    // "continue"
     ND_GOTO,        // "goto"
     ND_LABEL,       // Labeled statement
-    ND_FUNCALL,     // Function call 
+    ND_FUNCALL,     // Function call
+    ND_VA_ARG,      // __builtin_va_arg
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
     ND_NULL_EXPR,   // Do nothing
