@@ -10,7 +10,8 @@ for x86-64 and RISC-V 64-bit targets.
 - The RISC-V backend can be assembled with a cross toolchain and tested with
   QEMU. Variadic functions are not yet supported on RISC-V.
 - The frontend supports C11 features plus a growing set of GNU extensions.
-- Compatibility work for Git v2.56.0 core objects is in progress.
+- The x86-64 backend can compile and run the Git v2.56.0 executable when the
+  system C compiler is used as the linker driver.
 
 711cc is an educational compiler, not a drop-in replacement for a production
 C toolchain.
@@ -108,8 +109,8 @@ make test-riscv \
   RISCV_QEMU=/path/to/qemu-riscv64
 ```
 
-Pinned external-project compatibility tests, including the Git v2.56.0 core
-object harness, are documented in
+Pinned external-project compatibility tests, including a Git v2.56.0 build
+and runtime smoke test, are documented in
 [tests/compat/README.md](tests/compat/README.md).
 
 ## Examples
