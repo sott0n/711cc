@@ -209,6 +209,12 @@ int (*fnptr(void))(int) {
     return ret3;
 }
 
+struct LargeArg { long a; long b; long c; };
+
+long large_arg_sum(int prefix, struct LargeArg arg, int suffix) {
+    return prefix + arg.a + arg.b + arg.c + suffix;
+}
+
 int M9(int x) { return x*x; }
 
 char *func_fn(void) {
@@ -1226,6 +1232,8 @@ int main() {
     assert(3, fnptr()(), "fnptr()()");
     assert(7, ({ ParenFuncType *fn = add2; fn(3, 4); }),
            "({ ParenFuncType *fn = add2; fn(3, 4); })");
+    assert(15, large_arg_sum(4, (struct LargeArg){1, 2, 3}, 5),
+           "large_arg_sum(4, (struct LargeArg){1, 2, 3}, 5)");
 
 #
 

@@ -360,26 +360,27 @@ static void load_gp_arg(Type *ty, int offset, int r) {
         println("  mov -%d(%%rbp), %s", offset, argreg64[r]);
 }
 
-// Pushs a local variable at RSP+offset to the stack.
-static void push_arg(Type *ty, int offset) {
-    if (is_flonum(ty)) {
-        if (ty->kind == TY_FLOAT)
-            println("  mov -%d(%%rbp), %%eax", offset);
-        else
-            println("  mov -%d(%%rbp), %%rax", offset);
-    } else {
-        char *insn = ty->is_unsigned ? "movz" : "movs";
-        if (ty->size == 1)
-            println("  %sbl -%d(%%rbp), %%eax", insn, offset);
-        else if (ty->size == 2)
-            println("  %swl -%d(%%rbp), %%eax", insn, offset);
-        else if (ty->size == 4)
-            println("  mov -%d(%%rbp), %%eax", offset);
-        else
-            println("  mov -%d(%%rbp), %%rax", offset);
-    }
+static bool pass_by_stack(Type *ty) {
+    return ty->kind == TY_STRUCT && ty->size > 16;
+}
 
-    println("  push %%rax");
+static int stack_arg_align(Type *ty) {
+    if (ty->align < 8)
+        return 8;
+    if (ty->align > 16)
+        return 16;
+    return ty->align;
+}
+
+static int stack_arg_size(Type *ty) {
+    return align_to(ty->size, 8);
+}
+
+static void copy_arg_to_stack(Type *ty, int src_offset, int dst_offset) {
+    for (int i = 0; i < ty->size; i++) {
+        println("  mov %d(%%rbp), %%al", i - src_offset);
+        println("  mov %%al, %d(%%rsp)", dst_offset + i);
+    }
 }
 
 // Load function call arguments. Arguments are already evaluated and
@@ -406,12 +407,15 @@ static int load_args(Node *node) {
     int fp = 0;
     int stack_size = 0;
     bool *pass_stack = calloc(node->nargs, sizeof(bool));
+    int *stack_offset = calloc(node->nargs, sizeof(int));
 
     // Load as many arguments as possible to the registers.
     for (int i = 0; i < node->nargs; i++) {
         Var *arg = node->args[i];
 
-        if (is_flonum(arg->ty)) {
+        if (pass_by_stack(arg->ty)) {
+            pass_stack[i] = true;
+        } else if (is_flonum(arg->ty)) {
             if (fp < 8) {
                 load_fp_arg(arg->ty, arg->offset, fp++);
                 continue;
@@ -424,21 +428,21 @@ static int load_args(Node *node) {
         }
 
         pass_stack[i] = true;
-        stack_size += 8;
+        stack_size = align_to(stack_size, stack_arg_align(arg->ty));
+        stack_offset[i] = stack_size;
+        stack_size += stack_arg_size(arg->ty);
     }
 
-    // If we have arguments passed on the stack, push them to the stack.
+    // Reserve the stack argument area and copy arguments into it.
     if (stack_size) {
-        if (stack_size % 16) {
-            println("  sub $8, %%rsp");
-            stack_size += 8;
-        }
+        stack_size = align_to(stack_size, 16);
+        println("  sub $%d, %%rsp", stack_size);
 
-        for (int i = node->nargs - 1; i >= 0; i--) {
+        for (int i = 0; i < node->nargs; i++) {
             if (!pass_stack[i])
                 continue;
             Var *arg = node->args[i];
-            push_arg(arg->ty, arg->offset);
+            copy_arg_to_stack(arg->ty, arg->offset, stack_offset[i]);
         }
     }
 
@@ -630,7 +634,7 @@ static void gen_expr(Node *node) {
         println("  call *%s", reg(--top));
 
         if (memarg_size)
-            println("  sub $%d, %%rsp", memarg_size);
+            println("  add $%d, %%rsp", memarg_size);
 
         // The Systen V x86-64 ABI has a special rule regarding a boolean
         // return value that only the lower 8 bits are valid for it and
@@ -979,6 +983,13 @@ static char *get_argreg(int sz, int idx) {
     return argreg64[idx];
 }
 
+static void copy_stack_param(Var *var, int src_offset) {
+    for (int i = 0; i < var->ty->size; i++) {
+        println("  mov %d(%%rbp), %%al", src_offset + i);
+        println("  mov %%al, %d(%%rbp)", i - var->offset);
+    }
+}
+
 static void emit_text(Program *prog) {
     println("  .text");
 
@@ -1013,22 +1024,34 @@ static void emit_text(Program *prog) {
             println("  movsd %%xmm5, -40(%%rbp)");
         }
 
-        // Push arguments to the stack
-        int gp = 0, fp = 0;
-        for (Var *var = fn->params; var; var = var->next) {
-            if (is_flonum(var->ty))
-                fp++;
-            else
-                gp++;
-        }
+        // Save register and stack arguments to their local variable slots.
+        int nparams = 0;
+        for (Var *var = fn->params; var; var = var->next)
+            nparams++;
 
-        for (Var *var = fn->params; var; var = var->next) {
-            if (var->ty->kind == TY_FLOAT) {
-                println("  movss %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+        Var **params = calloc(nparams, sizeof(Var *));
+        int i = nparams;
+        for (Var *var = fn->params; var; var = var->next)
+            params[--i] = var;
+
+        int gp = 0;
+        int fp = 0;
+        int stack_offset = 16;
+        for (i = 0; i < nparams; i++) {
+            Var *var = params[i];
+            bool on_stack = pass_by_stack(var->ty) ||
+                (is_flonum(var->ty) ? fp >= 8 : gp >= 6);
+
+            if (on_stack) {
+                stack_offset = align_to(stack_offset, stack_arg_align(var->ty));
+                copy_stack_param(var, stack_offset);
+                stack_offset += stack_arg_size(var->ty);
+            } else if (var->ty->kind == TY_FLOAT) {
+                println("  movss %%xmm%d, -%d(%%rbp)", fp++, var->offset);
             } else if (var->ty->kind == TY_DOUBLE) {
-                println("  movsd %%xmm%d, -%d(%%rbp)", --fp, var->offset);
+                println("  movsd %%xmm%d, -%d(%%rbp)", fp++, var->offset);
             } else {
-                char *r = get_argreg(var->ty->size, --gp);
+                char *r = get_argreg(var->ty->size, gp++);
                 println("  mov %s, -%d(%%rbp)", r, var->offset);
             }
         }
