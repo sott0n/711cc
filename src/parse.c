@@ -661,7 +661,11 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
         Type *placeholder = calloc(1, sizeof(Type));
         Type *new_ty = declarator(&tok, tok->next, placeholder);
         tok = skip(tok, ")");
+        Token *name = placeholder->name;
+        Token *name_pos = placeholder->name_pos;
         *placeholder = *type_suffix(rest, tok, ty);
+        placeholder->name = name;
+        placeholder->name_pos = name_pos;
         return new_ty;
     }
 

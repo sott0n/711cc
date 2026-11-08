@@ -24,6 +24,7 @@ typedef int wchar_t;
 int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
+typedef int ParenFuncType(int, int);
 
 char g3 = 3;
 short g4 = 4;

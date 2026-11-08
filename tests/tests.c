@@ -24,6 +24,7 @@ typedef int wchar_t;
 int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
+typedef int ParenFuncType(int, int);
 
 char g3 = 3;
 short g4 = 4;
@@ -1223,6 +1224,8 @@ int main() {
     assert(5, (&add2)(2,3), "(&add2)(2,3)");
     assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
     assert(3, fnptr()(), "fnptr()()");
+    assert(7, ({ ParenFuncType *fn = add2; fn(3, 4); }),
+           "({ ParenFuncType *fn = add2; fn(3, 4); })");
 
 #
 
