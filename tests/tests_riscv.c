@@ -206,9 +206,19 @@ char *func_fn(void) {
     return __func__;
 }
 
+static inline int inline_fn(void) {
+    return 26;
+}
+
+static __inline__ int gnu_inline_fn(void) {
+    return 27;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
+    assert(26, inline_fn(), "inline_fn()");
+    assert(27, gnu_inline_fn(), "gnu_inline_fn()");
     assert(21, 5+20-4, "5+20-4");
     assert(41,  12 + 34 - 5 , " 12 + 34 - 5 ");
     assert(47, 5+6*7, "5+6*7");

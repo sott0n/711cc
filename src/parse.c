@@ -411,7 +411,7 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
         }
 
         if (consume(&tok, tok, "volatile") || consume(&tok, tok, "register") ||
-            consume(&tok, tok, "_Noreturn"))
+            consume(&tok, tok, "_Noreturn") || consume(&tok, tok, "inline"))
             continue;
 
         if (equal(tok, "_Alignas")) {
@@ -1151,6 +1151,7 @@ static bool is_typename(Token *tok) {
         "void", "_Bool", "char", "short", "int", "long", "float", "double",
         "struct", "union", "typedef", "enum", "static", "extern", "_Alignas",
         "signed", "unsigned", "const", "volatile", "register", "_Noreturn",
+        "inline",
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
