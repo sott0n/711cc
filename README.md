@@ -1,162 +1,136 @@
 # 711cc C Compiler
-[![C/C++ CI](https://github.com/sott0n/711cc/workflows/C/C++%20CI/badge.svg?branch=master)](https://github.com/sott0n/711cc/actions?query=workflow%3A%22C%2FC%2B%2B+CI%22) ![x86-64/riscv-64](https://img.shields.io/badge/Feature-x86--64%2Friscv--64-orange) [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-A small C compiler named 711cc as toy programming.
-
-## Feature
-
-- Target architecture are x86_64(AT&T syntax) and RISC-V(**Working**)
-- The parser is a hand-written recursive descendent parser
-- Support the preprocesser for macro
-- Support multibyte UTF-8 character in identifier
-- This compiler is able to compiler itself (self-hosting)
+711cc is a small, self-hosting C compiler written to explore how C compilers
+work. It has hand-written preprocessing and parsing stages and can emit code
+for x86-64 and RISC-V 64-bit targets.
 
 ## Status
-- For x86-64, This compiler could compile [all example programs](https://github.com/sott0n/711cc/tree/master/examples)
-- For RISC-V, Not yet supported variadic
-- For RISC-V, Not yet supported floating points
 
-This project started for fun and understanding C-Compiler deeply.
+- The x86-64 backend is the primary target and can build 711cc itself.
+- The RISC-V backend can be assembled with a cross toolchain and tested with
+  QEMU. Variadic functions are not yet supported on RISC-V.
+- The frontend supports C11 features plus a growing set of GNU extensions.
+- Compatibility work for Git v2.56.0 core objects is in progress.
+
+711cc is an educational compiler, not a drop-in replacement for a production
+C toolchain.
 
 ## Build
 
-Run make to build this compiler:
+A C11 compiler, GNU make, an assembler, and a system linker are required.
 
-```shell
-$ make
+```sh
+make
 ```
 
-For self-hosting, add args to build:
+To exercise self-hosting, build stage 2 with the host-built 711cc and then
+build stage 3 with stage 2:
 
-```shell
-# 711cc compile self code
-$ make 711cc-stage2
-
-# Stage2 compiler compile self code as stage3
-$ make 711cc-stage3
+```sh
+make 711cc-stage2
+make 711cc-stage3
 ```
 
 ## Usage
-You can compile a `.c` source to an object file with args `-o` and output file path:
 
-```shell
-# Compile .c source code to tmp.o object file
-$ ./711cc -o tmp.o [file].c
+Compile a C source file to an x86-64 object file, link it with the system
+compiler, and run it:
 
-# Create an executable file using gcc
-$ gcc -o tmp tmp.o
-
-# Execute
-$ ./tmp
+```sh
+./711cc -c -o hello.o hello.c
+cc -o hello hello.o
+./hello
 ```
 
-## Support Options
+Use `-S` to stop after assembly generation:
 
-General options below:  
-
-| Option             | Detail                               |
-| ------------------ | ------------------------------------ |
-| --help             | Show a help text                     |
-| --feature=[target] | Target architecture, x86-64/riscv-64 |
-| -S                 | Outputs as assembly                  |
-| -E                 | Show preprocessed tokens             |
-| -I[path]           | Add include path                     |
-| -D[Macro]          | Set an origin macro                  |
-
-Instead of outputting the result of preprocessing, output a rule suitable for make describing the dependencies of the main source file. The preprocessor outputs one make rule containing the object file name for that source file, a colon, and the names of all the included files.
-
-| Option      | Detail |
-| ----------- | --------------------------------------------------------------- |
-| -M          | Show a list of include path of the main file                    |
-| -MD         | Show a list of include path, except that `-E` is not implied    |
-| -MP         | Add a phony target for each dependency other than the main file |
-| -MT[target] | Change the target for `-M`                                      |
-| -MF[file]   | When used with `-M`, specifies a file to write the dependencies |
-
-
-There are two args, `-fpic` and `-fno-pic` to select ways of computing a variable. The `-fpic` is a default setting in this compiler, so it means that `-fno-pic` isn't given. If `-fno-pic` is given, the ELF module doesn't have to be position-independent, meaning compiler assume that code and data will be loaded at a fixed memory location below 4GiB. If `-fno-pic` is not given, the ELF module may be loaded anywhere in the 64-bit address space.
-
-```shell
-# Add `-fpic` or `-fPIC`
-$ ./711cc -o tmp.s -fpic [file].c
-$ gcc -o tmp tmp.s
-$ ./tmp
-
-# Add `-fno-pic` or `-fno-PIC`
-$ ./711cc -o tmp.s -fno-pic [file].c
-$ gcc -static -o tmp tmp.s
-$ ./tmp
+```sh
+./711cc -S -o hello.s hello.c
 ```
 
-## Test
+Select the RISC-V backend explicitly:
 
-711cc comes with tests. To run the tests, give "test" as an argument:
-
-```shell
-# Test for x86-64
-$ make test
-
-# Test for riscv-64
-$ make test-riscv
+```sh
+./711cc --feature=riscv64 -S -o hello.s hello.c
 ```
 
-The RISC-V test links the generated assembly with a cross compiler and runs
-the executable with QEMU. On Debian or Ubuntu, install the required tools with:
+### Options
 
-```shell
-$ sudo apt-get install gcc-riscv64-linux-gnu qemu-user
+| Option | Description |
+| --- | --- |
+| `--help` | Show command-line help |
+| `--feature=x86_64` | Select the x86-64 backend (default) |
+| `--feature=riscv64` | Select the RISC-V 64-bit backend |
+| `-o FILE` | Set the output path |
+| `-c` | Compile to an object file |
+| `-S` | Emit assembly instead of an object file |
+| `-E` | Print preprocessed source |
+| `-Ipath` | Add an include search path |
+| `-Dname[=value]` | Define a preprocessor macro |
+| `-fpic`, `-fPIC` | Emit position-independent references (default) |
+| `-fno-pic`, `-fno-PIC` | Emit non-position-independent references |
+
+The dependency-generation options `-M`, `-MD`, `-MP`, `-MT`, and `-MF` are
+also supported.
+
+## Tests
+
+Run the native x86-64 tests:
+
+```sh
+make test
 ```
 
-Set `RISCV_CC`, `RISCV_CFLAGS`, or `RISCV_QEMU` when using tools outside
-`PATH` or a custom sysroot.
+Other useful targets are:
 
-For test a self hosting, give "test-stage2" and "test-stage3" as an argument:
-
-```shell
-# Test for self hosting with a test
-$ make test-stage2
-
-# Check a diff between stage2 compiler and stage3 compiler
-$ make test-stage3
+```sh
+make test-nopic   # static, non-PIC x86-64 test
+make test-stage2  # run tests with the self-hosted compiler
+make test-stage3  # verify that stage 2 and stage 3 are identical
+make test-riscv   # assemble for RISC-V and execute with QEMU
+make test-all     # run all of the above
 ```
 
-Compatibility tests for external projects are documented in
+The RISC-V test requires a cross compiler and QEMU user-mode emulator. On
+Debian or Ubuntu:
+
+```sh
+sudo apt-get install gcc-riscv64-linux-gnu qemu-user
+```
+
+Override `RISCV_CC`, `RISCV_CFLAGS`, or `RISCV_QEMU` when the tools are not in
+`PATH` or require a custom sysroot:
+
+```sh
+make test-riscv \
+  RISCV_CC=/path/to/riscv64-linux-gnu-gcc \
+  RISCV_CFLAGS=--sysroot=/path/to/sysroot \
+  RISCV_QEMU=/path/to/qemu-riscv64
+```
+
+Pinned external-project compatibility tests, including the Git v2.56.0 core
+object harness, are documented in
 [tests/compat/README.md](tests/compat/README.md).
 
-## Example
-Compile a program of `cat` UNIX command:
-```
-root@a9a608a739a4:/home# make
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/tokenize.o src/tokenize.c
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/type.o src/type.c
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/main.o src/main.c
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/parse.o src/parse.c
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/codegen.o src/codegen.c
-cc -std=c11 -g -fno-common -Wall -Wno-switch   -c -o src/preprocess.o src/preprocess.c
-cc -o 711cc ./src/tokenize.o ./src/type.o ./src/main.o ./src/parse.o ./src/codegen.o ./src/preprocess.o
-root@a9a608a739a4:/home# ./711cc -o examples/cat.o examples/cat.c
-root@a9a608a739a4:/home# gcc -o tmp examples/cat.o
-root@a9a608a739a4:/home# ./tmp examples/fib.c
-#include <stdio.h>
+## Examples
 
-int fib(int n) {
-     if (n == 0) return 0;
-     if (n == 1) return 1;
-     return fib(n - 1) + fib(n - 2);
-}
+Programs such as `cat` and Fibonacci are available in the
+[examples](examples) directory. For example:
 
-int main() {
-    int c = 20;
-    for (int i = 0; i < c; i++)
-        printf("fib(%d): %d\n", i, fib(i));
-}
+```sh
+./711cc -c -o examples/cat.o examples/cat.c
+cc -o cat examples/cat.o
+./cat examples/fib.c
 ```
 
-Please compile other programs in [examples directory](https://github.com/sott0n/711cc/tree/master/examples).
+## Roadmap
 
-## Future works
+- Compile larger real-world codebases, including Git, CPython, and PostgreSQL
+- Add an intermediate representation and optimization passes
+- Improve validation and diagnostics
+- Complete RISC-V ABI support, including variadic functions
+- Explore additional backends such as WebAssembly
 
-- Wasm support in backend
-- RISC-V support in backend
-- LLVM IR support in backend
-- Add optimization passes
+## License
+
+711cc is distributed under the [MIT License](LICENSE).
