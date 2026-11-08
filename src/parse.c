@@ -664,15 +664,12 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
     ty = pointers(&tok, tok, ty);
 
     if (equal(tok, "(")) {
-        Type *placeholder = calloc(1, sizeof(Type));
-        Type *new_ty = declarator(&tok, tok->next, placeholder);
+        Token *start = tok;
+        Type placeholder = {};
+        declarator(&tok, tok->next, &placeholder);
         tok = skip(tok, ")");
-        Token *name = placeholder->name;
-        Token *name_pos = placeholder->name_pos;
-        *placeholder = *type_suffix(rest, tok, ty);
-        placeholder->name = name;
-        placeholder->name_pos = name_pos;
-        return new_ty;
+        ty = type_suffix(rest, tok, ty);
+        return declarator(&tok, start->next, ty);
     }
 
     Token *name = NULL;
@@ -694,11 +691,12 @@ static Type *abstract_declarator(Token **rest, Token *tok, Type *ty) {
     ty = pointers(&tok, tok, ty);
 
     if (equal(tok, "(")) {
-        Type *placeholder = calloc(1, sizeof(Type));
-        Type *new_ty = abstract_declarator(&tok, tok->next, placeholder);
+        Token *start = tok;
+        Type placeholder = {};
+        abstract_declarator(&tok, tok->next, &placeholder);
         tok = skip(tok, ")");
-        *placeholder = *type_suffix(rest, tok, ty);
-        return new_ty;
+        ty = type_suffix(rest, tok, ty);
+        return abstract_declarator(&tok, start->next, ty);
     }
 
     return type_suffix(rest, tok, ty);
