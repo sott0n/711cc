@@ -25,6 +25,7 @@ int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
 typedef int ParenFuncType(int, int);
+typedef int ParenFuncType(int, int);
 
 char g3 = 3;
 short g4 = 4;
@@ -108,6 +109,10 @@ int ret3(void) {
 
 int add2(int x, int y) {
     return x + y;
+}
+
+int callback_param_size(ParenFuncType fn) {
+    return sizeof(fn);
 }
 
 int sub2(int x, int y) {
@@ -1232,6 +1237,7 @@ int main() {
     assert(5, (add2)(2,3), "(add2)(2,3)");
 //    assert(5, (&add2)(2,3), "(&add2)(2,3)");
 //    assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
+    assert(8, callback_param_size(add2), "callback_param_size(add2)");
 //    assert(3, fnptr()(), "fnptr()()");
 //
 #

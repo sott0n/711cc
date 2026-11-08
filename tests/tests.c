@@ -112,6 +112,14 @@ int add2(int x, int y) {
     return x + y;
 }
 
+int call_binary(ParenFuncType fn, int x, int y) {
+    return fn(x, y);
+}
+
+int callback_param_size(ParenFuncType fn) {
+    return sizeof(fn);
+}
+
 int sub2(int x, int y) {
     return x - y;
 }
@@ -1261,6 +1269,8 @@ int main() {
     assert(5, (add2)(2,3), "(add2)(2,3)");
     assert(5, (&add2)(2,3), "(&add2)(2,3)");
     assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
+    assert(7, call_binary(add2, 3, 4), "call_binary(add2, 3, 4)");
+    assert(8, callback_param_size(add2), "callback_param_size(add2)");
     assert(3, fnptr()(), "fnptr()()");
     assert(7, ({ ParenFuncType *fn = add2; fn(3, 4); }),
            "({ ParenFuncType *fn = add2; fn(3, 4); })");
