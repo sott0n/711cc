@@ -844,11 +844,27 @@ static Token *skip_end(Token *tok) {
 
 static int count_array_init_elements(Token *tok, Type *ty) {
     tok = skip(tok, "{");
+    int i = 0;
     int len = 0;
+    bool first = true;
+
     while (!is_end(tok)) {
-        if (len++ > 0)
+        if (!first)
             tok = skip(tok, ",");
+        first = false;
+
+        if (consume(&tok, tok, "[")) {
+            i = const_expr(&tok, tok);
+            if (i < 0)
+                error_tok(tok, "array designator index is negative");
+            tok = skip(tok, "]");
+            tok = skip(tok, "=");
+        }
+
         initializer(&tok, tok, ty->base);
+        i++;
+        if (len < i)
+            len = i;
     }
     return len;
 }
@@ -897,15 +913,37 @@ static Initializer *utf32_string_initializer(Token **rest, Token *tok, Type *ty)
     return init;
 }
 
-// array-initializer = "{" initializer ("," initializer)* ","? "}"
+// array-initializer = "{" ("[" const-expr "]" "=")? initializer
+//                         ("," ("[" const-expr "]" "=")? initializer)*
+//                         ","? "}"
 static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     bool has_paren = consume(&tok, tok, "{");
     Initializer *init = new_init(ty, ty->array_len, NULL, tok);
 
-    for (int i = 0; i < ty->array_len && !is_end(tok); i++) {
-        if (i > 0)
+    int i = 0;
+    bool first = true;
+
+    while (!is_end(tok)) {
+        if (!first) {
+            if (!has_paren && i >= ty->array_len)
+                break;
             tok = skip(tok, ",");
+        }
+        first = false;
+
+        if (consume(&tok, tok, "[")) {
+            Token *start = tok;
+            i = const_expr(&tok, tok);
+            if (i < 0 || i >= ty->array_len)
+                error_tok(start, "array designator index out of bounds");
+            tok = skip(tok, "]");
+            tok = skip(tok, "=");
+        } else if (i >= ty->array_len) {
+            break;
+        }
+
         init->children[i] = initializer(&tok, tok, ty->base);
+        i++;
     }
 
     if (has_paren)

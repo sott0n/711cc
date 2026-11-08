@@ -53,6 +53,8 @@ char *g34 = {"foo"};
 
 struct designated_global_type { int a; int b; int c; };
 struct designated_global_type designated_global = {.c = 3, .a = 1};
+int designated_array_global[6] = {[4] = 5, [1] = 2};
+int designated_array_inferred[] = {[3] = 4, 5};
 char designated_target = 7;
 struct { int pad; char *ptr; } designated_pointer = {.ptr = &designated_target};
 
@@ -1570,6 +1572,16 @@ of(char), \
     assert(7, *designated_pointer.ptr, "*designated_pointer.ptr");
     assert(3, ({ struct designated_global_type x = {.b = 2, 3}; x.c; }),
            "({ struct designated_global_type x = {.b = 2, 3}; x.c; })");
+    assert(0, designated_array_global[0], "designated_array_global[0]");
+    assert(2, designated_array_global[1], "designated_array_global[1]");
+    assert(0, designated_array_global[3], "designated_array_global[3]");
+    assert(5, designated_array_global[4], "designated_array_global[4]");
+    assert(5, sizeof(designated_array_inferred) / sizeof(int),
+           "sizeof(designated_array_inferred) / sizeof(int)");
+    assert(4, designated_array_inferred[3], "designated_array_inferred[3]");
+    assert(5, designated_array_inferred[4], "designated_array_inferred[4]");
+    assert(8, ({ int x[5] = {[2] = 7, 8, [0] = 1}; x[3]; }),
+           "({ int x[5] = {[2] = 7, 8, [0] = 1}; x[3]; })");
 
 #define M14(...) 3
     assert(3, M14(), "M14()");
