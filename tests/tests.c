@@ -50,6 +50,11 @@ struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
 
+struct designated_global_type { int a; int b; int c; };
+struct designated_global_type designated_global = {.c = 3, .a = 1};
+char designated_target = 7;
+struct { int pad; char *ptr; } designated_pointer = {.ptr = &designated_target};
+
 float g40 = 1.5;
 double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
 
@@ -1524,6 +1529,13 @@ of(char), \
     assert(0, strcmp(include1_filename, "include1.h"), "strcmp(include1_filename, \"include1.h\")");
     assert(4, include1_line, "include1_line");
     assert(11, relative_include, "relative_include");
+
+    assert(1, designated_global.a, "designated_global.a");
+    assert(0, designated_global.b, "designated_global.b");
+    assert(3, designated_global.c, "designated_global.c");
+    assert(7, *designated_pointer.ptr, "*designated_pointer.ptr");
+    assert(3, ({ struct designated_global_type x = {.b = 2, 3}; x.c; }),
+           "({ struct designated_global_type x = {.b = 2, 3}; x.c; })");
 
 #define M14(...) 3
     assert(3, M14(), "M14()");

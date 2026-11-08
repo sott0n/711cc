@@ -910,6 +910,18 @@ static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
 
 // struct-initializer = "{" initializer ("," initializer)* ","? "}"
 //                    | initializer ("," initializer)* ","
+static Member *find_designated_member(Type *ty, Token *tok, int *idx) {
+    int i = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next, i++) {
+        if (mem->name && mem->name->len == tok->len &&
+            !strncmp(mem->name->loc, tok->loc, tok->len)) {
+            *idx = i;
+            return mem;
+        }
+    }
+    error_tok(tok, "no such member");
+}
+
 static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
     if (!equal(tok, "{")) {
         Token *tok2;
@@ -930,10 +942,29 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
     bool has_paren = consume(&tok, tok, "{");
 
     int i = 0;
-    for (Member *mem = ty->members; mem && !is_end(tok); mem = mem->next, i++) {
-        if (i > 0)
+    Member *mem = ty->members;
+    bool first = true;
+
+    while (!is_end(tok)) {
+        if (!first) {
+            if (!has_paren && !mem)
+                break;
             tok = skip(tok, ",");
+        }
+        first = false;
+
+        if (consume(&tok, tok, ".")) {
+            if (tok->kind != TK_IDENT)
+                error_tok(tok, "expected a member name");
+            mem = find_designated_member(ty, tok, &i);
+            tok = skip(tok->next, "=");
+        } else if (!mem) {
+            break;
+        }
+
         init->children[i] = initializer(&tok, tok, mem->ty);
+        mem = mem->next;
+        i++;
     }
 
     if (has_paren)
