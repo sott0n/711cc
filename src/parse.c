@@ -249,6 +249,11 @@ static Var *new_var(char *name, Type *ty) {
     var->name = name;
     var->ty = ty;
     var->align = ty->align;
+    // The AMD64 ABI aligns standalone arrays of at least 16 bytes to a
+    // 16-byte boundary. This is an object-placement rule, not part of the
+    // array type's alignment; applying it to the type corrupts struct layout.
+    if (ty->kind == TY_ARRAY && ty->size >= 16 && var->align < 16)
+        var->align = 16;
     push_scope(name)->var = var;
     return var;
 }
@@ -797,6 +802,18 @@ static Node *declaration(Token **rest, Token *tok) {
 
         if (attr.is_typedef) {
             push_scope(get_ident(ty->name))->type_def = ty;
+            continue;
+        }
+
+        if (attr.is_extern) {
+            if (equal(tok, "="))
+                error_tok(tok, "extern declaration cannot have an initializer");
+
+            VarScope *sc = find_var(ty->name);
+            if (sc && sc->var && !sc->var->is_local)
+                push_scope(get_ident(ty->name))->var = sc->var;
+            else
+                new_gvar(get_ident(ty->name), ty, false, false);
             continue;
         }
 

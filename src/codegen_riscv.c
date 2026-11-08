@@ -47,6 +47,7 @@ static void gen_addi(char *rd, char *rs, long imm) {
 
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
+static void gen_offset_instr(char *instr, char *rd, char *r1, long offset);
 
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
@@ -321,6 +322,21 @@ static void builtin_va_start(Node *node) {
     println("  movl $%d, 4(%%rax)", 48 + fp * 8);;
     println("  mov %%rbp, 16(%%rax)");
     println("  subq $128, 16(%%rax)");
+    top++;
+}
+
+static void builtin_alloca(Node *node) {
+    if (node->nargs != 1)
+        error_tok(node->tok, "alloca expects one argument");
+
+    Var *size = node->args[0];
+    char *r = reg(top);
+
+    gen_offset_instr("ld", r, "s0", -1 * size->offset);
+    println("  addi %s, %s, 15", r, r);
+    println("  andi %s, %s, -16", r, r);
+    println("  sub sp, sp, %s", r);
+    println("  mv %s, sp", r);
     top++;
 }
 
@@ -623,6 +639,13 @@ static void gen_expr(Node *node) {
         if (node->lhs->kind == ND_VAR &&
                 !strcmp(node->lhs->var->name, "__builtin_va_start")) {
             builtin_va_start(node);
+            return;
+        }
+
+        if (node->lhs->kind == ND_VAR &&
+                (!strcmp(node->lhs->var->name, "alloca") ||
+                 !strcmp(node->lhs->var->name, "__builtin_alloca"))) {
+            builtin_alloca(node);
             return;
         }
 

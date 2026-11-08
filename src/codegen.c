@@ -365,6 +365,21 @@ static void builtin_va_arg(Node *node) {
     load(node->ty);
 }
 
+static void builtin_alloca(Node *node) {
+    if (node->nargs != 1)
+        error_tok(node->tok, "alloca expects one argument");
+
+    Var *size = node->args[0];
+    char *r = reg(top);
+
+    println("  mov -%d(%%rbp), %s", size->offset, r);
+    println("  add $15, %s", r);
+    println("  and $-16, %s", r);
+    println("  sub %s, %%rsp", r);
+    println("  mov %%rsp, %s", r);
+    top++;
+}
+
 // Load a local variable at RSP+offset to a xmm register.
 static void load_fp_arg(Type *ty, int offset, int r) {
     if (ty->kind == TY_FLOAT)
@@ -666,6 +681,13 @@ static void gen_expr(Node *node) {
             return;
         }
 
+        if (node->lhs->kind == ND_VAR &&
+                (!strcmp(node->lhs->var->name, "alloca") ||
+                 !strcmp(node->lhs->var->name, "__builtin_alloca"))) {
+            builtin_alloca(node);
+            return;
+        }
+
         // Save caller-saved registers
         println("  sub $64, %%rsp");
         println("  mov %%r10, (%%rsp)");
@@ -921,7 +943,7 @@ static void gen_stmt(Node *node) {
         for (Node *n = node->case_next; n; n = n->case_next) {
             n->case_label = count();
             n->case_end_label = c;
-            println("  cmp $%ld, %s", n->val, reg(top - 1));
+            println("  cmp $%ld, %s", n->val, xreg(node->cond->ty, top - 1));
             println("  je .L.case.%d", n->case_label);
         }
         top--;

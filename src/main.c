@@ -270,8 +270,8 @@ static void cleanup(void) {
 
 int main(int argc, char **argv) {
     init_macros();
-    add_default_include_paths(argv[0]);
     parse_args(argc, argv);
+    add_default_include_paths(argv[0]);
     atexit(cleanup);
 
     // Open a temporary output file.

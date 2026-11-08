@@ -6,6 +6,9 @@ char main_line = __LINE__;
 
 #include "include1.h"
 #include "include/nested/parent.h"
+#include <alloca.h>
+#include <dirent.h>
+#include <tar.h>
 
 int printf();
 int exit();
@@ -238,11 +241,26 @@ static __inline__ int gnu_inline_fn(void) {
     return 27;
 }
 
+int read_block_extern(void) {
+    extern int block_extern_value;
+    return block_extern_value;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
     assert(26, inline_fn(), "inline_fn()");
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
+    assert(23, read_block_extern(), "read_block_extern()");
+    assert(7, ({ int x=-5; switch (x) { case -5: x=7; break; } x; }),
+           "switch negative case");
+    assert(18, offsetof(struct dirent, d_type),
+           "offsetof(struct dirent, d_type)");
+    assert(19, offsetof(struct dirent, d_name),
+           "offsetof(struct dirent, d_name)");
+    assert(280, sizeof(struct dirent), "sizeof(struct dirent)");
+    assert(10, ({ char *p=alloca(17); p[0]=3; p[16]=7; p[0]+p[16]; }),
+           "alloca(17)");
     assert(21, 5+20-4, "5+20-4");
     assert(41,  12 + 34 - 5 , " 12 + 34 - 5 ");
     assert(47, 5+6*7, "5+6*7");
@@ -901,7 +919,7 @@ int main() {
     assert(1, _Alignof(char[3]), "_Alignof(char[3])");
     assert(4, _Alignof(int[3]), "_Alignof(int[3])");
     assert(1, _Alignof(struct {char a; char b;}[2]), "_Alignof(struct {char a; char b;}[2])");
-    assert(16, _Alignof(struct {char a; long b;}[2]), "_Alignof(struct {char a; long b;}[2])");
+    assert(8, _Alignof(struct {char a; long b;}[2]), "_Alignof(struct {char a; long b;}[2])");
 
     assert(1, ({ _Alignas(char) char x, y; &y-&x; }), "({ _Alignas(char) char x, y; &y-&x; })");
     assert(8, ({ _Alignas(long) char x, y; &y-&x; }), "({ _Alignas(long) char x, y; &y-&x; })");
@@ -1245,6 +1263,7 @@ int main() {
 
     assert(5, include1, "include1");
     assert(7, include2, "include2");
+    assert(17, TEST_TAR_HEADER, "TEST_TAR_HEADER");
 
 #if 0
 #include "/no/such/file"
