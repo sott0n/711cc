@@ -727,7 +727,7 @@ static char *read_include_path(Token **rest, Token *tok) {
     // In this case FOO must be macro-expanded to either
     // a single string token or a sequence of "<" ... ">".
     if (tok->kind == TK_IDENT) {
-        Token *tok2 = preprocess(copy_line(rest, tok));
+        Token *tok2 = preprocess2(copy_line(rest, tok));
         return read_include_path(&tok2, tok2);
     }
 

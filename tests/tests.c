@@ -1592,11 +1592,15 @@ of(char), \
     assert(4, foo, "foo");
 
 #define M13 "include3.h"
+#if 1
 #include M13
+#endif
     assert(3, foo, "foo");
 
 #define M13 <include4.h>
+#ifdef M13
 #include M13
+#endif
     assert(4, foo, "foo");
 
 #undef foo
