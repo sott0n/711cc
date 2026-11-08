@@ -6,6 +6,7 @@ char main_line = __LINE__;
 
 #include "include1.h"
 #include "include/nested/parent.h"
+#include <stdarg.h>
 
 int printf();
 int exit();
@@ -192,13 +193,6 @@ int counter() {
 _Bool true_fn();
 _Bool false_fn();
 
-typedef struct {
-    int gp_offset;
-    int fp_offset;
-    void *overflow_arg_area;
-    void *reg_save_area;
-} va_list[1];
-
 int add_all1(int x, ...);
 int add_all3(int z, int b, int c, ...);
 int add10_int(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9, int x10);
@@ -219,6 +213,20 @@ long va_sum(int n, ...) {
     long sum = 0;
     for (int i = 0; i < n; i++)
         sum += __builtin_va_arg(ap, long);
+    return sum;
+}
+
+long va_copy_sum(int n, ...) {
+    va_list ap;
+    va_list cp;
+    va_start(ap, n);
+    va_copy(cp, ap);
+
+    long sum = 0;
+    for (int i = 0; i < n; i++)
+        sum += va_arg(cp, long);
+    va_end(cp);
+    va_end(ap);
     return sum;
 }
 
@@ -278,6 +286,8 @@ int main() {
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
     assert(36, va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L),
            "va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)");
+    assert(36, va_copy_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L),
+           "va_copy_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)");
     assert(21, 5+20-4, "5+20-4");
     assert(41,  12 + 34 - 5 , " 12 + 34 - 5 ");
     assert(47, 5+6*7, "5+6*7");
