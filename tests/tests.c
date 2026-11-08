@@ -221,8 +221,16 @@ int (*fnptr(void))(int) {
 
 struct LargeArg { long a; long b; long c; };
 
+struct ForwardConst;
+struct ForwardHolder { const struct ForwardConst *ptr; };
+struct ForwardConst { int value; };
+
 long large_arg_sum(int prefix, struct LargeArg arg, int suffix) {
     return prefix + arg.a + arg.b + arg.c + suffix;
+}
+
+int forward_const_value(struct ForwardHolder *holder) {
+    return holder->ptr->value;
 }
 
 int M9(int x) { return x*x; }
@@ -1246,6 +1254,9 @@ int main() {
            "({ ParenFuncType *fn = add2; fn(3, 4); })");
     assert(15, large_arg_sum(4, (struct LargeArg){1, 2, 3}, 5),
            "large_arg_sum(4, (struct LargeArg){1, 2, 3}, 5)");
+    assert(9, forward_const_value(&(struct ForwardHolder){
+                  &(struct ForwardConst){9}}),
+           "forward_const_value");
 
 #
 

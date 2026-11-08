@@ -543,7 +543,9 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
         tok = tok->next;
     }
 
-    if (is_const) {
+    // Keep an incomplete struct tied to its tag object. A shallow copy here
+    // would not be completed when the tagged struct is defined later.
+    if (is_const && !(ty->kind == TY_STRUCT && ty->size < 0)) {
         ty = copy_type(ty);
         ty->is_const = true;
     }
@@ -2058,6 +2060,8 @@ static Type *struct_union_decl(Token **rest, Token *tok) {
 // struct-decl = struct-union-decl
 static Type *struct_decl(Token **rest, Token *tok) {
     Type *ty = struct_union_decl(rest, tok);
+    if (ty->size < 0)
+        return ty;
 
     // Assign offset within the struct to members
     int bits = 0;
@@ -2092,6 +2096,8 @@ static Type *struct_decl(Token **rest, Token *tok) {
 // union-decl = struct-union-decl
 static Type *union_decl(Token **rest, Token *tok) {
     Type *ty = struct_union_decl(rest, tok);
+    if (ty->size < 0)
+        return ty;
 
     // If union, we don't have to assign offsets because they
     // are already initialized to zero. We need to compute the
