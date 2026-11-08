@@ -590,6 +590,7 @@ int main() {
     assert(7, ({ int i=2; i+=5; }), "({ int i=2; i+=5; })");
     assert(3, ({ int i=5; i-=2; i; }), "({ int i=5; i-=2; i; })");
     assert(3, ({ int i=5; i-=2; }), "({ int i=5; i-=2; })");
+    assert(7, ({ const char *src="abcd"; const char *c=src+3; unsigned long len=11; len-=c+1-src; len; }), "({ const char *src=\"abcd\"; const char *c=src+3; unsigned long len=11; len-=c+1-src; len; })");
     assert(6, ({ int i=3; i*=2; i; }), "({ int i=3; i*=2; i; })");
     assert(6, ({ int i=3; i*=2; }), "({ int i=3; i*=2; })");
     assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
