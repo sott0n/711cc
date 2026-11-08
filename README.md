@@ -100,6 +100,16 @@ $ make test
 $ make test-riscv
 ```
 
+The RISC-V test links the generated assembly with a cross compiler and runs
+the executable with QEMU. On Debian or Ubuntu, install the required tools with:
+
+```shell
+$ sudo apt-get install gcc-riscv64-linux-gnu qemu-user
+```
+
+Set `RISCV_CC`, `RISCV_CFLAGS`, or `RISCV_QEMU` when using tools outside
+`PATH` or a custom sysroot.
+
 For test a self hosting, give "test-stage2" and "test-stage3" as an argument:
 
 ```shell

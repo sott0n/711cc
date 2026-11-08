@@ -2,15 +2,15 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   test-x86-64:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Test for compile
       run: make test
 
@@ -26,28 +26,11 @@ jobs:
   test-riscv-64:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Pre-Install
+    - uses: actions/checkout@v4
+    - name: Install RISC-V test tools
       run: |
           sudo apt-get update -y
-          sudo apt-get install ninja-build
+          sudo apt-get install -y gcc-riscv64-linux-gnu qemu-user
 
-    - name: Install qemu-riscv64
-      run: |
-          git clone https://git.qemu.org/git/qemu.git
-          cd qemu
-          ./configure --static --disable-system --target-list=riscv64-linux-user --python=/usr/bin/python3.6
-          make -j $(nproc)
-          sudo cp build/riscv64-linux-user/qemu-riscv64 /usr/bin/
-
-    - name: Install gcc cross-compiler for riscv
-      run: |
-          sudo dpkg --add-architecture riscv64
-          sudo apt-get install -y gcc-riscv64-linux-gnu
-          sudo ln -s /usr/riscv64-linux-gnu/lib/ld-linux-riscv64-lp64d.so.1 /lib
-
-    - name: Test for compile
+    - name: Test with QEMU
       run: make test-riscv
-      env:
-          LD_LIBRARY_PATH: /usr/riscv64-linux-gnu/lib/
-
