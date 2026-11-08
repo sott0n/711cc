@@ -53,6 +53,15 @@ char *g34 = {"foo"};
 
 struct designated_global_type { int a; int b; int c; };
 struct designated_global_type designated_global = {.c = 3, .a = 1};
+struct nested_designated_type {
+    struct { struct { int recursive; int quick; } flags; } pruning;
+    int tail;
+};
+struct nested_designated_type nested_designated_global = {
+    .pruning.flags.recursive = 1,
+    .pruning.flags.quick = 2,
+    .tail = 3,
+};
 int designated_array_global[6] = {[4] = 5, [1] = 2};
 int designated_array_inferred[] = {[3] = 4, 5};
 char designated_target = 7;
@@ -1571,8 +1580,18 @@ of(char), \
     assert(0, designated_global.b, "designated_global.b");
     assert(3, designated_global.c, "designated_global.c");
     assert(7, *designated_pointer.ptr, "*designated_pointer.ptr");
+    assert(1, nested_designated_global.pruning.flags.recursive,
+           "nested_designated_global.pruning.flags.recursive");
+    assert(2, nested_designated_global.pruning.flags.quick,
+           "nested_designated_global.pruning.flags.quick");
+    assert(3, nested_designated_global.tail, "nested_designated_global.tail");
     assert(3, ({ struct designated_global_type x = {.b = 2, 3}; x.c; }),
            "({ struct designated_global_type x = {.b = 2, 3}; x.c; })");
+    assert(5, ({ struct nested_designated_type x = {
+                    .pruning.flags.recursive = 4,
+                    .pruning.flags.quick = 5,
+                }; x.pruning.flags.quick; }),
+           "nested designated local initializer");
     assert(0, designated_array_global[0], "designated_array_global[0]");
     assert(2, designated_array_global[1], "designated_array_global[1]");
     assert(0, designated_array_global[3], "designated_array_global[3]");

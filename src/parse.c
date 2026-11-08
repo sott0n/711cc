@@ -966,6 +966,51 @@ static Member *find_designated_member(Type *ty, Token *tok, int *idx) {
     error_tok(tok, "no such member");
 }
 
+static int count_members(Type *ty) {
+    int len = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next)
+        len++;
+    return len;
+}
+
+static Initializer *designation(Token **rest, Token *tok, Type *ty,
+                                Initializer *init) {
+    if (consume(&tok, tok, ".")) {
+        if (ty->kind != TY_STRUCT)
+            error_tok(tok, "field designator for non-struct type");
+        if (tok->kind != TK_IDENT)
+            error_tok(tok, "expected a member name");
+
+        int i;
+        Member *mem = find_designated_member(ty, tok, &i);
+        if (!init)
+            init = new_init(ty, count_members(ty), NULL, tok);
+        init->children[i] = designation(rest, tok->next, mem->ty,
+                                        init->children[i]);
+        return init;
+    }
+
+    if (consume(&tok, tok, "[")) {
+        if (ty->kind != TY_ARRAY)
+            error_tok(tok, "array designator for non-array type");
+
+        Token *start = tok;
+        int i = const_expr(&tok, tok);
+        if (i < 0 || i >= ty->array_len)
+            error_tok(start, "array designator index out of bounds");
+        tok = skip(tok, "]");
+
+        if (!init)
+            init = new_init(ty, ty->array_len, NULL, start);
+        init->children[i] = designation(rest, tok, ty->base,
+                                        init->children[i]);
+        return init;
+    }
+
+    tok = skip(tok, "=");
+    return initializer(rest, tok, ty);
+}
+
 static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
     if (!equal(tok, "{")) {
         Token *tok2;
@@ -978,10 +1023,7 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
         }
     }
 
-    int len = 0;
-    for (Member *mem = ty->members; mem; mem = mem->next)
-        len++;
-
+    int len = count_members(ty);
     Initializer *init = new_init(ty, len, NULL, tok);
     bool has_paren = consume(&tok, tok, "{");
 
@@ -1001,12 +1043,14 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
             if (tok->kind != TK_IDENT)
                 error_tok(tok, "expected a member name");
             mem = find_designated_member(ty, tok, &i);
-            tok = skip(tok->next, "=");
+            init->children[i] = designation(&tok, tok->next, mem->ty,
+                                             init->children[i]);
         } else if (!mem) {
             break;
+        } else {
+            init->children[i] = initializer(&tok, tok, mem->ty);
         }
 
-        init->children[i] = initializer(&tok, tok, mem->ty);
         mem = mem->next;
         i++;
     }
