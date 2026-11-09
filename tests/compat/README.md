@@ -4,6 +4,29 @@ These tests measure how far 711cc can compile pinned versions of external
 projects. Their source trees and generated results are kept outside version
 control.
 
+## CPython
+
+The CPython harness targets the `python` executable from CPython v3.13.0 at
+commit `60403a5409ff2c3f3b07dd2ca91a7a3e096839c7`.
+
+Clone the pinned version outside this repository and run the compatibility
+target:
+
+```shell
+$ git clone --depth 1 --branch v3.13.0 https://github.com/python/cpython.git /tmp/cpython-v3.13.0
+$ make compat-cpython CPYTHON_SOURCE_DIR=/tmp/cpython-v3.13.0
+```
+
+The harness configures CPython with the system C compiler, then uses 711cc for
+each C compilation and the system compiler as the linker driver. It currently
+records the first unsupported source construct and exits unsuccessfully until
+the `python` target and its runtime smoke test pass.
+
+Each run writes `summary.txt`, `configure.log`, `build.log`, `attempts.tsv`,
+and first-failure details to a new `tmp-compat-cpython-*` directory. Once the
+build succeeds, it also writes `runtime.log` after checking the version and a
+small Python expression.
+
 ## Git
 
 The Git harness targets the Git executable from Git v2.56.0 at commit

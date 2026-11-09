@@ -195,6 +195,15 @@ static void parse_args(int argc, char **argv) {
             !strcmp(argv[i], "-g"))
             continue;
 
+        // Accept common C11 build flags that do not change the code we emit.
+        // Real-world projects pass these even when the selected language and
+        // target defaults already have the requested behavior.
+        if (!strcmp(argv[i], "-std=c11") || !strcmp(argv[i], "-std=gnu11") ||
+            !strcmp(argv[i], "-fno-strict-overflow") ||
+            !strcmp(argv[i], "-fvisibility=hidden") ||
+            !strcmp(argv[i], "-pthread"))
+            continue;
+
         if (argv[i][0] == '-' && argv[i][1] != '\0')
             error("unknown argument, %s", argv[i]);
 

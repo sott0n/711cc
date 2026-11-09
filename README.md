@@ -109,8 +109,9 @@ make test-riscv \
   RISCV_QEMU=/path/to/qemu-riscv64
 ```
 
-Pinned external-project compatibility tests, including a Git v2.56.0 build
-and runtime smoke test, are documented in
+Pinned external-project compatibility tests include a Git v2.56.0 build and
+runtime smoke test plus a CPython v3.13.0 compilation baseline. They are
+documented in
 [tests/compat/README.md](tests/compat/README.md).
 
 ## Examples
