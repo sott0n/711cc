@@ -30,6 +30,7 @@ struct MacroArg {
     MacroArg *next;
     char *name;
     Token *tok;
+    bool is_variadic;
 };
 
 typedef Token *macro_handler_fn(Token *);
@@ -438,10 +439,11 @@ read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic,
     }
 
     if (is_variadic) {
-        if (pp != params)
+        if (params && !equal(tok, ")"))
             tok = skip(tok, ",");
         cur = cur->next = read_macro_arg_one(&tok, tok, true);
         cur->name = va_args_name;
+        cur->is_variadic = true;
     } else if (pp) {
         error_tok(start, "too many arguments");
     }
@@ -451,11 +453,16 @@ read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic,
     return head.next;
 }
 
-static Token *find_arg(MacroArg *args, Token *tok) {
+static MacroArg *find_macro_arg(MacroArg *args, Token *tok) {
     for (MacroArg *ap = args; ap; ap = ap->next)
         if (tok->len == strlen(ap->name) && !strncmp(tok->loc, ap->name, tok->len))
-            return ap->tok;
+            return ap;
     return NULL;
+}
+
+static Token *find_arg(MacroArg *args, Token *tok) {
+    MacroArg *arg = find_macro_arg(args, tok);
+    return arg ? arg->tok : NULL;
 }
 
 // Concatenates all tokens in `tok` and returns a new string.
@@ -511,6 +518,25 @@ static Token *subst(Token *tok, MacroArg *args) {
     Token *cur = &head;
 
     while (tok->kind != TK_EOF) {
+        // GNU `, ##__VA_ARGS__` removes the comma if the variadic argument is
+        // empty. Otherwise, it keeps the comma without pasting it to the first
+        // argument token.
+        if (equal(tok, ",") && equal(tok->next, "##")) {
+            MacroArg *arg = find_macro_arg(args, tok->next->next);
+            if (arg && arg->is_variadic) {
+                if (arg->tok->kind == TK_EOF) {
+                    tok = tok->next->next->next;
+                    continue;
+                }
+
+                cur = cur->next = copy_token(tok);
+                for (Token *t = arg->tok; t->kind != TK_EOF; t = t->next)
+                    cur = cur->next = copy_token(t);
+                tok = tok->next->next->next;
+                continue;
+            }
+        }
+
         // "#" followed by a parameter is replaced with stringized actuals.
         if (equal(tok, "#")) {
             Token *arg = find_arg(args, tok->next);
