@@ -320,17 +320,28 @@ static Token *read_utf32_string_literal(Token *cur, char *start, Type *ty) {
 
 static Token *read_char_literal(Token *cur, char *start, Type *ty) {
     char *p = start + 1;
-    if (*p == '\0')
-        error_at(start, "unclosed char literal");
+    unsigned int c = 0;
+    bool first = true;
 
-    int c;
-    if (*p == '\\')
-        c = read_escaped_char(&p, p + 1);
-    else
-        c = read_utf8_char(&p, p);
+    while (*p != '\'') {
+        if (*p == '\0' || *p == '\n')
+            error_at(start, "unclosed char literal");
 
-    if (*p != '\'')
-        error_at(p, "char literal too long");
+        int ch;
+        if (*p == '\\')
+            ch = read_escaped_char(&p, p + 1);
+        else
+            ch = read_utf8_char(&p, p);
+
+        if (first)
+            c = ch;
+        else
+            c = (c << 8) | (ch & 0xff);
+        first = false;
+    }
+
+    if (first)
+        error_at(start, "empty char literal");
     p++;
 
     Token *tok = new_token(TK_NUM, cur, start, p - start);

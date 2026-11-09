@@ -600,6 +600,7 @@ int main() {
 
     assert(97, 'a', "'a'");
     assert(10, '\n', "'\n'");
+    assert(0x6162, 'ab', "'ab'");
     assert(4, sizeof('a'), "sizeof('a')");
 
     assert(0, ({ enum { zero, one, two }; zero; }), "({ enum { zero, one, two }; zero; })");
@@ -1537,6 +1538,13 @@ int main() {
     m = 6;
 #endif
     assert(5, m, "m");
+
+#if 1
+    m = 7;
+#else
+# error C 'size_t' size is unsupported
+#endif
+    assert(7, m, "m");
 
     assert(1, size\
 of(char), \
