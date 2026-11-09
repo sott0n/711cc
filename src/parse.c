@@ -2379,9 +2379,13 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
             arg = new_cast(arg, ty_double);
         }
 
-        Var *var = arg->ty->base
-            ? new_lvar("", pointer_to(arg->ty->base))
-            : new_lvar("", arg->ty);
+        Type *var_ty = arg->ty;
+        if (arg->ty->kind == TY_FUNC)
+            var_ty = pointer_to(arg->ty);
+        else if (arg->ty->base)
+            var_ty = pointer_to(arg->ty->base);
+
+        Var *var = new_lvar("", var_ty);
 
         args = realloc(args, sizeof(*args) * (nargs + 1));
         args[nargs] = var;

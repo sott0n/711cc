@@ -211,6 +211,7 @@ _Bool false_fn();
 
 int add_all1(int x, ...);
 int add_all3(int z, int b, int c, ...);
+int call_variadic_function(int unused, ...);
 int add10_int(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9, int x10);
 int add10_double(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8, double x9, double x10);
 int sprintf(char *buf, char *fmt, ...);
@@ -1073,6 +1074,7 @@ int main() {
 
     assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
     assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
+    assert(3, call_variadic_function(0, ret3), "call_variadic_function(0, ret3)");
 
     assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
     assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");

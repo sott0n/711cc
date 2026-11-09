@@ -37,6 +37,13 @@ int add_all3(int x, int y, int z, ...) {
     }
 }
 
+int call_variadic_function(int unused, ...) {
+    va_list ap;
+    va_start(ap, unused);
+    int (*fn)(void) = va_arg(ap, int (*)(void));
+    return fn();
+}
+
 float ret_float(float x) {
     return x;
 }
