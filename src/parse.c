@@ -2506,6 +2506,14 @@ static Node *primary(Token **rest, Token *tok) {
 Program *parse(Token *tok) {
     // Add built-in function type
     new_gvar("__builtin_va_start", func_type(ty_void), true, false);
+    new_gvar("__atomic_compare_exchange_n", func_type(ty_long), true, false);
+    new_gvar("__atomic_exchange_n", func_type(ty_long), true, false);
+    new_gvar("__atomic_fetch_add", func_type(ty_long), true, false);
+    new_gvar("__atomic_fetch_and", func_type(ty_long), true, false);
+    new_gvar("__atomic_fetch_or", func_type(ty_long), true, false);
+    new_gvar("__atomic_load_n", func_type(ty_long), true, false);
+    new_gvar("__atomic_store_n", func_type(ty_long), true, false);
+    new_gvar("__atomic_thread_fence", func_type(ty_long), true, false);
 
     // Read source code until EOF
     Function head = {};

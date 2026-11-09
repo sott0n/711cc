@@ -898,6 +898,12 @@ static char *format_time(struct tm *tm) {
 void init_macros(void) {
     // Define predefined macros
     define_macro("__711cc__", "1");
+    define_macro("__ATOMIC_ACQUIRE", "2");
+    define_macro("__ATOMIC_ACQ_REL", "4");
+    define_macro("__ATOMIC_CONSUME", "1");
+    define_macro("__ATOMIC_RELAXED", "0");
+    define_macro("__ATOMIC_RELEASE", "3");
+    define_macro("__ATOMIC_SEQ_CST", "5");
     define_macro("_LP64", "1");
     define_macro("__ELF__", "1");
     define_macro("__LP64__", "1");

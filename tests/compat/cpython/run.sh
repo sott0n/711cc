@@ -84,6 +84,7 @@ if [ "$configure_status" -eq 0 ]; then
         LINKCC="$host_cc" \
         LDSHARED="$host_cc -shared" \
         BLDSHARED="$host_cc -shared" \
+        EXTRA_CFLAGS="-D_Py_USE_GCC_BUILTIN_ATOMICS=1" \
         2>&1 | tee "$output_dir/build.log"
     build_status=${PIPESTATUS[0]}
     set -e

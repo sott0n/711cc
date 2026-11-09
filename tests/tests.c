@@ -307,6 +307,52 @@ int main() {
     assert(280, sizeof(struct dirent), "sizeof(struct dirent)");
     assert(10, ({ char *p=alloca(17); p[0]=3; p[16]=7; p[0]+p[16]; }),
            "alloca(17)");
+    assert(3, ({ int x=3; __atomic_load_n(&x, __ATOMIC_SEQ_CST); }),
+           "__atomic_load_n");
+    assert(7, ({ int x=3; __atomic_store_n(&x, 7, 5); x; }),
+           "__atomic_store_n");
+    assert(3, ({ int x=3; __atomic_fetch_add(&x, 4, 5); }),
+           "__atomic_fetch_add");
+    assert(7, ({ int x=3; __atomic_fetch_add(&x, 4, 5); x; }),
+           "__atomic_fetch_add result");
+    assert(3, ({ int x=3; __atomic_exchange_n(&x, 7, 5); }),
+           "__atomic_exchange_n");
+    assert(7, ({ int x=3; __atomic_exchange_n(&x, 7, 5); x; }),
+           "__atomic_exchange_n result");
+    assert(7, ({ int x=7; __atomic_fetch_and(&x, 6, 5); }),
+           "__atomic_fetch_and");
+    assert(6, ({ int x=7; __atomic_fetch_and(&x, 6, 5); x; }),
+           "__atomic_fetch_and result");
+    assert(4, ({ int x=4; __atomic_fetch_or(&x, 3, 5); }),
+           "__atomic_fetch_or");
+    assert(7, ({ int x=4; __atomic_fetch_or(&x, 3, 5); x; }),
+           "__atomic_fetch_or result");
+    assert(1, ({ int x=3, expected=3;
+                 __atomic_compare_exchange_n(&x, &expected, 7, 0, 5, 5); }),
+           "__atomic_compare_exchange_n success");
+    assert(7, ({ int x=3, expected=3;
+                 __atomic_compare_exchange_n(&x, &expected, 7, 0, 5, 5); x; }),
+           "__atomic_compare_exchange_n result");
+    assert(0, ({ int x=7, expected=3;
+                 __atomic_compare_exchange_n(&x, &expected, 9, 0, 5, 5); }),
+           "__atomic_compare_exchange_n failure");
+    assert(7, ({ int x=7, expected=3;
+                 __atomic_compare_exchange_n(&x, &expected, 9, 0, 5, 5);
+                 expected; }),
+           "__atomic_compare_exchange_n expected");
+    assert(1, ({ unsigned char x=1;
+                 __atomic_fetch_add(&x, 2, __ATOMIC_RELAXED); }),
+           "byte atomic fetch add");
+    assert(5, ({ unsigned short x=3;
+                 __atomic_exchange_n(&x, 5, __ATOMIC_SEQ_CST); x; }),
+           "short atomic exchange");
+    assert(7, ({ unsigned long x=4;
+                 __atomic_fetch_or(&x, 3, __ATOMIC_SEQ_CST); x; }),
+           "long atomic fetch or");
+    assert(1, ({ int x=1, y=2; int *p=&x;
+                 __atomic_store_n(&p, &y, __ATOMIC_RELEASE); p == &y; }),
+           "pointer atomic store");
+    __atomic_thread_fence(5);
     assert(36, va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L),
            "va_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)");
     assert(36, va_copy_sum(8, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L),

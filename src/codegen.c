@@ -380,6 +380,134 @@ static void builtin_alloca(Node *node) {
     top++;
 }
 
+static int atomic_size(Node *node) {
+    if (node->nargs < 1 || !node->args[0]->ty->base)
+        error_tok(node->tok, "atomic operation expects a pointer");
+
+    int size = node->args[0]->ty->base->size;
+    if (size != 1 && size != 2 && size != 4 && size != 8)
+        error_tok(node->tok, "unsupported atomic operand size: %d", size);
+    return size;
+}
+
+static char *atomic_suffix(int size) {
+    if (size == 1)
+        return "b";
+    if (size == 2)
+        return "w";
+    if (size == 4)
+        return "l";
+    return "q";
+}
+
+static char *atomic_reg(int size, char *r8, char *r16, char *r32, char *r64) {
+    if (size == 1)
+        return r8;
+    if (size == 2)
+        return r16;
+    if (size == 4)
+        return r32;
+    return r64;
+}
+
+static void atomic_result(void) {
+    println("  mov %%rax, %s", reg(top++));
+}
+
+static void builtin_atomic(Node *node, char *name) {
+    if (!strcmp(name, "__atomic_thread_fence")) {
+        if (node->nargs != 1)
+            error_tok(node->tok, "__atomic_thread_fence expects one argument");
+        println("  mfence");
+        println("  mov $0, %s", reg(top++));
+        return;
+    }
+
+    int size = atomic_size(node);
+    char *suffix = atomic_suffix(size);
+    char *acc = atomic_reg(size, "%al", "%ax", "%eax", "%rax");
+    char *desired = atomic_reg(size, "%dl", "%dx", "%edx", "%rdx");
+    char *operand = atomic_reg(size, "%sil", "%si", "%esi", "%rsi");
+
+    println("  mov -%d(%%rbp), %%rcx", node->args[0]->offset);
+
+    if (!strcmp(name, "__atomic_load_n")) {
+        if (node->nargs != 2)
+            error_tok(node->tok, "__atomic_load_n expects two arguments");
+        println("  xor %%eax, %%eax");
+        println("  mov%s (%%rcx), %s", suffix, acc);
+        atomic_result();
+        return;
+    }
+
+    if (!strcmp(name, "__atomic_store_n")) {
+        if (node->nargs != 3)
+            error_tok(node->tok, "__atomic_store_n expects three arguments");
+        println("  mov -%d(%%rbp), %%rax", node->args[1]->offset);
+        println("  xchg%s %s, (%%rcx)", suffix, acc);
+        println("  xor %%eax, %%eax");
+        atomic_result();
+        return;
+    }
+
+    if (!strcmp(name, "__atomic_fetch_add")) {
+        if (node->nargs != 3)
+            error_tok(node->tok, "__atomic_fetch_add expects three arguments");
+        println("  mov -%d(%%rbp), %%rax", node->args[1]->offset);
+        println("  lock xadd%s %s, (%%rcx)", suffix, acc);
+        atomic_result();
+        return;
+    }
+
+    if (!strcmp(name, "__atomic_exchange_n")) {
+        if (node->nargs != 3)
+            error_tok(node->tok, "__atomic_exchange_n expects three arguments");
+        println("  mov -%d(%%rbp), %%rax", node->args[1]->offset);
+        println("  xchg%s %s, (%%rcx)", suffix, acc);
+        atomic_result();
+        return;
+    }
+
+    if (!strcmp(name, "__atomic_fetch_and") ||
+        !strcmp(name, "__atomic_fetch_or")) {
+        if (node->nargs != 3)
+            error_tok(node->tok, "%s expects three arguments", name);
+        int c = count();
+        char *insn = !strcmp(name, "__atomic_fetch_and") ? "and" : "or";
+        println("  mov -%d(%%rbp), %%rsi", node->args[1]->offset);
+        println("  xor %%eax, %%eax");
+        println("  mov%s (%%rcx), %s", suffix, acc);
+        println(".L.atomic.retry.%d:", c);
+        println("  mov %%rax, %%rdx");
+        println("  %s%s %s, %s", insn, suffix, operand, desired);
+        println("  lock cmpxchg%s %s, (%%rcx)", suffix, desired);
+        println("  jne .L.atomic.retry.%d", c);
+        atomic_result();
+        return;
+    }
+
+    if (!strcmp(name, "__atomic_compare_exchange_n")) {
+        if (node->nargs != 6)
+            error_tok(node->tok,
+                      "__atomic_compare_exchange_n expects six arguments");
+        int c = count();
+        println("  mov -%d(%%rbp), %%rdx", node->args[1]->offset);
+        println("  mov -%d(%%rbp), %%rsi", node->args[2]->offset);
+        println("  xor %%eax, %%eax");
+        println("  mov%s (%%rdx), %s", suffix, acc);
+        println("  lock cmpxchg%s %s, (%%rcx)", suffix, operand);
+        println("  sete %%dil");
+        println("  je .L.atomic.compare.end.%d", c);
+        println("  mov%s %s, (%%rdx)", suffix, acc);
+        println(".L.atomic.compare.end.%d:", c);
+        println("  movzbq %%dil, %%rax");
+        atomic_result();
+        return;
+    }
+
+    error_tok(node->tok, "unknown atomic builtin: %s", name);
+}
+
 // Load a local variable at RSP+offset to a xmm register.
 static void load_fp_arg(Type *ty, int offset, int r) {
     if (ty->kind == TY_FLOAT)
@@ -685,6 +813,12 @@ static void gen_expr(Node *node) {
                 (!strcmp(node->lhs->var->name, "alloca") ||
                  !strcmp(node->lhs->var->name, "__builtin_alloca"))) {
             builtin_alloca(node);
+            return;
+        }
+
+        if (node->lhs->kind == ND_VAR &&
+                !strncmp(node->lhs->var->name, "__atomic_", 9)) {
+            builtin_atomic(node, node->lhs->var->name);
             return;
         }
 

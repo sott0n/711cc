@@ -20,7 +20,9 @@ $ make compat-cpython CPYTHON_SOURCE_DIR=/tmp/cpython-v3.13.0
 The harness configures CPython with the system C compiler, then uses 711cc for
 each C compilation and the system compiler as the linker driver. It currently
 records the first unsupported source construct and exits unsuccessfully until
-the `python` target and its runtime smoke test pass.
+the `python` target and its runtime smoke test pass. The build selects
+CPython's GCC-compatible atomic builtin implementation, which 711cc lowers to
+x86-64 atomic instructions.
 
 Each run writes `summary.txt`, `configure.log`, `build.log`, `attempts.tsv`,
 and first-failure details to a new `tmp-compat-cpython-*` directory. Once the
