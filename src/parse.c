@@ -971,20 +971,6 @@ static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     return init;
 }
 
-// struct-initializer = "{" initializer ("," initializer)* ","? "}"
-//                    | initializer ("," initializer)* ","
-static Member *find_designated_member(Type *ty, Token *tok, int *idx) {
-    int i = 0;
-    for (Member *mem = ty->members; mem; mem = mem->next, i++) {
-        if (mem->name && mem->name->len == tok->len &&
-            !strncmp(mem->name->loc, tok->loc, tok->len)) {
-            *idx = i;
-            return mem;
-        }
-    }
-    error_tok(tok, "no such member");
-}
-
 static int count_members(Type *ty) {
     int len = 0;
     for (Member *mem = ty->members; mem; mem = mem->next)
@@ -992,6 +978,64 @@ static int count_members(Type *ty) {
     return len;
 }
 
+static bool has_designated_member(Type *ty, Token *tok) {
+    for (Member *mem = ty->members; mem; mem = mem->next) {
+        if (mem->name && mem->name->len == tok->len &&
+            !strncmp(mem->name->loc, tok->loc, tok->len))
+            return true;
+    }
+
+    for (Member *mem = ty->members; mem; mem = mem->next) {
+        if (!mem->name && mem->ty->kind == TY_STRUCT &&
+            has_designated_member(mem->ty, tok))
+            return true;
+    }
+    return false;
+}
+
+static Initializer *designation(Token **rest, Token *tok, Type *ty,
+                                Initializer *init);
+
+static Initializer *designated_member(Token **rest, Token *tok, Type *ty,
+                                      Initializer *init, int *idx,
+                                      Member **selected) {
+    if (!init)
+        init = new_init(ty, count_members(ty), NULL, tok);
+
+    int i = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next, i++) {
+        if (mem->name && mem->name->len == tok->len &&
+            !strncmp(mem->name->loc, tok->loc, tok->len)) {
+            if (idx)
+                *idx = i;
+            if (selected)
+                *selected = mem;
+            init->children[i] = designation(rest, tok->next, mem->ty,
+                                            init->children[i]);
+            return init;
+        }
+    }
+
+    i = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next, i++) {
+        if (!mem->name && mem->ty->kind == TY_STRUCT &&
+            has_designated_member(mem->ty, tok)) {
+            if (idx)
+                *idx = i;
+            if (selected)
+                *selected = mem;
+            init->children[i] = designated_member(rest, tok, mem->ty,
+                                                   init->children[i],
+                                                   NULL, NULL);
+            return init;
+        }
+    }
+
+    error_tok(tok, "no such member");
+}
+
+// struct-initializer = "{" initializer ("," initializer)* ","? "}"
+//                    | initializer ("," initializer)* ","
 static Initializer *designation(Token **rest, Token *tok, Type *ty,
                                 Initializer *init) {
     if (consume(&tok, tok, ".")) {
@@ -1000,13 +1044,7 @@ static Initializer *designation(Token **rest, Token *tok, Type *ty,
         if (tok->kind != TK_IDENT)
             error_tok(tok, "expected a member name");
 
-        int i;
-        Member *mem = find_designated_member(ty, tok, &i);
-        if (!init)
-            init = new_init(ty, count_members(ty), NULL, tok);
-        init->children[i] = designation(rest, tok->next, mem->ty,
-                                        init->children[i]);
-        return init;
+        return designated_member(rest, tok, ty, init, NULL, NULL);
     }
 
     if (consume(&tok, tok, "[")) {
@@ -1061,9 +1099,7 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
         if (consume(&tok, tok, ".")) {
             if (tok->kind != TK_IDENT)
                 error_tok(tok, "expected a member name");
-            mem = find_designated_member(ty, tok, &i);
-            init->children[i] = designation(&tok, tok->next, mem->ty,
-                                             init->children[i]);
+            init = designated_member(&tok, tok, ty, init, &i, &mem);
         } else if (!mem) {
             break;
         } else {

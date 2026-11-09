@@ -70,6 +70,14 @@ struct nested_designated_type nested_designated_global = {
 char designated_target = 7;
 struct { int pad; char *ptr; } designated_pointer = {.ptr = &designated_target};
 struct { long value; } integer_address = {.value = (long)"all"};
+struct anonymous_designated_type {
+    union { long value; long alternate; };
+    int tail;
+};
+struct anonymous_designated_type anonymous_designated = {
+    .value = 5,
+    .tail = 7,
+};
 
 float g40 = 1.5;
 double g41 = 0.0 ? 55 : (0, 1 + 1 * 5.0 / 2 * (double)2 * (int)2.0);
@@ -1584,6 +1592,8 @@ of(char), \
     assert(7, *designated_pointer.ptr, "*designated_pointer.ptr");
     assert(0, strcmp((char *)integer_address.value, "all"),
            "integer address initializer");
+    assert(5, anonymous_designated.value, "anonymous designated member");
+    assert(7, anonymous_designated.tail, "anonymous designated tail");
     assert(1, nested_designated_global.pruning.flags.recursive,
            "nested_designated_global.pruning.flags.recursive");
     assert(2, nested_designated_global.pruning.flags.quick,
