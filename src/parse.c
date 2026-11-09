@@ -1621,7 +1621,7 @@ static long eval_addr(Node *node, Var **var) {
     case ND_ADDR:
         return eval_rval(node->lhs, var);
     case ND_CAST:
-        if (node->lhs->ty->base)
+        if (node->lhs->ty->base || node->lhs->ty->kind == TY_FUNC)
             return eval_addr(node->lhs, var);
         return eval(node->lhs);
     case ND_VAR:

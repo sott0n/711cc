@@ -26,6 +26,10 @@ typedef unsigned short char16_t;
 typedef unsigned int char32_t;
 typedef int wchar_t;
 
+int global_cast_target(int x);
+typedef int GlobalCastFunc(int);
+GlobalCastFunc *global_cast_fn = (GlobalCastFunc *)global_cast_target;
+
 int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
@@ -119,6 +123,10 @@ int ret3(void) {
 
 int add2(int x, int y) {
     return x + y;
+}
+
+int global_cast_target(int x) {
+    return x + 1;
 }
 
 int call_binary(ParenFuncType fn, int x, int y) {
@@ -298,6 +306,7 @@ int main() {
     assert(26, inline_fn(), "inline_fn()");
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
     assert(23, read_block_extern(), "read_block_extern()");
+    assert(5, global_cast_fn(4), "global_cast_fn(4)");
     assert(7, ({ int x=-5; switch (x) { case -5: x=7; break; } x; }),
            "switch negative case");
     assert(18, offsetof(struct dirent, d_type),
