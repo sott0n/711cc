@@ -8,6 +8,7 @@ set -u
 
 stderr_file=$(mktemp "$CC_LOG_DIR/stderr.XXXXXX")
 source_file=""
+assembly_file=""
 attempt_kind=link
 is_compile=false
 
@@ -19,15 +20,22 @@ for arg in "$@"; do
     *.c)
         source_file=$arg
         ;;
+    *.S|*.s)
+        assembly_file=$arg
+        ;;
     esac
 done
 
 compiler=$HOST_CC
 if $is_compile; then
-    compiler=$CC_UNDER_TEST
-    attempt_kind=probe
-    if [ -n "$source_file" ]; then
-        attempt_kind=source
+    if [ -n "$assembly_file" ]; then
+        attempt_kind=assembly
+    else
+        compiler=$CC_UNDER_TEST
+        attempt_kind=probe
+        if [ -n "$source_file" ]; then
+            attempt_kind=source
+        fi
     fi
 fi
 

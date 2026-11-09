@@ -96,6 +96,7 @@ struct Var {
     
     // Global variable
     bool is_static;
+    bool is_definition;
     char *init_data;
     Relocation *rel;
 };
@@ -148,6 +149,8 @@ typedef enum {
     ND_CONTINUE,    // "continue"
     ND_GOTO,        // "goto"
     ND_LABEL,       // Labeled statement
+    ND_LABEL_VAL,   // GNU label address
+    ND_ASM,         // GNU inline assembly statement
     ND_FUNCALL,     // Function call
     ND_VA_ARG,      // __builtin_va_arg
     ND_EXPR_STMT,   // Expression statement
@@ -189,9 +192,13 @@ struct Node {
     Type *func_ty;
     Var **args;
     int nargs;
+    Var *ret_buffer;
 
     // Goto or labeled statement
     char *label_name;
+
+    // GNU inline assembly
+    char *asm_str;
 
     // Switch-case
     Node *case_next;
@@ -214,6 +221,7 @@ struct Function {
     Var *params;
     bool is_static;
     bool is_variadic;
+    Var *ret_buffer;
 
     Node *body;
     Var *locals;
@@ -276,6 +284,7 @@ struct Type {
 
     // Struct
     Member *members;
+    bool is_union;
 
     // Function type
     Type *return_ty;

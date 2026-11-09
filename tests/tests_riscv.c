@@ -25,9 +25,18 @@ typedef unsigned int char32_t;
 typedef int wchar_t;
 
 int g1, g2[4];
+_Thread_local int thread_local_value = 29;
+int tentative_redecl;
+int tentative_redecl;
+int initialized_after_tentative;
+int initialized_after_tentative = 17;
+extern int defined_after_extern;
+int defined_after_extern = 19;
 
 typedef int MyInt, MyInt2[4];
 typedef int ParenFuncType(int, int);
+
+_Static_assert(sizeof(long) == 8, "long must be eight bytes");
 typedef int ParenFuncType(int, int);
 enum { CONSTANT_MODULO = 53 + 3 - (53 + 2) % 4 };
 
@@ -55,6 +64,16 @@ struct {int a[2];} g30[2] = {{1, 2}, 3, 4};
 struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
+char parenthesized_string_global[4] = ("abc");
+struct { char data[4]; } parenthesized_string_member = {.data = ("xyz")};
+struct flexible_global_type { int count; signed char values[]; };
+struct flexible_global_type flexible_global = {3, {-1, -2, -3}};
+struct address_member_type { int prefix; int values[2]; } address_member;
+int *address_member_pointer = (&address_member)->values;
+int conditional_address_a;
+int conditional_address_b;
+int *conditional_address_pointer = 1 ? &conditional_address_a
+                                     : &conditional_address_b;
 
 struct designated_global_type { int a; int b; int c; };
 struct designated_global_type designated_global = {.c = 3, .a = 1};
@@ -256,12 +275,44 @@ int read_block_extern(void) {
     return block_extern_value;
 }
 
+int computed_goto(int x) {
+    static void *labels[] = {&&zero, &&one};
+    goto *labels[x];
+zero:
+    return 3;
+one:
+    return 5;
+}
+
+int block_function_declaration(void) {
+    int ret3(void);
+    return ret3();
+}
+
+struct returned_member_type { int value; };
+
+struct returned_member_type return_member(int value) {
+    struct returned_member_type result = {value};
+    return result;
+}
+
+int inline_asm_barrier(void) {
+    __asm__ __volatile__ ("" : : : "memory");
+    return 1;
+}
+
 int main() {
+    _Static_assert(sizeof(int) == 4, "int must be four bytes");
     assert(0, 0, "0");
     assert(42, 42, "42");
     assert(26, inline_fn(), "inline_fn()");
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
     assert(23, read_block_extern(), "read_block_extern()");
+    assert(3, computed_goto(0), "computed_goto(0)");
+    assert(5, computed_goto(1), "computed_goto(1)");
+    assert(3, block_function_declaration(), "block_function_declaration()");
+    assert(7, return_member(7).value, "return_member(7).value");
+    assert(1, inline_asm_barrier(), "inline_asm_barrier()");
     assert(7, ({ int x=-5; switch (x) { case -5: x=7; break; } x; }),
            "switch negative case");
     assert(18, offsetof(struct dirent, d_type),
@@ -341,6 +392,8 @@ int main() {
     assert(15, add5(1,2,3,4,5), "add5(1,2,3,4,5)");
 
     assert(7, add2(3,4), "add2(3,4)");
+    assert(7, (1 ? add2 : sub2)(3, 4), "(1 ? add2 : sub2)(3, 4)");
+    assert(-1, (0 ? add2 : sub2)(3, 4), "(0 ? add2 : sub2)(3, 4)");
     assert(1, sub2(4,3), "sub2(4,3)");
     assert(55, fib(9), "fib(9)");
 
@@ -383,6 +436,23 @@ int main() {
     assert(1, ({ int x=1; sizeof(x=2); x; }), "({ int x=1; sizeof(x=2); x; })");
 
     assert(0, g1, "g1");
+    assert(201112, __STDC_VERSION__, "__STDC_VERSION__");
+    assert(29, thread_local_value, "thread_local_value");
+    assert(0, tentative_redecl, "tentative_redecl");
+    assert(0, strcmp(parenthesized_string_global, "abc"),
+           "parenthesized_string_global");
+    assert(3, flexible_global.count, "flexible_global.count");
+    assert(-1, flexible_global.values[0], "flexible_global.values[0]");
+    assert(-3, flexible_global.values[2], "flexible_global.values[2]");
+    assert(0x1295, ({ union { unsigned short cache; struct { unsigned char code; unsigned char arg; } op; } word = {.cache = 0x1295}; word.op.code | word.op.arg << 8; }), "designated local union initializer");
+    assert(0, strcmp(parenthesized_string_member.data, "xyz"),
+           "parenthesized_string_member.data");
+    assert(1, address_member_pointer == &address_member.values[0],
+           "address_member_pointer == &address_member.values[0]");
+    assert(1, conditional_address_pointer == &conditional_address_a,
+           "conditional_address_pointer == &conditional_address_a");
+    assert(17, initialized_after_tentative, "initialized_after_tentative");
+    assert(19, defined_after_extern, "defined_after_extern");
     assert(3, ({ g1=3; g1; }), "({ g1=3; g1; })");
     assert(0, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[0]; })");
     assert(1, ({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; }), "({ g2[0]=0; g2[1]=1; g2[2]=2; g2[3]=3; g2[1]; })");

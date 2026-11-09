@@ -115,6 +115,12 @@ static void gen_addr(Node *node) {
     case ND_DEREF:
         gen_expr(node->lhs);
         return;
+    case ND_FUNCALL:
+        if (node->ty->kind == TY_STRUCT) {
+            gen_expr(node);
+            return;
+        }
+        break;
     case ND_COMMA:
         gen_expr(node->lhs);
         top--;
@@ -227,7 +233,7 @@ static void cmp_zero(Type *ty) {
 }
 
 static void cast(Type *from, Type *to) {
-    if (to->kind == TY_VOID)
+    if (to->kind == TY_VOID || to->kind == TY_STRUCT)
         return;
 
     char *r = reg(top - 1);
@@ -446,8 +452,7 @@ static void push_arg(Type *ty, int offset) {
 //
 // - If a function is variadic, set the number of floating-point type
 //   arguments to RSP.
-static int load_args(Node *node) {
-    int gp = 0;
+static int load_args(Node *node, int gp) {
     int fp = 0;
     int stack_size = 0;
     bool *pass_stack = calloc(node->nargs, sizeof(bool));
@@ -495,6 +500,10 @@ static void gen_expr(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
+    case ND_LABEL_VAL:
+        println("  la %s, .L.label.%s.%s", reg(top++), current_fn->name,
+                node->label_name);
+        return;
     case ND_NUM:
         if (node->ty->kind == TY_FLOAT) {
             float val = node->fval;
@@ -660,7 +669,9 @@ static void gen_expr(Node *node) {
         println("  sd t5, 56(sp)");
         println("  sd t6, 64(sp)");
 
-        int memarg_size = load_args(node);
+        if (node->ret_buffer)
+            gen_addi("a0", "s0", -node->ret_buffer->offset);
+        int memarg_size = load_args(node, node->ret_buffer ? 1 : 0);
 
         // Call a function
         println("  call %s", node->lhs->var->name);
@@ -687,7 +698,9 @@ static void gen_expr(Node *node) {
         println("  ld t6, 64(sp)");
         println("  addi sp, sp, 72");
 
-        if (node->ty->kind == TY_FLOAT)
+        if (node->ret_buffer)
+            gen_addi(reg(top++), "s0", -node->ret_buffer->offset);
+        else if (node->ty->kind == TY_FLOAT)
             println("  fmv.s %s, fa0", freg(top++));
         else if (node->ty->kind == TY_DOUBLE)
             println("  fmv.d %s, fa0", freg(top++));
@@ -843,6 +856,8 @@ static void gen_stmt(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
+    case ND_NULL_EXPR:
+        return;
     case ND_IF: {
         int c = count();
         if (node->els) {
@@ -956,7 +971,16 @@ static void gen_stmt(Node *node) {
             error_tok(node->tok, "stray continue");
         println("  j .L.continue.%d", contnum);
         return;
+    case ND_ASM:
+        if (!node->asm_str[0])
+            return;
+        error_tok(node->tok, "unsupported inline assembly template");
     case ND_GOTO:
+        if (node->lhs) {
+            gen_expr(node->lhs);
+            println("  jr %s", reg(--top));
+            return;
+        }
         println("  j .L.label.%s.%s", current_fn->name, node->label_name);
         return;
     case ND_LABEL:
@@ -966,7 +990,16 @@ static void gen_stmt(Node *node) {
     case ND_RETURN:
         if (node->lhs) {
             gen_expr(node->lhs);
-            if (is_flonum(node->lhs->ty))
+            if (current_fn->ret_buffer) {
+                char *src = reg(top - 1);
+                gen_offset_instr("ld", "a0", "s0",
+                                 -current_fn->ret_buffer->offset);
+                for (int i = 0; i < node->lhs->ty->size; i++) {
+                    gen_offset_instr("lb", "t0", src, i);
+                    gen_offset_instr("sb", "t0", "a0", i);
+                }
+                top--;
+            } else if (is_flonum(node->lhs->ty))
                 println("  fmv.d fa0, %s", freg(--top));
             else
                 println("  mv a0, %s", reg(--top));
@@ -1116,7 +1149,11 @@ static void emit_text(Program *prog) {
         }
 
         // Push arguments to the stack
-        int gp = 0, fp = 0;
+        int gp = fn->ret_buffer ? 1 : 0;
+        int fp = 0;
+        if (fn->ret_buffer)
+            gen_offset_instr("sd", "a0", "s0", -fn->ret_buffer->offset);
+
         for (Var *var = fn->params; var; var = var->next) {
             if (is_flonum(var->ty))
                 fp++;

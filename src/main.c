@@ -200,6 +200,7 @@ static void parse_args(int argc, char **argv) {
         // target defaults already have the requested behavior.
         if (!strcmp(argv[i], "-std=c11") || !strcmp(argv[i], "-std=gnu11") ||
             !strcmp(argv[i], "-fno-strict-overflow") ||
+            !strcmp(argv[i], "-fno-strict-aliasing") ||
             !strcmp(argv[i], "-fvisibility=hidden") ||
             !strcmp(argv[i], "-pthread"))
             continue;
@@ -319,6 +320,9 @@ int main(int argc, char **argv) {
             offset = offset + 8;
 
         for (Var *var = fn->locals; var; var = var->next) {
+            if (var->align <= 0)
+                error("invalid alignment for local variable in %s: kind=%d size=%d align=%d",
+                      fn->name, var->ty->kind, var->ty->size, var->align);
             offset = align_to(offset, var->align);
             offset += var->ty->size;
             var->offset = offset;
@@ -361,17 +365,15 @@ int main(int argc, char **argv) {
         _exit(1);
     }
 
-    // Wait for the child process to finish.
-    for (;;) {
-        int status;
-        int w = waitpid(pid, &status, 0);
-        if (!w) {
-            error("waitpid failed: %s", strerror(errno));
-            exit(1);
-        }
-        if (WIFEXITED(status))
-            break;
+    // Wait for the child process to finish and propagate assembler failures.
+    int status;
+    while (waitpid(pid, &status, 0) < 0) {
+        if (errno == EINTR)
+            continue;
+        error("waitpid failed: %s", strerror(errno));
     }
 
-    return 0;
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status);
+    return 1;
 }
