@@ -1533,6 +1533,10 @@ static long eval(Node *node) {
         if (node->ty->is_unsigned)
             return (unsigned long)eval(node->lhs) / eval(node->rhs);
         return eval(node->lhs) / eval(node->rhs);
+    case ND_MOD:
+        if (node->ty->is_unsigned)
+            return (unsigned long)eval(node->lhs) % eval(node->rhs);
+        return eval(node->lhs) % eval(node->rhs);
     case ND_BITAND:
         return eval(node->lhs) & eval(node->rhs);
     case ND_BITOR:

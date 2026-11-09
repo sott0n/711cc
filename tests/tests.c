@@ -37,6 +37,7 @@ typedef int ParenFuncType(int, int);
 
 struct OffsetType { char tag; long value; };
 enum { OFFSET_VALUE = offsetof(struct OffsetType, value) };
+enum { CONSTANT_MODULO = 53 + 3 - (53 + 2) % 4 };
 
 char g3 = 3;
 short g4 = 4;
@@ -1773,6 +1774,7 @@ of(char), \
 
     assert(42, ANSWER, "ANSWER");
     assert(8, OFFSET_VALUE, "offsetof(struct OffsetType, value)");
+    assert(53, CONSTANT_MODULO, "53 + 3 - (53 + 2) % 4");
 
     assert(4, sizeof(struct {int x:1; }), "sizeof(struct {int x:1; })");
     assert(8, sizeof(struct {long x:1; }), "sizeof(struct {long x:1; })");

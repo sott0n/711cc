@@ -29,6 +29,7 @@ int g1, g2[4];
 typedef int MyInt, MyInt2[4];
 typedef int ParenFuncType(int, int);
 typedef int ParenFuncType(int, int);
+enum { CONSTANT_MODULO = 53 + 3 - (53 + 2) % 4 };
 
 char g3 = 3;
 short g4 = 4;
@@ -967,6 +968,7 @@ int main() {
     assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
     assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
     assert(3, call_variadic_function(0, ret3), "call_variadic_function(0, ret3)");
+    assert(53, CONSTANT_MODULO, "53 + 3 - (53 + 2) % 4");
 
     assert(0, ({char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
 //    assert(0, ({char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
