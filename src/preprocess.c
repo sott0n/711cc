@@ -373,6 +373,17 @@ static void read_macro_definition(Token **rest, Token *tok) {
     char *name = strndup(tok->loc, tok->len);
     tok = tok->next;
 
+    // GNU attributes are part of 711cc's grammar.  Some system headers erase
+    // __attribute__ when the compiler does not advertise GCC compatibility,
+    // which would silently change ABI-sensitive layouts such as epoll_event.
+    // Keep the keyword intact without enabling unrelated GCC header paths.
+    if (!strcmp(name, "__attribute") || !strcmp(name, "__attribute__")) {
+        while (!tok->at_bol)
+            tok = tok->next;
+        *rest = tok;
+        return;
+    }
+
     if (!tok->has_space && equal(tok, "(")) {
         // Function-like macro
         bool is_variadic = false;
@@ -802,8 +813,23 @@ static Token *preprocess2(Token *tok) {
             char *name = strndup(tok->loc, tok->len);
             tok = skip_line(tok->next);
 
+            if (!strcmp(name, "__attribute") ||
+                !strcmp(name, "__attribute__"))
+                continue;
+
             Macro *m = add_macro(name, true, NULL);
             m->deleted = true;
+            continue;
+        }
+
+        // Accept both C's #line directive and the equivalent numeric
+        // linemarker emitted by preprocessors and parser generators. Source
+        // location remapping is debug metadata, so it does not affect the
+        // translated program.
+        if (equal(tok, "line") || tok->kind == TK_NUM) {
+            do {
+                tok = tok->next;
+            } while (tok->kind != TK_EOF && !tok->at_bol);
             continue;
         }
 

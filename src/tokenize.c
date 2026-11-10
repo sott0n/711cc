@@ -801,7 +801,21 @@ static void convert_universal_chars(char *p) {
     char *q = p;
 
     while (*p) {
-        if (startswith(p, "\\u")) {
+        // Universal character names in comments are ordinary comment text.
+        // In particular, converting `\\u0000` there would insert a NUL byte
+        // and make the rest of the source file disappear.
+        if (startswith(p, "//")) {
+            while (*p && *p != '\n')
+                *q++ = *p++;
+        } else if (startswith(p, "/*")) {
+            do {
+                *q++ = *p++;
+            } while (*p && !startswith(p, "*/"));
+            if (*p) {
+                *q++ = *p++;
+                *q++ = *p++;
+            }
+        } else if (startswith(p, "\\u")) {
             int c = read_universal_char(p + 2, 4);
             if (c == -1) {
                 *q++ = *p++;

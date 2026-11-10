@@ -15,7 +15,18 @@ static int count(void) {
 }
 
 static char *reg(int idx) {
-    static char *r[] = {"%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
+    static char *r[] = {
+        "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rbx", "%r8",
+    };
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: %d", idx);
+    return r[idx];
+}
+
+static char *dreg(int idx) {
+    static char *r[] = {
+        "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d", "%ebx", "%r8d",
+    };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
@@ -24,15 +35,32 @@ static char *reg(int idx) {
 static char *xreg(Type *ty, int idx) {
     if (ty->base || ty->size == 8)
         return reg(idx);
+    return dreg(idx);
+}
 
-    static char *r[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
+static char *breg(int idx) {
+    static char *r[] = {
+        "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b", "%bl", "%r8b",
+    };
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: %d", idx);
+    return r[idx];
+}
+
+static char *wreg(int idx) {
+    static char *r[] = {
+        "%r10w", "%r11w", "%r12w", "%r13w", "%r14w", "%r15w", "%bx", "%r8w",
+    };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
 }
 
 static char *freg(int idx) {
-    static char *r[] = {"%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13"};
+    static char *r[] = {
+        "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13",
+        "%xmm14", "%xmm15",
+    };
     if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
         error("register out of range: %d", idx);
     return r[idx];
@@ -122,7 +150,7 @@ static void gen_addr(Node *node) {
         gen_addr(node->rhs);
         return;
     case ND_MEMBER:
-        gen_addr(node->lhs);
+        gen_expr(node->lhs);
         println("  add $%d, %s", node->member->offset, reg(top - 1));
         return;
     }
@@ -183,11 +211,11 @@ static void store(Type *ty) {
     } else if (ty->kind == TY_DOUBLE) {
         println("  movsd %s, (%s)", freg(top - 2), rd);
     } else if (ty->size == 1) {
-        println("  mov %sb, (%s)", rs, rd);
+        println("  mov %s, (%s)", breg(top - 2), rd);
     } else if (ty->size == 2) {
-        println("  mov %sw, (%s)", rs, rd);
+        println("  mov %s, (%s)", wreg(top - 2), rd);
     } else if (ty->size == 4) {
-        println("  mov %sd, (%s)", rs, rd);
+        println("  mov %s, (%s)", xreg(ty, top - 2), rd);
     } else {
         println("  mov %s, (%s)", rs, rd);
     }
@@ -238,6 +266,18 @@ static void convert_ulong_double(char *r, char *fr) {
     println(".L.cast.end.%d:", c);
 }
 
+static void sign_extend_for_float(Type *from, char *r) {
+    if (!is_integer(from) || from->is_unsigned || from->size == 8)
+        return;
+
+    if (from->size == 1)
+        println("  movsx %s, %s", breg(top - 1), r);
+    else if (from->size == 2)
+        println("  movsx %s, %s", wreg(top - 1), r);
+    else
+        println("  movsx %s, %s", dreg(top - 1), r);
+}
+
 static void cast(Type *from, Type *to) {
     if (to->kind == TY_VOID || to->kind == TY_STRUCT)
         return;
@@ -247,8 +287,8 @@ static void cast(Type *from, Type *to) {
 
     if (to->kind == TY_BOOL) {
         cmp_zero(from);
-        println("  setne %sb", reg(top));
-        println("  movzx %sb, %s", reg(top), reg(top));
+        println("  setne %s", breg(top));
+        println("  movzx %s, %s", breg(top), reg(top));
         top++;
         return;
     }
@@ -276,6 +316,7 @@ static void cast(Type *from, Type *to) {
     }
 
     if (to->kind == TY_FLOAT) {
+        sign_extend_for_float(from, r);
         println("  cvtsi2ss %s, %s", r, fr);
         return;
     }
@@ -283,21 +324,23 @@ static void cast(Type *from, Type *to) {
     if (to->kind == TY_DOUBLE) {
         if (from->size == 8 && from->is_unsigned)
             convert_ulong_double(r, fr);
-        else
+        else {
+            sign_extend_for_float(from, r);
             println("  cvtsi2sd %s, %s", r, fr);
+        }
         return;
     }
 
     char *insn = to->is_unsigned ? "movzx" : "movsx";
 
     if (to->size == 1) {
-        println("  %s %sb, %s", insn, r, r);
+        println("  %s %s, %s", insn, breg(top - 1), r);
     } else if (to->size == 2) {
-        println("  %s %sw, %s", insn, r, r);
+        println("  %s %s, %s", insn, wreg(top - 1), r);
     } else if (to->size == 4) {
-        println("  mov %sd, %sd", r, r);
+        println("  mov %s, %s", dreg(top - 1), dreg(top - 1));
     } else if (is_integer(from) && from->size < 8 && !from->is_unsigned) {
-        println("  movsx %sd, %s", r, r);
+        println("  movsx %s, %s", dreg(top - 1), r);
     }
 }
 
@@ -773,8 +816,8 @@ static void gen_expr(Node *node) {
     case ND_NOT:
         gen_expr(node->lhs);
         cmp_zero(node->lhs->ty);
-        println("  sete %sb", reg(top));
-        println("  movzx %sb, %s", reg(top), reg(top));
+        println("  sete %s", breg(top));
+        println("  movzx %s, %s", breg(top), reg(top));
         top++;
         return;
     case ND_BITNOT:
@@ -832,23 +875,27 @@ static void gen_expr(Node *node) {
         }
 
         // Save caller-saved registers
-        println("  sub $64, %%rsp");
+        println("  sub $96, %%rsp");
         println("  mov %%r10, (%%rsp)");
         println("  mov %%r11, 8(%%rsp)");
-        println("  movsd %%xmm8, 16(%%rsp)");
-        println("  movsd %%xmm9, 24(%%rsp)");
-        println("  movsd %%xmm10, 32(%%rsp)");
-        println("  movsd %%xmm11, 40(%%rsp)");
-        println("  movsd %%xmm12, 48(%%rsp)");
-        println("  movsd %%xmm13, 56(%%rsp)");
+        println("  mov %%r8, 16(%%rsp)");
+        println("  movsd %%xmm8, 24(%%rsp)");
+        println("  movsd %%xmm9, 32(%%rsp)");
+        println("  movsd %%xmm10, 40(%%rsp)");
+        println("  movsd %%xmm11, 48(%%rsp)");
+        println("  movsd %%xmm12, 56(%%rsp)");
+        println("  movsd %%xmm13, 64(%%rsp)");
+        println("  movsd %%xmm14, 72(%%rsp)");
+        println("  movsd %%xmm15, 80(%%rsp)");
 
         gen_expr(node->lhs);
+        println("  mov %s, %%r11", reg(--top));
         if (node->ret_buffer)
             println("  lea -%d(%%rbp), %%rdi", node->ret_buffer->offset);
         int memarg_size = load_args(node, node->ret_buffer ? 1 : 0);
 
         // Call a function
-        println("  call *%s", reg(--top));
+        println("  call *%%r11");
 
         if (memarg_size)
             println("  add $%d, %%rsp", memarg_size);
@@ -863,13 +910,16 @@ static void gen_expr(Node *node) {
         // Restore caller-saved registers
         println("  mov (%%rsp), %%r10");
         println("  mov 8(%%rsp), %%r11");
-        println("  movsd 16(%%rsp), %%xmm8");
-        println("  movsd 24(%%rsp), %%xmm9");
-        println("  movsd 32(%%rsp), %%xmm10");
-        println("  movsd 40(%%rsp), %%xmm11");
-        println("  movsd 48(%%rsp), %%xmm12");
-        println("  movsd 56(%%rsp), %%xmm13");
-        println("  add $64, %%rsp");
+        println("  mov 16(%%rsp), %%r8");
+        println("  movsd 24(%%rsp), %%xmm8");
+        println("  movsd 32(%%rsp), %%xmm9");
+        println("  movsd 40(%%rsp), %%xmm10");
+        println("  movsd 48(%%rsp), %%xmm11");
+        println("  movsd 56(%%rsp), %%xmm12");
+        println("  movsd 64(%%rsp), %%xmm13");
+        println("  movsd 72(%%rsp), %%xmm14");
+        println("  movsd 80(%%rsp), %%xmm15");
+        println("  add $96, %%rsp");
 
         if (node->ret_buffer)
             println("  lea -%d(%%rbp), %s", node->ret_buffer->offset,
@@ -1263,7 +1313,7 @@ static void emit_text(Program *prog) {
         println("%s:", fn->name);
         current_fn = fn;
     
-        // Prologue. %r12-15 are callee-saved retisters.
+        // Prologue. %rbx and %r12-15 are callee-saved registers.
         println("  push %%rbp");
         println("  mov %%rsp, %%rbp");
         println("  sub $%d, %%rsp", fn->stack_size);
@@ -1271,6 +1321,7 @@ static void emit_text(Program *prog) {
         println("  mov %%r13, -16(%%rbp)");
         println("  mov %%r14, -24(%%rbp)");
         println("  mov %%r15, -32(%%rbp)");
+        println("  mov %%rbx, -%d(%%rbp)", fn->is_variadic ? 136 : 40);
 
         // Save arg registers if function is variadic
         if (fn->is_variadic) {
@@ -1345,6 +1396,7 @@ static void emit_text(Program *prog) {
         println("  mov -16(%%rbp), %%r13");
         println("  mov -24(%%rbp), %%r14");
         println("  mov -32(%%rbp), %%r15");
+        println("  mov -%d(%%rbp), %%rbx", fn->is_variadic ? 136 : 40);
         println("  mov %%rbp, %%rsp");
         println("  pop %%rbp");
         println("  ret");

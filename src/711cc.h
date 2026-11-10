@@ -97,6 +97,7 @@ struct Var {
     // Global variable
     bool is_static;
     bool is_definition;
+    bool is_referenced;
     char *init_data;
     Relocation *rel;
 };
@@ -220,7 +221,9 @@ struct Function {
     char *name;
     Var *params;
     bool is_static;
+    bool is_inline;
     bool is_variadic;
+    Var *var;
     Var *ret_buffer;
 
     Node *body;
@@ -285,6 +288,7 @@ struct Type {
     // Struct
     Member *members;
     bool is_union;
+    bool is_packed;
 
     // Function type
     Type *return_ty;

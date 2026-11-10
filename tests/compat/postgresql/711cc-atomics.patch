@@ -1,0 +1,56 @@
+diff --git a/src/include/port/atomics.h b/src/include/port/atomics.h
+index 685e486f59..17eb6d6fec 100644
+--- a/src/include/port/atomics.h
++++ b/src/include/port/atomics.h
+@@ -87,7 +87,7 @@
+ /*
+  * gcc or compatible, including clang and icc.
+  */
+-#if defined(__GNUC__) || defined(__INTEL_COMPILER)
++#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__711cc__)
+ #include "port/atomics/generic-gcc.h"
+ #elif defined(_MSC_VER)
+ #include "port/atomics/generic-msvc.h"
+diff --git a/src/include/storage/s_lock.h b/src/include/storage/s_lock.h
+index 0a899236a0..6aadf87510 100644
+--- a/src/include/storage/s_lock.h
++++ b/src/include/storage/s_lock.h
+@@ -93,8 +93,25 @@
+ #define S_LOCK_H
+ 
+ #ifdef FRONTEND
+ #error "s_lock.h may not be included from frontend code"
+ #endif
++
++#ifdef __711cc__
++#define HAS_TEST_AND_SET
++
++typedef unsigned char slock_t;
++
++static inline int
++tas(volatile slock_t *lock)
++{
++	return __atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE);
++}
++
++#define TAS(lock) tas(lock)
++#define TAS_SPIN(lock) (*(lock) ? 1 : TAS(lock))
++#define S_UNLOCK(lock) \
++	__atomic_store_n((lock), 0, __ATOMIC_RELEASE)
++#endif
+ 
+ #if defined(__GNUC__) || defined(__INTEL_COMPILER)
+ /*************************************************************************
+diff --git a/src/include/c.h b/src/include/c.h
+index f9a8d7e6f6..f0168b6150 100644
+--- a/src/include/c.h
++++ b/src/include/c.h
+@@ -244,7 +244,7 @@
+ #endif
+ 
+ /* GCC and Sunpro support aligned and packed */
+-#if defined(__GNUC__) || defined(__SUNPRO_C)
++#if defined(__GNUC__) || defined(__SUNPRO_C) || defined(__711cc__)
+ #define pg_attribute_aligned(a) __attribute__((aligned(a)))
+ #define pg_attribute_packed() __attribute__((packed))
+ #elif defined(_MSC_VER)

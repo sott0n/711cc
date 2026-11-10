@@ -8,6 +8,9 @@ char main_line = __LINE__;
 #include "include/nested/parent.h"
 #include <alloca.h>
 #include <dirent.h>
+#include <emmintrin.h>
+#include <sys/epoll.h>
+#include "line_directive.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <tar.h>
@@ -22,6 +25,13 @@ float add_float(float x, float y);
 float ret_float(float x);
 void array_qualifiers(int a[restrict], int b[const static 3],
                       int c[volatile *]);
+void restrict_params(const char *__restrict p, char **__restrict q, int x);
+_Static_assert(__builtin_types_compatible_p(__typeof((const char *)0),
+                                            const char *),
+               "typeof pointer compatibility");
+_Static_assert(!__builtin_types_compatible_p(__typeof((const char *)0),
+                                             const long *),
+               "typeof pointer incompatibility");
 typedef unsigned short char16_t;
 typedef unsigned int char32_t;
 typedef int wchar_t;
@@ -31,6 +41,7 @@ typedef int GlobalCastFunc(int);
 GlobalCastFunc *global_cast_fn = (GlobalCastFunc *)global_cast_target;
 
 int g1, g2[4];
+int nested_designated_array[2][3] = {[1][2] = 7};
 _Thread_local int thread_local_value = 29;
 int tentative_redecl;
 int tentative_redecl;
@@ -67,6 +78,9 @@ int *g25=&g24;
 int g26[3] = {1, 2, 3};
 int *g27 = g26 + 1;
 int *g28 = &g11[1].a;
+char address_matrix[2][3];
+char *address_matrix_row = address_matrix[1];
+int universal_escape_comment = 37; /* \u0000 */
 
 struct {int a[2];} g30[2] = {{1, 2}, 3, 4};
 struct {int a[2];} g31[2] = {1, 2, 3, 4};
@@ -96,6 +110,10 @@ struct nested_designated_type nested_designated_global = {
 };
 int designated_array_global[6] = {[4] = 5, [1] = 2};
 int designated_array_inferred[] = {[3] = 4, 5};
+struct mixed_designated_type { int first; int second; };
+struct mixed_designated_type mixed_designated_global[] = {
+    [2].second = 9,
+};
 char designated_target = 7;
 struct { int pad; char *ptr; } designated_pointer = {.ptr = &designated_target};
 struct { long value; } integer_address = {.value = (long)"all"};
@@ -324,6 +342,25 @@ static __inline__ int gnu_inline_fn(void) {
     return 27;
 }
 
+extern int missing_inline_dependency(void);
+static inline int unused_inline_fn(void) {
+    return missing_inline_dependency();
+}
+
+static int forward_static_linkage(void);
+int forward_static_linkage(void) {
+    return 38;
+}
+
+struct gnu_attribute_member {
+    unsigned long value __attribute__((aligned(8)));
+};
+
+struct gnu_packed_struct {
+    char tag;
+    long value;
+} __attribute__((__packed__));
+
 int read_block_extern(void) {
     extern int block_extern_value;
     return block_extern_value;
@@ -360,10 +397,34 @@ int inline_asm_control_word(void) {
 
 int main() {
     _Static_assert(sizeof(int) == 4, "int must be four bytes");
+    assert(65535, _mm_movemask_epi8(_mm_set1_epi8(-1)),
+           "SSE2 compatibility intrinsics");
     assert(0, 0, "0");
+    assert(7, nested_designated_array[1][2], "nested array designator");
+    assert(7, ({ struct AssignResult { int value; } x;
+                 (x = (struct AssignResult){7}).value; }),
+           "member of struct assignment result");
+    assert(28, 1 + (2 + (3 + (4 + (5 + (6 + 7))))),
+           "seven-register expression");
+    assert(36, 1 + (2 + (3 + (4 + (5 + (6 + (7 + 8)))))),
+           "eight-register expression");
+    assert(31, 1 + (2 + (3 + (4 + (5 + (6 + (7 + ret3())))))),
+           "deep function-call expression");
     assert(42, 42, "42");
+    assert(31, LINE_DIRECTIVE_VALUE, "#line directive");
     assert(26, inline_fn(), "inline_fn()");
     assert(27, gnu_inline_fn(), "gnu_inline_fn()");
+    assert(38, forward_static_linkage(), "forward static linkage");
+    assert(8, sizeof(struct gnu_attribute_member),
+           "postfix GNU variable attribute");
+    assert(9, sizeof(struct gnu_packed_struct), "GNU packed struct size");
+    assert(1, offsetof(struct gnu_packed_struct, value),
+           "GNU packed struct member offset");
+    assert(1, _Alignof(struct gnu_packed_struct),
+           "GNU packed struct alignment");
+    assert(12, sizeof(struct epoll_event), "system packed struct size");
+    assert(4, offsetof(struct epoll_event, data),
+           "system packed struct member offset");
     assert(23, read_block_extern(), "read_block_extern()");
     assert(3, computed_goto(0), "computed_goto(0)");
     assert(5, computed_goto(1), "computed_goto(1)");
@@ -551,6 +612,8 @@ int main() {
     assert(0, strcmp(parenthesized_string_member.data, "xyz"),
            "parenthesized_string_member.data");
     assert(3, flexible_global.count, "flexible_global.count");
+    assert(4, sizeof(struct flexible_global_type),
+           "sizeof struct with flexible array member");
     assert(-1, flexible_global.values[0], "flexible_global.values[0]");
     assert(-3, flexible_global.values[2], "flexible_global.values[2]");
     assert(0x1295, ({ union { unsigned short cache; struct { unsigned char code; unsigned char arg; } op; } word = {.cache = 0x1295}; word.op.code | word.op.arg << 8; }), "designated local union initializer");
@@ -1368,6 +1431,12 @@ int main() {
     assert(1, ({ double x=2e3f; x==2e3; }), "({ double x=2e3f; x==2e3; })");
     assert(0, ({ double x=2e3f; x==2e5; }), "({ double x=2e3f; x==2e5; })");
     assert(0, ({ double x=5.1f; x<5; }), "({ double x=5.1f x<5; })");
+    assert(0, ({ double x=2048; x>2147483647; }),
+           "double greater than INT_MAX");
+    assert(0, ({ double x=2048; x<(-2147483647-1); }),
+           "double less than INT_MIN");
+    assert(1, (double)(-2147483647-1) == -2147483648.0,
+           "signed int to double sign extension");
     assert(0, ({ double x=5.0f; x<5; }), "({ double x=5.0f; x<5; })");
     assert(1, ({ double x=4.9f; x<5; }), "({ double x=4.9f; x<5; })");
     assert(0, ({ double x=5.1f; x<=5; }), "({ double x=5.1f; x<=5; })");
@@ -1781,6 +1850,9 @@ of(char), \
     assert(11, relative_include, "relative_include");
 
     assert(1, designated_global.a, "designated_global.a");
+    assert(1, address_matrix_row == &address_matrix[1][0],
+           "array subscript address initializer");
+    assert(37, universal_escape_comment, "universal escape in comment");
     assert(0, designated_global.b, "designated_global.b");
     assert(3, designated_global.c, "designated_global.c");
     assert(7, *designated_pointer.ptr, "*designated_pointer.ptr");
@@ -1808,6 +1880,10 @@ of(char), \
            "sizeof(designated_array_inferred) / sizeof(int)");
     assert(4, designated_array_inferred[3], "designated_array_inferred[3]");
     assert(5, designated_array_inferred[4], "designated_array_inferred[4]");
+    assert(3, sizeof(mixed_designated_global) / sizeof(*mixed_designated_global),
+           "mixed designated inferred length");
+    assert(9, mixed_designated_global[2].second,
+           "mixed array/member designator");
     assert(8, ({ int x[5] = {[2] = 7, 8, [0] = 1}; x[3]; }),
            "({ int x[5] = {[2] = 7, 8, [0] = 1}; x[3]; })");
 

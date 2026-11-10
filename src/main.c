@@ -201,6 +201,10 @@ static void parse_args(int argc, char **argv) {
         if (!strcmp(argv[i], "-std=c11") || !strcmp(argv[i], "-std=gnu11") ||
             !strcmp(argv[i], "-fno-strict-overflow") ||
             !strcmp(argv[i], "-fno-strict-aliasing") ||
+            !strcmp(argv[i], "-fwrapv") ||
+            !strcmp(argv[i], "-fexcess-precision=standard") ||
+            !strcmp(argv[i], "-funroll-loops") ||
+            !strcmp(argv[i], "-ftree-vectorize") ||
             !strcmp(argv[i], "-fvisibility=hidden") ||
             !strcmp(argv[i], "-pthread"))
             continue;
@@ -315,7 +319,7 @@ int main(int argc, char **argv) {
     for (Function *fn = prog->fns; fn; fn = fn->next) {
         // Besides local variables, callee-saved registers take 200 bytes
         // and the variable-argument save area takes 48 bytes in the stack.
-        int offset = fn->is_variadic ? 128 : 104;
+        int offset = fn->is_variadic ? 136 : 104;
         if (strcmp(fn->name, "main") == 0 )
             offset = offset + 8;
 

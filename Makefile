@@ -19,7 +19,7 @@ $(OBJS): $(SRCROOT)/711cc.h
 	./scripts/self.sh tmp-stage3 ./711cc-stage2 711cc-stage3
 
 test: 711cc
-	(cd tests; ../711cc -std=c11 -fno-strict-overflow -fvisibility=hidden -pthread -I. -c -o ../tmp.o -DANSWER=42 tests.c)
+	(cd tests; ../711cc -std=c11 -fno-strict-overflow -fvisibility=hidden -funroll-loops -ftree-vectorize -pthread -I. -c -o ../tmp.o -DANSWER=42 tests.c)
 	$(CC) -o tmp tmp.o tests/extern.c
 	./tmp
 
@@ -61,7 +61,10 @@ compat-git: 711cc
 compat-cpython: 711cc
 	./tests/compat/cpython/run.sh "$(CPYTHON_SOURCE_DIR)"
 
+compat-postgresql: 711cc
+	./tests/compat/postgresql/run.sh "$(POSTGRESQL_SOURCE_DIR)"
+
 clean:
 	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o examples/tmp*
 
-.PHONY: test test-riscv check-riscv-tools compat-git compat-cpython clean
+.PHONY: test test-riscv check-riscv-tools compat-git compat-cpython compat-postgresql clean

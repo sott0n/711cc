@@ -4,6 +4,27 @@ These tests measure how far 711cc can compile pinned versions of external
 projects. Their source trees and generated results are kept outside version
 control.
 
+## PostgreSQL
+
+The PostgreSQL harness builds and installs the complete binary distribution
+(`world-bin`) from PostgreSQL 18.6 at `REL_18_6`. It then initializes a
+temporary database cluster, starts the server, and executes a SQL smoke test.
+The build requires Bison, Flex, and Perl to be available on `PATH`.
+
+Download and verify the pinned release outside this repository, then run:
+
+```shell
+$ curl -fLO https://ftp.postgresql.org/pub/source/v18.6/postgresql-18.6.tar.bz2
+$ echo '555610c24d53e4316da5b7d3fc25c279d96856d5e0e23ee308c328c5fa881d9f  postgresql-18.6.tar.bz2' | sha256sum -c -
+$ tar -xjf postgresql-18.6.tar.bz2
+$ make compat-postgresql POSTGRESQL_SOURCE_DIR=/tmp/postgresql-18.6
+```
+
+The harness uses the system compiler for configuration and linking, while all
+C translation units are compiled by 711cc. Each run records compiler attempts,
+the first failure, build logs, runtime logs, and a summary in a new
+`tmp-compat-postgresql-*` directory.
+
 ## CPython
 
 The CPython harness targets the `python` executable from CPython v3.13.0 at

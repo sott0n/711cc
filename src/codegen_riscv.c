@@ -127,7 +127,7 @@ static void gen_addr(Node *node) {
         gen_addr(node->rhs);
         return;
     case ND_MEMBER:
-        gen_addr(node->lhs);
+        gen_expr(node->lhs);
         gen_addi(reg(top - 1), reg(top - 1), node->member->offset);
         return;
     }
@@ -669,12 +669,18 @@ static void gen_expr(Node *node) {
         println("  sd t5, 56(sp)");
         println("  sd t6, 64(sp)");
 
+        // Evaluate the callee as an expression so calls through function
+        // pointers work as well as direct calls.  s1 is reserved outside the
+        // expression register stack and is callee-saved by the RISC-V ABI.
+        gen_expr(node->lhs);
+        println("  mv s1, %s", reg(--top));
+
         if (node->ret_buffer)
             gen_addi("a0", "s0", -node->ret_buffer->offset);
         int memarg_size = load_args(node, node->ret_buffer ? 1 : 0);
 
         // Call a function
-        println("  call %s", node->lhs->var->name);
+        println("  jalr ra, 0(s1)");
 
         if (memarg_size)
             println("  sub s0, s0, %d", memarg_size);
