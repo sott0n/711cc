@@ -10,8 +10,14 @@ for x86-64 and RISC-V 64-bit targets.
 - The RISC-V backend can be assembled with a cross toolchain and tested with
   QEMU. Variadic functions are not yet supported on RISC-V.
 - The frontend supports C11 features plus a growing set of GNU extensions.
-- The x86-64 backend can compile and run the Git v2.56.0 executable when the
-  system C compiler is used as the linker driver.
+- The x86-64 backend can compile and run pinned releases of Git, CPython, and
+  PostgreSQL. 711cc compiles their C translation units while the system C
+  compiler handles configuration and linking:
+  - Git v2.56.0: builds the `git` executable and exercises a repository
+    workflow.
+  - CPython v3.13.0: builds the `python` executable and runs Python code.
+  - PostgreSQL 18.6: builds and installs `world-bin`, initializes a database
+    cluster, starts the server, and executes a SQL query.
 
 711cc is an educational compiler, not a drop-in replacement for a production
 C toolchain.
@@ -109,9 +115,9 @@ make test-riscv \
   RISCV_QEMU=/path/to/qemu-riscv64
 ```
 
-Pinned external-project compatibility tests include a Git v2.56.0 build and
-runtime smoke test plus a CPython v3.13.0 compilation baseline. They are
-documented in
+Pinned external-project compatibility tests cover Git v2.56.0, CPython
+v3.13.0, and PostgreSQL 18.6. Each harness builds its target with 711cc and
+runs a runtime smoke test. Setup instructions and details are documented in
 [tests/compat/README.md](tests/compat/README.md).
 
 ## Examples
@@ -127,7 +133,7 @@ cc -o cat examples/cat.o
 
 ## Roadmap
 
-- Compile larger real-world codebases, including Git, CPython, and PostgreSQL
+- Expand real-world compatibility beyond Git, CPython, and PostgreSQL
 - Add an intermediate representation and optimization passes
 - Improve validation and diagnostics
 - Complete RISC-V ABI support, including variadic functions
