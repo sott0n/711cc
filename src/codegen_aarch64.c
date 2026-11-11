@@ -1,7 +1,14 @@
 #include "711cc.h"
 
 static int top;
+static int labelseq = 1;
+static int brknum;
+static int contnum;
 static Function *current_fn;
+
+static int count(void) {
+    return labelseq++;
+}
 
 static char *reg(int idx) {
     static char *r[] = {
@@ -205,6 +212,46 @@ static void gen_expr(Node *node) {
         top--;
         gen_expr(node->rhs);
         return;
+    case ND_COND: {
+        int c = count();
+        gen_expr(node->cond);
+        println("  cbz %s, .L.else.%d", reg(--top), c);
+        gen_expr(node->then);
+        println("  b .L.end.%d", c);
+        println(".L.else.%d:", c);
+        top--;
+        gen_expr(node->els);
+        println(".L.end.%d:", c);
+        return;
+    }
+    case ND_LOGAND: {
+        int c = count();
+        gen_expr(node->lhs);
+        println("  cbz %s, .L.false.%d", reg(top - 1), c);
+        top--;
+        gen_expr(node->rhs);
+        println("  cmp %s, #0", reg(top - 1));
+        println("  cset %s, ne", reg(top - 1));
+        println("  b .L.end.%d", c);
+        println(".L.false.%d:", c);
+        mov_imm(reg(top - 1), 0);
+        println(".L.end.%d:", c);
+        return;
+    }
+    case ND_LOGOR: {
+        int c = count();
+        gen_expr(node->lhs);
+        println("  cbnz %s, .L.true.%d", reg(top - 1), c);
+        top--;
+        gen_expr(node->rhs);
+        println("  cmp %s, #0", reg(top - 1));
+        println("  cset %s, ne", reg(top - 1));
+        println("  b .L.end.%d", c);
+        println(".L.true.%d:", c);
+        mov_imm(reg(top - 1), 1);
+        println(".L.end.%d:", c);
+        return;
+    }
     case ND_FUNCALL:
         if (node->nargs > 8)
             error_tok(node->tok, "more than 8 arguments are not yet supported on AArch64");
@@ -337,9 +384,77 @@ static void gen_stmt(Node *node) {
     switch (node->kind) {
     case ND_NULL_EXPR:
         return;
+    case ND_IF: {
+        int c = count();
+        gen_expr(node->cond);
+        println("  cbz %s, .L.else.%d", reg(--top), c);
+        gen_stmt(node->then);
+        if (node->els) {
+            println("  b .L.end.%d", c);
+            println(".L.else.%d:", c);
+            gen_stmt(node->els);
+            println(".L.end.%d:", c);
+        } else {
+            println(".L.else.%d:", c);
+        }
+        return;
+    }
+    case ND_FOR: {
+        int c = count();
+        int saved_brk = brknum;
+        int saved_cont = contnum;
+        brknum = contnum = c;
+
+        if (node->init)
+            gen_stmt(node->init);
+        println(".L.begin.%d:", c);
+        if (node->cond) {
+            gen_expr(node->cond);
+            println("  cbz %s, .L.break.%d", reg(--top), c);
+        }
+        gen_stmt(node->then);
+        println(".L.continue.%d:", c);
+        if (node->inc) {
+            gen_expr(node->inc);
+            top--;
+        }
+        println("  b .L.begin.%d", c);
+        println(".L.break.%d:", c);
+
+        brknum = saved_brk;
+        contnum = saved_cont;
+        return;
+    }
+    case ND_DO: {
+        int c = count();
+        int saved_brk = brknum;
+        int saved_cont = contnum;
+        brknum = contnum = c;
+
+        println(".L.begin.%d:", c);
+        gen_stmt(node->then);
+        println(".L.continue.%d:", c);
+        gen_expr(node->cond);
+        println("  cbnz %s, .L.begin.%d", reg(--top), c);
+        println(".L.break.%d:", c);
+
+        brknum = saved_brk;
+        contnum = saved_cont;
+        return;
+    }
     case ND_BLOCK:
         for (Node *n = node->body; n; n = n->next)
             gen_stmt(n);
+        return;
+    case ND_BREAK:
+        if (!brknum)
+            error_tok(node->tok, "stray break");
+        println("  b .L.break.%d", brknum);
+        return;
+    case ND_CONTINUE:
+        if (!contnum)
+            error_tok(node->tok, "stray continue");
+        println("  b .L.continue.%d", contnum);
         return;
     case ND_RETURN:
         if (node->lhs) {
