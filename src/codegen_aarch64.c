@@ -31,9 +31,15 @@ static void normalize_int(Type *ty, char *r) {
         println("  cmp %s, #0", r);
         println("  cset %s, ne", r);
     } else if (ty->size == 1) {
-        println("  %s %s, %s", ty->is_unsigned ? "uxtb" : "sxtb", r, r);
+        if (ty->is_unsigned)
+            println("  uxtb w%s, w%s", r + 1, r + 1);
+        else
+            println("  sxtb %s, w%s", r, r + 1);
     } else if (ty->size == 2) {
-        println("  %s %s, %s", ty->is_unsigned ? "uxth" : "sxth", r, r);
+        if (ty->is_unsigned)
+            println("  uxth w%s, w%s", r + 1, r + 1);
+        else
+            println("  sxth %s, w%s", r, r + 1);
     } else if (ty->size == 4) {
         if (ty->is_unsigned)
             println("  mov w%s, w%s", r + 1, r + 1);
@@ -42,10 +48,105 @@ static void normalize_int(Type *ty, char *r) {
     }
 }
 
+static void gen_expr(Node *node);
+
+static void gen_addr(Node *node) {
+    switch (node->kind) {
+    case ND_VAR:
+        if (!node->var->is_local)
+            error_tok(node->tok, "global variable references are not yet supported on AArch64");
+
+        mov_imm(reg(top), node->var->offset);
+        println("  sub %s, x29, %s", reg(top), reg(top));
+        top++;
+        return;
+    case ND_DEREF:
+        gen_expr(node->lhs);
+        return;
+    }
+
+    error_tok(node->tok, "not an lvalue");
+}
+
+static void load(Type *ty) {
+    if (ty->kind == TY_ARRAY || ty->kind == TY_FUNC)
+        return;
+    if (ty->kind == TY_STRUCT)
+        error("struct loads are not yet supported on AArch64");
+    if (is_flonum(ty))
+        error("floating-point loads are not yet supported on AArch64");
+
+    char *r = reg(top - 1);
+    if (ty->size == 1) {
+        if (ty->is_unsigned)
+            println("  ldrb w%s, [%s]", r + 1, r);
+        else
+            println("  ldrsb %s, [%s]", r, r);
+    } else if (ty->size == 2) {
+        if (ty->is_unsigned)
+            println("  ldrh w%s, [%s]", r + 1, r);
+        else
+            println("  ldrsh %s, [%s]", r, r);
+    } else if (ty->size == 4) {
+        if (ty->is_unsigned)
+            println("  ldr w%s, [%s]", r + 1, r);
+        else
+            println("  ldrsw %s, [%s]", r, r);
+    }
+    else if (ty->size == 8)
+        println("  ldr %s, [%s]", r, r);
+    else
+        error("unsupported load size on AArch64: %d", ty->size);
+}
+
+static void store(Type *ty) {
+    if (ty->kind == TY_STRUCT)
+        error("struct stores are not yet supported on AArch64");
+    if (is_flonum(ty))
+        error("floating-point stores are not yet supported on AArch64");
+
+    char *value = reg(top - 2);
+    char *addr = reg(top - 1);
+    if (ty->size == 1)
+        println("  strb w%s, [%s]", value + 1, addr);
+    else if (ty->size == 2)
+        println("  strh w%s, [%s]", value + 1, addr);
+    else if (ty->size == 4)
+        println("  str w%s, [%s]", value + 1, addr);
+    else if (ty->size == 8)
+        println("  str %s, [%s]", value, addr);
+    else
+        error("unsupported store size on AArch64: %d", ty->size);
+    top--;
+}
+
 static void gen_expr(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
+    case ND_VAR:
+        gen_addr(node);
+        load(node->ty);
+        return;
+    case ND_DEREF:
+        gen_expr(node->lhs);
+        load(node->ty);
+        return;
+    case ND_ADDR:
+        gen_addr(node->lhs);
+        return;
+    case ND_ASSIGN:
+        if (node->ty->kind == TY_ARRAY)
+            error_tok(node->tok, "not an lvalue");
+        gen_expr(node->rhs);
+        gen_addr(node->lhs);
+        store(node->ty);
+        return;
+    case ND_COMMA:
+        gen_expr(node->lhs);
+        top--;
+        gen_expr(node->rhs);
+        return;
     case ND_NUM:
         if (is_flonum(node->ty))
             error_tok(node->tok, "floating-point expressions are not yet supported on AArch64");
@@ -228,9 +329,8 @@ static void emit_text(Program *prog) {
     println("  .text");
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
-        if (fn->params || fn->locals)
-            error_tok(fn->var->tok,
-                      "parameters and local variables are not yet supported on AArch64");
+        if (fn->params)
+            error_tok(fn->var->tok, "parameters are not yet supported on AArch64");
 
         println("  .p2align 2");
         if (!fn->is_static)
