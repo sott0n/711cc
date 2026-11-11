@@ -360,6 +360,12 @@ void codegen(Program *prog);
 void codegen_riscv64(Program *prog);
 
 //
+// codegen_aarch64.c
+//
+
+void codegen_aarch64(Program *prog);
+
+//
 // main.c
 //
 

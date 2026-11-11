@@ -2,6 +2,9 @@ CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
 RISCV_CC?=riscv64-linux-gnu-gcc
 RISCV_CFLAGS?=
 RISCV_QEMU?=qemu-riscv64
+AARCH64_CC?=aarch64-linux-gnu-gcc
+AARCH64_CFLAGS?=
+AARCH64_QEMU?=qemu-aarch64
 SRCROOT=./src
 SRCDIRS:=$(shell find $(SRCROOT) -type d)
 SRCS=$(foreach dir, $(SRCDIRS), $(wildcard $(dir)/*.c))
@@ -53,7 +56,24 @@ test-riscv: 711cc check-riscv-tools
 	$(RISCV_CC) $(RISCV_CFLAGS) -static -o tmp tmp.s tests/extern.c
 	$(RISCV_QEMU) ./tmp
 
-test-all: test test-nopic test-stage2 test-stage3 test-riscv
+check-aarch64-tools:
+	@command -v "$(AARCH64_CC)" >/dev/null 2>&1 || { \
+		echo "missing AArch64 cross compiler: $(AARCH64_CC)" >&2; \
+		echo "install gcc-aarch64-linux-gnu or set AARCH64_CC" >&2; \
+		exit 1; \
+	}
+	@command -v "$(AARCH64_QEMU)" >/dev/null 2>&1 || { \
+		echo "missing AArch64 emulator: $(AARCH64_QEMU)" >&2; \
+		echo "install qemu-user or set AARCH64_QEMU" >&2; \
+		exit 1; \
+	}
+
+test-aarch64-smoke: 711cc check-aarch64-tools
+	(cd tests; ../711cc --feature=aarch64 -I. -S -c -o ../tmp-aarch64.s aarch64_smoke.c)
+	$(AARCH64_CC) $(AARCH64_CFLAGS) -static -o tmp-aarch64 tmp-aarch64.s
+	$(AARCH64_QEMU) ./tmp-aarch64
+
+test-all: test test-nopic test-stage2 test-stage3 test-riscv test-aarch64-smoke
 
 compat-git: 711cc
 	./tests/compat/git/run.sh "$(GIT_SOURCE_DIR)"
@@ -67,4 +87,4 @@ compat-postgresql: 711cc
 clean:
 	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o examples/tmp*
 
-.PHONY: test test-riscv check-riscv-tools compat-git compat-cpython compat-postgresql clean
+.PHONY: test test-riscv check-riscv-tools test-aarch64-smoke check-aarch64-tools compat-git compat-cpython compat-postgresql clean

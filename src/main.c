@@ -29,7 +29,7 @@ void println(char *fmt, ...) {
 static void usage(int status) {
     fprintf(stderr, "Usage: 711cc [optoins] <file>\n");
     fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  --feature=[x86-64/riscv64]   Specify target architecture, default is x86-64.\n");
+    fprintf(stderr, "  --feature=[x86_64/riscv64/aarch64] Specify target architecture, default is x86-64.\n");
     fprintf(stderr, "  -o [output file]             Specify output file.\n");
     fprintf(stderr, "  -fpic/-fPIC                  The ELF module may be loaded anywhere in the 64-bit address space.\n");
     fprintf(stderr, "  -fno-pic/-fno-PIC            The ELF module doesn't have to be position-independent.\n");
@@ -339,6 +339,8 @@ int main(int argc, char **argv) {
         codegen(prog);
     else if (!strcmp(feature, "riscv64"))
         codegen_riscv64(prog);
+    else if (!strcmp(feature, "aarch64"))
+        codegen_aarch64(prog);
     else
         error("feature not supported: %s", feature);
 

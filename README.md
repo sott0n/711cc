@@ -2,13 +2,15 @@
 
 711cc is a small, self-hosting C compiler written to explore how C compilers
 work. It has hand-written preprocessing and parsing stages and can emit code
-for x86-64 and RISC-V 64-bit targets.
+for x86-64 and RISC-V 64-bit targets, plus an experimental AArch64 backend.
 
 ## Status
 
 - The x86-64 backend is the primary target and can build 711cc itself.
 - The RISC-V backend can be assembled with a cross toolchain and tested with
   QEMU. Variadic functions are not yet supported on RISC-V.
+- The AArch64 backend is experimental and currently supports a minimal set of
+  integer expressions for an end-to-end QEMU smoke test.
 - The frontend supports C11 features plus a growing set of GNU extensions.
 - The x86-64 backend can compile and run pinned releases of Git, CPython, and
   PostgreSQL. 711cc compiles their C translation units while the system C
@@ -61,6 +63,12 @@ Select the RISC-V backend explicitly:
 ./711cc --feature=riscv64 -S -o hello.s hello.c
 ```
 
+Select the experimental AArch64 backend explicitly:
+
+```sh
+./711cc --feature=aarch64 -S -o hello.s hello.c
+```
+
 ### Options
 
 | Option | Description |
@@ -68,6 +76,7 @@ Select the RISC-V backend explicitly:
 | `--help` | Show command-line help |
 | `--feature=x86_64` | Select the x86-64 backend (default) |
 | `--feature=riscv64` | Select the RISC-V 64-bit backend |
+| `--feature=aarch64` | Select the experimental AArch64 backend |
 | `-o FILE` | Set the output path |
 | `-c` | Compile to an object file |
 | `-S` | Emit assembly instead of an object file |
@@ -95,6 +104,7 @@ make test-nopic   # static, non-PIC x86-64 test
 make test-stage2  # run tests with the self-hosted compiler
 make test-stage3  # verify that stage 2 and stage 3 are identical
 make test-riscv   # assemble for RISC-V and execute with QEMU
+make test-aarch64-smoke # run the experimental AArch64 smoke test with QEMU
 make test-all     # run all of the above
 ```
 
@@ -104,6 +114,10 @@ Debian or Ubuntu:
 ```sh
 sudo apt-get install gcc-riscv64-linux-gnu qemu-user
 ```
+
+The AArch64 smoke test similarly requires `gcc-aarch64-linux-gnu` and
+`qemu-user`. Override `AARCH64_CC`, `AARCH64_CFLAGS`, or `AARCH64_QEMU` to
+use another cross toolchain or emulator.
 
 Override `RISCV_CC`, `RISCV_CFLAGS`, or `RISCV_QEMU` when the tools are not in
 `PATH` or require a custom sysroot:
