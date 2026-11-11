@@ -73,6 +73,15 @@ static void gen_addr(Node *node) {
     case ND_DEREF:
         gen_expr(node->lhs);
         return;
+    case ND_MEMBER:
+        if (node->member->is_bitfield)
+            error_tok(node->tok, "bit-fields are not yet supported on AArch64");
+        gen_addr(node->lhs);
+        if (node->member->offset) {
+            mov_imm("x16", node->member->offset);
+            println("  add %s, %s, x16", reg(top - 1), reg(top - 1));
+        }
+        return;
     }
 
     error_tok(node->tok, "not an lvalue");
@@ -195,6 +204,10 @@ static void gen_expr(Node *node) {
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
+        load(node->ty);
+        return;
+    case ND_MEMBER:
+        gen_addr(node);
         load(node->ty);
         return;
     case ND_ADDR:
@@ -581,6 +594,12 @@ static void validate_addr(Node *node) {
     case ND_DEREF:
         validate_expr(node->lhs);
         return;
+    case ND_MEMBER:
+        if (node->member->is_bitfield)
+            error_tok(node->tok,
+                      "bit-fields are not supported by the AArch64 backend");
+        validate_addr(node->lhs);
+        return;
     }
     error_tok(node->tok, "not an lvalue");
 }
@@ -600,6 +619,11 @@ static void validate_expr(Node *node) {
         validate_expr(node->lhs);
         if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_FUNC)
             validate_value_type(node, "load");
+        return;
+    case ND_MEMBER:
+        validate_addr(node);
+        if (node->ty->kind != TY_ARRAY)
+            validate_value_type(node, "member load");
         return;
     case ND_ADDR:
         validate_addr(node->lhs);

@@ -10,9 +10,10 @@ for x86-64 and RISC-V 64-bit targets, plus an experimental AArch64 backend.
 - The RISC-V backend can be assembled with a cross toolchain and tested with
   QEMU. Variadic functions are not yet supported on RISC-V.
 - The AArch64 backend is experimental. It supports integer and pointer
-  expressions, local variables, assignments, control flow, and function calls
-  with up to eight integer arguments. Floating-point values, structs, variadic
-  definitions, and stack-passed arguments are not yet supported.
+  expressions, local and global variables, arrays, scalar struct-member
+  access, assignments, control flow, and function calls with up to eight
+  integer arguments. Floating-point and aggregate struct values, bit-fields,
+  variadic definitions, and stack-passed arguments are not yet supported.
 - The frontend supports C11 features plus a growing set of GNU extensions.
 - The x86-64 backend can compile and run pinned releases of Git, CPython, and
   PostgreSQL. 711cc compiles their C translation units while the system C

@@ -1,3 +1,13 @@
+struct Pair {
+    int left;
+    long right;
+};
+
+static int global_value = 5;
+static int global_zero;
+static int global_values[3] = {2, 4, 6};
+static struct Pair global_pair = {7, 8};
+
 static int add2(int a, int b) {
     return a + b;
 }
@@ -57,10 +67,18 @@ int main(void) {
     long y = -9;
     int *p = &x;
     int (*fn)(int, int) = add2;
+    int values[3] = {10, 20, 30};
+    struct Pair pair = {11, 31};
+    struct Pair *pair_ptr = &pair;
 
     x += 2;
     *p = *p + 1;
     y = (x = x - 1) + y;
+    values[1] += values[0];
+    pair.left = pair.left + 1;
+    pair_ptr->right += 1;
+    global_zero = 9;
+    global_values[1] += global_value;
 
     return (x != 42) +
            (y != 33) +
@@ -69,6 +87,17 @@ int main(void) {
            (s != -1234) +
            (us != 60000) +
            (ux != 4000000000U) +
+           (values[0] != 10) +
+           (values[1] != 30) +
+           (values[2] != 30) +
+           (pair.left != 12) +
+           (pair.right != 32) +
+           (pair_ptr->left != 12) +
+           (global_zero != 9) +
+           (global_values[0] != 2) +
+           (global_values[1] != 9) +
+           (global_pair.left != 7) +
+           (global_pair.right != 8) +
            (add2(20, 22) != 42) +
            (fn(19, 23) != 42) +
            (add2(add2(10, 11), add2(9, 12)) != 42) +
