@@ -73,7 +73,13 @@ test-aarch64-smoke: 711cc check-aarch64-tools
 	$(AARCH64_CC) $(AARCH64_CFLAGS) -static -o tmp-aarch64 tmp-aarch64.s
 	$(AARCH64_QEMU) ./tmp-aarch64
 
-test-all: test test-nopic test-stage2 test-stage3 test-riscv test-aarch64-smoke
+test-aarch64-validation: 711cc
+	@! ./711cc --feature=aarch64 -S -c -o tmp-aarch64-invalid.s tests/aarch64_unsupported.c 2>tmp-aarch64-validation.err
+	@grep -q "tests/aarch64_unsupported.c:2:" tmp-aarch64-validation.err
+	@grep -q "floating-point assignment is not supported by the AArch64 backend" tmp-aarch64-validation.err
+	@test ! -s tmp-aarch64-invalid.s
+
+test-all: test test-nopic test-stage2 test-stage3 test-riscv test-aarch64-smoke test-aarch64-validation
 
 compat-git: 711cc
 	./tests/compat/git/run.sh "$(GIT_SOURCE_DIR)"
@@ -87,4 +93,4 @@ compat-postgresql: 711cc
 clean:
 	rm -rf 711cc 711cc-stage* $(SRCROOT)/*.o *~ tmp* tests/*~ tests/*.o examples/*.o examples/tmp*
 
-.PHONY: test test-riscv check-riscv-tools test-aarch64-smoke check-aarch64-tools compat-git compat-cpython compat-postgresql clean
+.PHONY: test test-riscv check-riscv-tools test-aarch64-smoke check-aarch64-tools test-aarch64-validation compat-git compat-cpython compat-postgresql clean

@@ -562,7 +562,193 @@ static void emit_text(Program *prog) {
     }
 }
 
+static void validate_expr(Node *node);
+
+static void validate_value_type(Node *node, char *context) {
+    if (is_flonum(node->ty))
+        error_tok(node->tok,
+                  "floating-point %s is not supported by the AArch64 backend",
+                  context);
+    if (node->ty->kind == TY_STRUCT)
+        error_tok(node->tok, "struct %s is not supported by the AArch64 backend",
+                  context);
+}
+
+static void validate_addr(Node *node) {
+    switch (node->kind) {
+    case ND_VAR:
+        return;
+    case ND_DEREF:
+        validate_expr(node->lhs);
+        return;
+    }
+    error_tok(node->tok, "not an lvalue");
+}
+
+static void validate_expr(Node *node) {
+    switch (node->kind) {
+    case ND_NULL_EXPR:
+        return;
+    case ND_NUM:
+        validate_value_type(node, "constant");
+        return;
+    case ND_VAR:
+        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_FUNC)
+            validate_value_type(node, "load");
+        return;
+    case ND_DEREF:
+        validate_expr(node->lhs);
+        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_FUNC)
+            validate_value_type(node, "load");
+        return;
+    case ND_ADDR:
+        validate_addr(node->lhs);
+        return;
+    case ND_ASSIGN:
+        if (node->ty->kind == TY_ARRAY)
+            error_tok(node->tok, "not an lvalue");
+        validate_value_type(node, "assignment");
+        validate_expr(node->rhs);
+        validate_addr(node->lhs);
+        return;
+    case ND_COMMA:
+        validate_expr(node->lhs);
+        validate_expr(node->rhs);
+        return;
+    case ND_COND:
+        validate_expr(node->cond);
+        validate_expr(node->then);
+        validate_expr(node->els);
+        return;
+    case ND_LOGAND:
+    case ND_LOGOR:
+        validate_expr(node->lhs);
+        validate_expr(node->rhs);
+        return;
+    case ND_FUNCALL:
+        if (node->nargs > 8)
+            error_tok(node->tok,
+                      "more than 8 arguments are not supported by the AArch64 backend");
+        validate_expr(node->lhs);
+        for (int i = 0; i < node->nargs; i++) {
+            Var *arg = node->args[i];
+            if (is_flonum(arg->ty))
+                error_tok(arg->tok,
+                          "floating-point arguments are not supported by the AArch64 backend");
+            if (arg->ty->kind == TY_STRUCT)
+                error_tok(arg->tok,
+                          "struct arguments are not supported by the AArch64 backend");
+        }
+        validate_value_type(node, "return value");
+        return;
+    case ND_CAST:
+        if (is_flonum(node->lhs->ty) || is_flonum(node->ty))
+            error_tok(node->tok,
+                      "floating-point casts are not supported by the AArch64 backend");
+        if (node->ty->kind == TY_STRUCT)
+            error_tok(node->tok,
+                      "struct casts are not supported by the AArch64 backend");
+        validate_expr(node->lhs);
+        return;
+    case ND_NOT:
+    case ND_BITNOT:
+        validate_expr(node->lhs);
+        return;
+    case ND_ADD:
+    case ND_SUB:
+    case ND_MUL:
+    case ND_DIV:
+    case ND_MOD:
+    case ND_BITAND:
+    case ND_BITOR:
+    case ND_BITXOR:
+    case ND_SHL:
+    case ND_SHR:
+    case ND_EQ:
+    case ND_NE:
+    case ND_LT:
+    case ND_LE:
+        validate_expr(node->lhs);
+        validate_expr(node->rhs);
+        validate_value_type(node, "expression");
+        return;
+    default:
+        error_tok(node->tok,
+                  "expression is not supported by the AArch64 backend");
+    }
+}
+
+static void validate_stmt(Node *node) {
+    switch (node->kind) {
+    case ND_NULL_EXPR:
+    case ND_BREAK:
+    case ND_CONTINUE:
+        return;
+    case ND_IF:
+        validate_expr(node->cond);
+        validate_stmt(node->then);
+        if (node->els)
+            validate_stmt(node->els);
+        return;
+    case ND_FOR:
+        if (node->init)
+            validate_stmt(node->init);
+        if (node->cond)
+            validate_expr(node->cond);
+        validate_stmt(node->then);
+        if (node->inc)
+            validate_expr(node->inc);
+        return;
+    case ND_DO:
+        validate_stmt(node->then);
+        validate_expr(node->cond);
+        return;
+    case ND_BLOCK:
+        for (Node *n = node->body; n; n = n->next)
+            validate_stmt(n);
+        return;
+    case ND_RETURN:
+        if (node->lhs)
+            validate_expr(node->lhs);
+        return;
+    case ND_EXPR_STMT:
+        validate_expr(node->lhs);
+        return;
+    default:
+        error_tok(node->tok, "statement is not supported by the AArch64 backend");
+    }
+}
+
+static void validate_program(Program *prog) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
+        if (fn->is_variadic)
+            error_tok(fn->var->tok,
+                      "variadic definitions are not supported by the AArch64 backend");
+        if (is_flonum(fn->var->ty->return_ty) ||
+            fn->var->ty->return_ty->kind == TY_STRUCT)
+            error_tok(fn->var->tok,
+                      "this function return type is not supported by the AArch64 backend");
+
+        int nparams = 0;
+        for (Var *param = fn->params; param; param = param->next) {
+            nparams++;
+            if (is_flonum(param->ty))
+                error_tok(param->tok,
+                          "floating-point parameters are not supported by the AArch64 backend");
+            if (param->ty->kind == TY_STRUCT)
+                error_tok(param->tok,
+                          "struct parameters are not supported by the AArch64 backend");
+        }
+        if (nparams > 8)
+            error_tok(fn->var->tok,
+                      "more than 8 parameters are not supported by the AArch64 backend");
+        validate_stmt(fn->body);
+    }
+}
+
 void codegen_aarch64(Program *prog) {
+    validate_program(prog);
+
     char **paths = get_input_files();
     for (int i = 0; paths[i]; i++)
         println("  .file %d \"%s\"", i + 1, paths[i]);

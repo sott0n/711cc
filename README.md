@@ -9,8 +9,10 @@ for x86-64 and RISC-V 64-bit targets, plus an experimental AArch64 backend.
 - The x86-64 backend is the primary target and can build 711cc itself.
 - The RISC-V backend can be assembled with a cross toolchain and tested with
   QEMU. Variadic functions are not yet supported on RISC-V.
-- The AArch64 backend is experimental and currently supports a minimal set of
-  integer expressions for an end-to-end QEMU smoke test.
+- The AArch64 backend is experimental. It supports integer and pointer
+  expressions, local variables, assignments, control flow, and function calls
+  with up to eight integer arguments. Floating-point values, structs, variadic
+  definitions, and stack-passed arguments are not yet supported.
 - The frontend supports C11 features plus a growing set of GNU extensions.
 - The x86-64 backend can compile and run pinned releases of Git, CPython, and
   PostgreSQL. 711cc compiles their C translation units while the system C
@@ -105,6 +107,7 @@ make test-stage2  # run tests with the self-hosted compiler
 make test-stage3  # verify that stage 2 and stage 3 are identical
 make test-riscv   # assemble for RISC-V and execute with QEMU
 make test-aarch64-smoke # run the experimental AArch64 smoke test with QEMU
+make test-aarch64-validation # check AArch64 unsupported-feature diagnostics
 make test-all     # run all of the above
 ```
 
