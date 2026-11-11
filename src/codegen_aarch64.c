@@ -53,11 +53,14 @@ static void gen_expr(Node *node);
 static void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR:
-        if (!node->var->is_local)
-            error_tok(node->tok, "global variable references are not yet supported on AArch64");
-
-        mov_imm(reg(top), node->var->offset);
-        println("  sub %s, x29, %s", reg(top), reg(top));
+        if (node->var->is_local) {
+            mov_imm(reg(top), node->var->offset);
+            println("  sub %s, x29, %s", reg(top), reg(top));
+        } else {
+            println("  adrp %s, %s", reg(top), node->var->name);
+            println("  add %s, %s, :lo12:%s", reg(top), reg(top),
+                    node->var->name);
+        }
         top++;
         return;
     case ND_DEREF:
@@ -120,10 +123,65 @@ static void store(Type *ty) {
     top--;
 }
 
+static void load_arg(Var *arg, int idx) {
+    if (is_flonum(arg->ty))
+        error_tok(arg->tok, "floating-point arguments are not yet supported on AArch64");
+    if (arg->ty->kind == TY_STRUCT)
+        error_tok(arg->tok, "struct arguments are not yet supported on AArch64");
+
+    mov_imm("x17", arg->offset);
+    println("  sub x17, x29, x17");
+    if (arg->ty->size == 1) {
+        if (arg->ty->is_unsigned)
+            println("  ldrb w%d, [x17]", idx);
+        else
+            println("  ldrsb x%d, [x17]", idx);
+    } else if (arg->ty->size == 2) {
+        if (arg->ty->is_unsigned)
+            println("  ldrh w%d, [x17]", idx);
+        else
+            println("  ldrsh x%d, [x17]", idx);
+    } else if (arg->ty->size == 4) {
+        if (arg->ty->is_unsigned)
+            println("  ldr w%d, [x17]", idx);
+        else
+            println("  ldrsw x%d, [x17]", idx);
+    } else if (arg->ty->size == 8) {
+        println("  ldr x%d, [x17]", idx);
+    } else {
+        error_tok(arg->tok, "unsupported argument size on AArch64: %d",
+                  arg->ty->size);
+    }
+}
+
+static void store_param(Var *param, int idx) {
+    if (is_flonum(param->ty))
+        error_tok(param->tok, "floating-point parameters are not yet supported on AArch64");
+    if (param->ty->kind == TY_STRUCT)
+        error_tok(param->tok, "struct parameters are not yet supported on AArch64");
+
+    mov_imm("x17", param->offset);
+    println("  sub x17, x29, x17");
+    if (param->ty->size == 1)
+        println("  strb w%d, [x17]", idx);
+    else if (param->ty->size == 2)
+        println("  strh w%d, [x17]", idx);
+    else if (param->ty->size == 4)
+        println("  str w%d, [x17]", idx);
+    else if (param->ty->size == 8)
+        println("  str x%d, [x17]", idx);
+    else
+        error_tok(param->tok, "unsupported parameter size on AArch64: %d",
+                  param->ty->size);
+}
+
 static void gen_expr(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
     switch (node->kind) {
+    case ND_NULL_EXPR:
+        mov_imm(reg(top++), 0);
+        return;
     case ND_VAR:
         gen_addr(node);
         load(node->ty);
@@ -146,6 +204,21 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         top--;
         gen_expr(node->rhs);
+        return;
+    case ND_FUNCALL:
+        if (node->nargs > 8)
+            error_tok(node->tok, "more than 8 arguments are not yet supported on AArch64");
+        if (is_flonum(node->ty) || node->ty->kind == TY_STRUCT)
+            error_tok(node->tok, "this function return type is not yet supported on AArch64");
+
+        gen_expr(node->lhs);
+        println("  mov x16, %s", reg(--top));
+        for (int i = 0; i < node->nargs; i++)
+            load_arg(node->args[i], i);
+        println("  blr x16");
+        println("  mov %s, x0", reg(top));
+        normalize_int(node->ty, reg(top));
+        top++;
         return;
     case ND_NUM:
         if (is_flonum(node->ty))
@@ -329,9 +402,6 @@ static void emit_text(Program *prog) {
     println("  .text");
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
-        if (fn->params)
-            error_tok(fn->var->tok, "parameters are not yet supported on AArch64");
-
         println("  .p2align 2");
         if (!fn->is_static)
             println("  .globl %s", fn->name);
@@ -347,6 +417,16 @@ static void emit_text(Program *prog) {
         println("  stp x23, x24, [x29, #-48]");
         println("  stp x25, x26, [x29, #-64]");
         println("  stp x27, x28, [x29, #-80]");
+
+        int nparams = 0;
+        for (Var *param = fn->params; param; param = param->next)
+            nparams++;
+        if (nparams > 8)
+            error_tok(fn->var->tok,
+                      "more than 8 parameters are not yet supported on AArch64");
+        int param_idx = nparams;
+        for (Var *param = fn->params; param; param = param->next)
+            store_param(param, --param_idx);
 
         gen_stmt(fn->body);
         assert(top == 0);
