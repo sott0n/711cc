@@ -191,6 +191,31 @@ static void store_param(Var *param, int idx) {
                   param->ty->size);
 }
 
+static void store_stack_arg(Var *arg, int offset) {
+    load_arg(arg, 9);
+    println("  str x9, [sp, #%d]", offset);
+}
+
+static void store_stack_param(Var *param, int offset) {
+    mov_imm("x17", 16 + offset);
+    println("  add x17, x29, x17");
+    println("  ldr x9, [x17]");
+
+    mov_imm("x17", param->offset);
+    println("  sub x17, x29, x17");
+    if (param->ty->size == 1)
+        println("  strb w9, [x17]");
+    else if (param->ty->size == 2)
+        println("  strh w9, [x17]");
+    else if (param->ty->size == 4)
+        println("  str w9, [x17]");
+    else if (param->ty->size == 8)
+        println("  str x9, [x17]");
+    else
+        error_tok(param->tok, "unsupported parameter size on AArch64: %d",
+                  param->ty->size);
+}
+
 static void gen_expr(Node *node) {
     println("  .loc %d %d", node->tok->file_no, node->tok->line_no);
 
@@ -265,21 +290,36 @@ static void gen_expr(Node *node) {
         println(".L.end.%d:", c);
         return;
     }
-    case ND_FUNCALL:
-        if (node->nargs > 8)
-            error_tok(node->tok, "more than 8 arguments are not yet supported on AArch64");
+    case ND_FUNCALL: {
         if (is_flonum(node->ty) || node->ty->kind == TY_STRUCT)
             error_tok(node->tok, "this function return type is not yet supported on AArch64");
 
         gen_expr(node->lhs);
         println("  mov x16, %s", reg(--top));
-        for (int i = 0; i < node->nargs; i++)
+
+        int stack_args = node->nargs > 8 ? node->nargs - 8 : 0;
+        int stack_size = align_to(stack_args * 8, 16);
+        if (stack_size) {
+            mov_imm("x17", stack_size);
+            println("  sub sp, sp, x17");
+        }
+
+        int reg_args = node->nargs < 8 ? node->nargs : 8;
+        for (int i = 0; i < reg_args; i++)
             load_arg(node->args[i], i);
+        for (int i = 8; i < node->nargs; i++)
+            store_stack_arg(node->args[i], (i - 8) * 8);
+
         println("  blr x16");
+        if (stack_size) {
+            mov_imm("x17", stack_size);
+            println("  add sp, sp, x17");
+        }
         println("  mov %s, x0", reg(top));
         normalize_int(node->ty, reg(top));
         top++;
         return;
+    }
     case ND_NUM:
         if (is_flonum(node->ty))
             error_tok(node->tok, "floating-point expressions are not yet supported on AArch64");
@@ -549,12 +589,17 @@ static void emit_text(Program *prog) {
         int nparams = 0;
         for (Var *param = fn->params; param; param = param->next)
             nparams++;
-        if (nparams > 8)
-            error_tok(fn->var->tok,
-                      "more than 8 parameters are not yet supported on AArch64");
+
+        Var **params = calloc(nparams, sizeof(Var *));
         int param_idx = nparams;
         for (Var *param = fn->params; param; param = param->next)
-            store_param(param, --param_idx);
+            params[--param_idx] = param;
+        for (int i = 0; i < nparams; i++) {
+            if (i < 8)
+                store_param(params[i], i);
+            else
+                store_stack_param(params[i], (i - 8) * 8);
+        }
 
         gen_stmt(fn->body);
         assert(top == 0);
@@ -650,9 +695,6 @@ static void validate_expr(Node *node) {
         validate_expr(node->rhs);
         return;
     case ND_FUNCALL:
-        if (node->nargs > 8)
-            error_tok(node->tok,
-                      "more than 8 arguments are not supported by the AArch64 backend");
         validate_expr(node->lhs);
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
@@ -753,9 +795,7 @@ static void validate_program(Program *prog) {
             error_tok(fn->var->tok,
                       "this function return type is not supported by the AArch64 backend");
 
-        int nparams = 0;
         for (Var *param = fn->params; param; param = param->next) {
-            nparams++;
             if (is_flonum(param->ty))
                 error_tok(param->tok,
                           "floating-point parameters are not supported by the AArch64 backend");
@@ -763,9 +803,6 @@ static void validate_program(Program *prog) {
                 error_tok(param->tok,
                           "struct parameters are not supported by the AArch64 backend");
         }
-        if (nparams > 8)
-            error_tok(fn->var->tok,
-                      "more than 8 parameters are not supported by the AArch64 backend");
         validate_stmt(fn->body);
     }
 }

@@ -70,7 +70,7 @@ check-aarch64-tools:
 
 test-aarch64-smoke: 711cc check-aarch64-tools
 	(cd tests; ../711cc --feature=aarch64 -I. -S -c -o ../tmp-aarch64.s aarch64_smoke.c)
-	$(AARCH64_CC) $(AARCH64_CFLAGS) -static -o tmp-aarch64 tmp-aarch64.s
+	$(AARCH64_CC) $(AARCH64_CFLAGS) -static -o tmp-aarch64 tmp-aarch64.s tests/aarch64_extern.c
 	$(AARCH64_QEMU) ./tmp-aarch64
 
 test-aarch64-validation: 711cc

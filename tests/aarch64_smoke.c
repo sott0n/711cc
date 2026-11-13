@@ -8,6 +8,11 @@ static int global_zero;
 static int global_values[3] = {2, 4, 6};
 static struct Pair global_pair = {7, 8};
 
+long external_sum10(long, long, long, long, long,
+                    long, long, long, long, long);
+long external_call_sum10(long (*)(long, long, long, long, long,
+                                  long, long, long, long, long));
+
 static int add2(int a, int b) {
     return a + b;
 }
@@ -15,6 +20,17 @@ static int add2(int a, int b) {
 static long mix8(char a, unsigned char b, short c, unsigned short d,
                  int e, unsigned int f, long g, unsigned long h) {
     return a + b + c + d + e + f + g + h;
+}
+
+static long sum10(long a, long b, long c, long d, long e,
+                  long f, long g, long h, long i, long j) {
+    return a + b + c + d + e + f + g + h + i + j;
+}
+
+static long narrow_stack_args(long a, long b, long c, long d, long e,
+                              long f, long g, long h, char i,
+                              unsigned short j) {
+    return a + b + c + d + e + f + g + h + i + j;
 }
 
 static int control_flow(int limit) {
@@ -102,6 +118,10 @@ int main(void) {
            (fn(19, 23) != 42) +
            (add2(add2(10, 11), add2(9, 12)) != 42) +
            (mix8(-1, 2, -3, 4, -5, 6, -7, 46) != 42) +
+           (sum10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) != 55) +
+           (narrow_stack_args(1, 2, 3, 4, 5, 6, 7, 8, -1, 7) != 42) +
+           (external_sum10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) != 55) +
+           (external_call_sum10(sum10) != 55) +
            (control_flow(10) != 18) +
            (control_flow(5) != 0) +
            (nested_flow() != 13) +
