@@ -73,6 +73,61 @@ static int nested_flow(void) {
     return sum;
 }
 
+static int select_value(int value) {
+    int result = 0;
+    switch (value) {
+    case -1:
+        result = 10;
+        break;
+    case 2:
+        result = 20;
+    case 3:
+        result += 3;
+        break;
+    default:
+        result = 40;
+        break;
+    }
+    return result;
+}
+
+static int goto_flow(void) {
+    int result = 0;
+    goto second;
+first:
+    result += 2;
+    goto done;
+second:
+    result += 40;
+    goto first;
+done:
+    return result;
+}
+
+static int switch_in_loop(void) {
+    int sum = 0;
+    for (int i = 0; i < 4; i += 1) {
+        switch (i) {
+        case 1:
+            continue;
+        case 2:
+            break;
+        default:
+            break;
+        }
+        sum += i;
+    }
+    return sum;
+}
+
+static int computed_goto_flow(void) {
+    void *target = &&matched;
+    goto *target;
+    return 0;
+matched:
+    return 42;
+}
+
 int main(void) {
     signed char c = -3;
     unsigned char uc = 250;
@@ -125,6 +180,13 @@ int main(void) {
            (control_flow(10) != 18) +
            (control_flow(5) != 0) +
            (nested_flow() != 13) +
+           (select_value(-1) != 10) +
+           (select_value(2) != 23) +
+           (select_value(3) != 3) +
+           (select_value(9) != 40) +
+           (goto_flow() != 42) +
+           (switch_in_loop() != 5) +
+           (computed_goto_flow() != 42) +
            (!(0 || (1 && 2))) +
            (6 * 7 != 42) +
            (17 % 5 != 2) +

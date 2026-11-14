@@ -223,6 +223,13 @@ static void gen_expr(Node *node) {
     case ND_NULL_EXPR:
         mov_imm(reg(top++), 0);
         return;
+    case ND_LABEL_VAL:
+        println("  adrp %s, .L.label.%s.%s", reg(top), current_fn->name,
+                node->label_name);
+        println("  add %s, %s, :lo12:.L.label.%s.%s", reg(top), reg(top),
+                current_fn->name, node->label_name);
+        top++;
+        return;
     case ND_VAR:
         gen_addr(node);
         load(node->ty);
@@ -495,6 +502,40 @@ static void gen_stmt(Node *node) {
         contnum = saved_cont;
         return;
     }
+    case ND_SWITCH: {
+        int c = count();
+        int saved_brk = brknum;
+        brknum = c;
+        node->case_label = c;
+
+        gen_expr(node->cond);
+        char *cond = reg(top - 1);
+        for (Node *n = node->case_next; n; n = n->case_next) {
+            n->case_label = count();
+            n->case_end_label = c;
+            mov_imm("x16", n->val);
+            println("  cmp %s, x16", cond);
+            println("  b.eq .L.case.%d", n->case_label);
+        }
+        top--;
+
+        if (node->default_case) {
+            node->default_case->case_label = count();
+            node->default_case->case_end_label = c;
+            println("  b .L.case.%d", node->default_case->case_label);
+        } else {
+            println("  b .L.break.%d", c);
+        }
+
+        gen_stmt(node->then);
+        println(".L.break.%d:", c);
+        brknum = saved_brk;
+        return;
+    }
+    case ND_CASE:
+        println(".L.case.%d:", node->case_label);
+        gen_stmt(node->lhs);
+        return;
     case ND_BLOCK:
         for (Node *n = node->body; n; n = n->next)
             gen_stmt(n);
@@ -508,6 +549,19 @@ static void gen_stmt(Node *node) {
         if (!contnum)
             error_tok(node->tok, "stray continue");
         println("  b .L.continue.%d", contnum);
+        return;
+    case ND_GOTO:
+        if (node->lhs) {
+            gen_expr(node->lhs);
+            println("  br %s", reg(--top));
+        } else {
+            println("  b .L.label.%s.%s", current_fn->name,
+                    node->label_name);
+        }
+        return;
+    case ND_LABEL:
+        println(".L.label.%s.%s:", current_fn->name, node->label_name);
+        gen_stmt(node->lhs);
         return;
     case ND_RETURN:
         if (node->lhs) {
@@ -653,6 +707,8 @@ static void validate_expr(Node *node) {
     switch (node->kind) {
     case ND_NULL_EXPR:
         return;
+    case ND_LABEL_VAL:
+        return;
     case ND_NUM:
         validate_value_type(node, "constant");
         return;
@@ -769,6 +825,13 @@ static void validate_stmt(Node *node) {
         validate_stmt(node->then);
         validate_expr(node->cond);
         return;
+    case ND_SWITCH:
+        validate_expr(node->cond);
+        validate_stmt(node->then);
+        return;
+    case ND_CASE:
+        validate_stmt(node->lhs);
+        return;
     case ND_BLOCK:
         for (Node *n = node->body; n; n = n->next)
             validate_stmt(n);
@@ -779,6 +842,13 @@ static void validate_stmt(Node *node) {
         return;
     case ND_EXPR_STMT:
         validate_expr(node->lhs);
+        return;
+    case ND_GOTO:
+        if (node->lhs)
+            validate_expr(node->lhs);
+        return;
+    case ND_LABEL:
+        validate_stmt(node->lhs);
         return;
     default:
         error_tok(node->tok, "statement is not supported by the AArch64 backend");
