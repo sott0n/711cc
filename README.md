@@ -12,8 +12,9 @@ for x86-64 and RISC-V 64-bit targets, plus an experimental AArch64 backend.
 - The AArch64 backend is experimental. It supports integer and pointer
   expressions, local and global variables, arrays, scalar struct-member
   access, assignments, control flow (including switch and goto), and integer
-  function calls, including stack-passed arguments. Floating-point and
-  aggregate struct values and variadic definitions are not yet supported.
+  function calls, including stack-passed arguments. Local struct copies are
+  supported; struct arguments and return values, floating-point, and variadic
+  definitions are not yet supported.
 - The frontend supports C11 features plus a growing set of GNU extensions.
 - The x86-64 backend can compile and run pinned releases of Git, CPython, and
   PostgreSQL. 711cc compiles their C translation units while the system C

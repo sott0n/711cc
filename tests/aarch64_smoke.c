@@ -9,6 +9,11 @@ struct Bits {
     unsigned int third : 8;
 };
 
+struct Wide {
+    long values[3];
+    char tag;
+};
+
 static int global_value = 5;
 static int global_zero;
 static int global_values[3] = {2, 4, 6};
@@ -148,7 +153,13 @@ int main(void) {
     int values[3] = {10, 20, 30};
     struct Pair pair = {11, 31};
     struct Pair *pair_ptr = &pair;
+    struct Pair pair_copy = pair;
+    struct Pair pair_assigned = {0, 0};
+    struct Pair pair_indirect = {0, 0};
+    struct Pair *pair_indirect_ptr = &pair_indirect;
     struct Bits bits = {1, -2, 3};
+    struct Wide wide = {{10, 20, 30}, 40};
+    struct Wide wide_copy = wide;
 
     x += 2;
     *p = *p + 1;
@@ -156,6 +167,9 @@ int main(void) {
     values[1] += values[0];
     pair.left = pair.left + 1;
     pair_ptr->right += 1;
+    pair_assigned = pair;
+    *pair_indirect_ptr = pair_assigned;
+    wide.values[1] = 99;
     global_zero = 9;
     global_values[1] += global_value;
     bits.first = 7;
@@ -175,6 +189,16 @@ int main(void) {
            (pair.left != 12) +
            (pair.right != 32) +
            (pair_ptr->left != 12) +
+           (pair_copy.left != 11) +
+           (pair_copy.right != 31) +
+           ((pair_assigned = pair).right != 32) +
+           (pair_indirect.left != 12) +
+           (pair_indirect.right != 32) +
+           (wide.values[1] != 99) +
+           (wide_copy.values[0] != 10) +
+           (wide_copy.values[1] != 20) +
+           (wide_copy.values[2] != 30) +
+           (wide_copy.tag != 40) +
            (global_zero != 9) +
            (global_values[0] != 2) +
            (global_values[1] != 9) +

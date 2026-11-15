@@ -83,7 +83,7 @@ static void gen_addr(Node *node) {
     case ND_MEMBER:
         if (node->member->is_bitfield)
             error_tok(node->tok, "cannot take the address of a bit-field");
-        gen_addr(node->lhs);
+        gen_expr(node->lhs);
         add_member_offset(node);
         return;
     }
@@ -92,10 +92,8 @@ static void gen_addr(Node *node) {
 }
 
 static void load(Type *ty) {
-    if (ty->kind == TY_ARRAY || ty->kind == TY_FUNC)
+    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC)
         return;
-    if (ty->kind == TY_STRUCT)
-        error("struct loads are not yet supported on AArch64");
     if (is_flonum(ty))
         error("floating-point loads are not yet supported on AArch64");
 
@@ -123,14 +121,24 @@ static void load(Type *ty) {
 }
 
 static void store(Type *ty) {
-    if (ty->kind == TY_STRUCT)
-        error("struct stores are not yet supported on AArch64");
     if (is_flonum(ty))
         error("floating-point stores are not yet supported on AArch64");
 
     char *value = reg(top - 2);
     char *addr = reg(top - 1);
-    if (ty->size == 1)
+    if (ty->kind == TY_STRUCT) {
+        if (ty->size) {
+            int c = count();
+            println("  mov x16, %s", value);
+            println("  mov x17, %s", addr);
+            mov_imm("x15", ty->size);
+            println(".L.copy_struct.%d:", c);
+            println("  ldrb w14, [x16], #1");
+            println("  strb w14, [x17], #1");
+            println("  subs x15, x15, #1");
+            println("  b.ne .L.copy_struct.%d", c);
+        }
+    } else if (ty->size == 1)
         println("  strb w%s, [%s]", value + 1, addr);
     else if (ty->size == 2)
         println("  strh w%s, [%s]", value + 1, addr);
@@ -763,7 +771,7 @@ static void validate_addr(Node *node) {
     case ND_MEMBER:
         if (node->member->is_bitfield)
             error_tok(node->tok, "cannot take the address of a bit-field");
-        validate_addr(node->lhs);
+        validate_expr(node->lhs);
         return;
     }
     error_tok(node->tok, "not an lvalue");
@@ -779,12 +787,14 @@ static void validate_expr(Node *node) {
         validate_value_type(node, "constant");
         return;
     case ND_VAR:
-        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_FUNC)
+        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_STRUCT &&
+            node->ty->kind != TY_FUNC)
             validate_value_type(node, "load");
         return;
     case ND_DEREF:
         validate_expr(node->lhs);
-        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_FUNC)
+        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_STRUCT &&
+            node->ty->kind != TY_FUNC)
             validate_value_type(node, "load");
         return;
     case ND_MEMBER:
@@ -792,7 +802,7 @@ static void validate_expr(Node *node) {
             validate_addr(node->lhs);
         else
             validate_addr(node);
-        if (node->ty->kind != TY_ARRAY)
+        if (node->ty->kind != TY_ARRAY && node->ty->kind != TY_STRUCT)
             validate_value_type(node, "member load");
         return;
     case ND_ADDR:
@@ -801,7 +811,8 @@ static void validate_expr(Node *node) {
     case ND_ASSIGN:
         if (node->ty->kind == TY_ARRAY)
             error_tok(node->tok, "not an lvalue");
-        validate_value_type(node, "assignment");
+        if (node->ty->kind != TY_STRUCT)
+            validate_value_type(node, "assignment");
         validate_expr(node->rhs);
         if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield)
             validate_addr(node->lhs->lhs);
