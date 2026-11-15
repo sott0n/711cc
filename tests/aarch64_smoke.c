@@ -3,10 +3,17 @@ struct Pair {
     long right;
 };
 
+struct Bits {
+    unsigned int first : 3;
+    signed int second : 5;
+    unsigned int third : 8;
+};
+
 static int global_value = 5;
 static int global_zero;
 static int global_values[3] = {2, 4, 6};
 static struct Pair global_pair = {7, 8};
+static struct Bits global_bits = {5, -3, 200};
 
 long external_sum10(long, long, long, long, long,
                     long, long, long, long, long);
@@ -141,6 +148,7 @@ int main(void) {
     int values[3] = {10, 20, 30};
     struct Pair pair = {11, 31};
     struct Pair *pair_ptr = &pair;
+    struct Bits bits = {1, -2, 3};
 
     x += 2;
     *p = *p + 1;
@@ -150,6 +158,9 @@ int main(void) {
     pair_ptr->right += 1;
     global_zero = 9;
     global_values[1] += global_value;
+    bits.first = 7;
+    bits.second = -7;
+    bits.third = 250;
 
     return (x != 42) +
            (y != 33) +
@@ -169,6 +180,12 @@ int main(void) {
            (global_values[1] != 9) +
            (global_pair.left != 7) +
            (global_pair.right != 8) +
+           (bits.first != 7) +
+           (bits.second != -7) +
+           (bits.third != 250) +
+           (global_bits.first != 5) +
+           (global_bits.second != -3) +
+           (global_bits.third != 200) +
            (add2(20, 22) != 42) +
            (fn(19, 23) != 42) +
            (add2(add2(10, 11), add2(9, 12)) != 42) +

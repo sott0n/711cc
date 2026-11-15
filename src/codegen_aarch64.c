@@ -57,6 +57,13 @@ static void normalize_int(Type *ty, char *r) {
 
 static void gen_expr(Node *node);
 
+static void add_member_offset(Node *node) {
+    if (!node->member->offset)
+        return;
+    mov_imm("x16", node->member->offset);
+    println("  add %s, %s, x16", reg(top - 1), reg(top - 1));
+}
+
 static void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR:
@@ -75,12 +82,9 @@ static void gen_addr(Node *node) {
         return;
     case ND_MEMBER:
         if (node->member->is_bitfield)
-            error_tok(node->tok, "bit-fields are not yet supported on AArch64");
+            error_tok(node->tok, "cannot take the address of a bit-field");
         gen_addr(node->lhs);
-        if (node->member->offset) {
-            mov_imm("x16", node->member->offset);
-            println("  add %s, %s, x16", reg(top - 1), reg(top - 1));
-        }
+        add_member_offset(node);
         return;
     }
 
@@ -136,6 +140,47 @@ static void store(Type *ty) {
         println("  str %s, [%s]", value, addr);
     else
         error("unsupported store size on AArch64: %d", ty->size);
+    top--;
+}
+
+static void store_bitfield(Node *node) {
+    Member *mem = node->member;
+    char *value = reg(top - 2);
+    char *addr = reg(top - 1);
+
+    if (mem->ty->size == 1)
+        println("  ldrb w16, [%s]", addr);
+    else if (mem->ty->size == 2)
+        println("  ldrh w16, [%s]", addr);
+    else if (mem->ty->size == 4)
+        println("  ldr w16, [%s]", addr);
+    else if (mem->ty->size == 8)
+        println("  ldr x16, [%s]", addr);
+    else
+        error_tok(node->tok, "unsupported bit-field storage size: %d",
+                  mem->ty->size);
+
+    unsigned long field_mask = mem->bit_width == 64
+        ? ~0UL : (1UL << mem->bit_width) - 1;
+    unsigned long mask = field_mask << mem->bit_offset;
+
+    println("  mov x17, %s", value);
+    mov_imm("x15", field_mask);
+    println("  and x17, x17, x15");
+    if (mem->bit_offset)
+        println("  lsl x17, x17, #%d", mem->bit_offset);
+    mov_imm("x15", ~mask);
+    println("  and x16, x16, x15");
+    println("  orr x16, x16, x17");
+
+    if (mem->ty->size == 1)
+        println("  strb w16, [%s]", addr);
+    else if (mem->ty->size == 2)
+        println("  strh w16, [%s]", addr);
+    else if (mem->ty->size == 4)
+        println("  str w16, [%s]", addr);
+    else
+        println("  str x16, [%s]", addr);
     top--;
 }
 
@@ -238,10 +283,26 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         load(node->ty);
         return;
-    case ND_MEMBER:
-        gen_addr(node);
-        load(node->ty);
+    case ND_MEMBER: {
+        Member *mem = node->member;
+        if (!mem->is_bitfield) {
+            gen_addr(node);
+            load(node->ty);
+            return;
+        }
+
+        gen_addr(node->lhs);
+        add_member_offset(node);
+        load(mem->ty);
+        int left = 64 - mem->bit_width - mem->bit_offset;
+        if (left)
+            println("  lsl %s, %s, #%d", reg(top - 1), reg(top - 1), left);
+        int right = 64 - mem->bit_width;
+        if (right)
+            println("  %s %s, %s, #%d", mem->ty->is_unsigned ? "lsr" : "asr",
+                    reg(top - 1), reg(top - 1), right);
         return;
+    }
     case ND_ADDR:
         gen_addr(node->lhs);
         return;
@@ -249,8 +310,14 @@ static void gen_expr(Node *node) {
         if (node->ty->kind == TY_ARRAY)
             error_tok(node->tok, "not an lvalue");
         gen_expr(node->rhs);
-        gen_addr(node->lhs);
-        store(node->ty);
+        if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield) {
+            gen_addr(node->lhs->lhs);
+            add_member_offset(node->lhs);
+            store_bitfield(node->lhs);
+        } else {
+            gen_addr(node->lhs);
+            store(node->ty);
+        }
         return;
     case ND_COMMA:
         gen_expr(node->lhs);
@@ -695,8 +762,7 @@ static void validate_addr(Node *node) {
         return;
     case ND_MEMBER:
         if (node->member->is_bitfield)
-            error_tok(node->tok,
-                      "bit-fields are not supported by the AArch64 backend");
+            error_tok(node->tok, "cannot take the address of a bit-field");
         validate_addr(node->lhs);
         return;
     }
@@ -722,7 +788,10 @@ static void validate_expr(Node *node) {
             validate_value_type(node, "load");
         return;
     case ND_MEMBER:
-        validate_addr(node);
+        if (node->member->is_bitfield)
+            validate_addr(node->lhs);
+        else
+            validate_addr(node);
         if (node->ty->kind != TY_ARRAY)
             validate_value_type(node, "member load");
         return;
@@ -734,7 +803,10 @@ static void validate_expr(Node *node) {
             error_tok(node->tok, "not an lvalue");
         validate_value_type(node, "assignment");
         validate_expr(node->rhs);
-        validate_addr(node->lhs);
+        if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield)
+            validate_addr(node->lhs->lhs);
+        else
+            validate_addr(node->lhs);
         return;
     case ND_COMMA:
         validate_expr(node->lhs);
