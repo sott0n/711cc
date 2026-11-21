@@ -3,6 +3,11 @@ struct Pair {
     long right;
 };
 
+struct SmallPair {
+    int left;
+    int right;
+};
+
 struct Bits {
     unsigned int first : 3;
     signed int second : 5;
@@ -24,6 +29,13 @@ long external_sum10(long, long, long, long, long,
                     long, long, long, long, long);
 long external_call_sum10(long (*)(long, long, long, long, long,
                                   long, long, long, long, long));
+long external_pair_sum(int, struct Pair, int);
+long external_small_pair_sum(int, struct SmallPair, int);
+long external_call_pair(long (*)(int, struct Pair, int));
+long external_stacked_pair_sum(long, long, long, long, long, long, long,
+                               struct Pair, long);
+long external_call_stacked_pair(long (*)(long, long, long, long, long, long,
+                                          long, struct Pair, long));
 
 static int add2(int a, int b) {
     return a + b;
@@ -43,6 +55,19 @@ static long narrow_stack_args(long a, long b, long c, long d, long e,
                               long f, long g, long h, char i,
                               unsigned short j) {
     return a + b + c + d + e + f + g + h + i + j;
+}
+
+static long pair_sum(int prefix, struct Pair pair, int suffix) {
+    return prefix + pair.left + pair.right + suffix;
+}
+
+static long small_pair_sum(int prefix, struct SmallPair pair, int suffix) {
+    return prefix + pair.left + pair.right + suffix;
+}
+
+static long stacked_pair_sum(long a, long b, long c, long d, long e,
+                             long f, long g, struct Pair pair, long tail) {
+    return a + b + c + d + e + f + g + pair.left + pair.right + tail;
 }
 
 static int control_flow(int limit) {
@@ -152,6 +177,7 @@ int main(void) {
     int (*fn)(int, int) = add2;
     int values[3] = {10, 20, 30};
     struct Pair pair = {11, 31};
+    struct SmallPair small_pair = {20, 21};
     struct Pair *pair_ptr = &pair;
     struct Pair pair_copy = pair;
     struct Pair pair_assigned = {0, 0};
@@ -216,8 +242,16 @@ int main(void) {
            (mix8(-1, 2, -3, 4, -5, 6, -7, 46) != 42) +
            (sum10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) != 55) +
            (narrow_stack_args(1, 2, 3, 4, 5, 6, 7, 8, -1, 7) != 42) +
+           (pair_sum(1, pair, 2) != 47) +
+           (small_pair_sum(1, small_pair, 2) != 44) +
+           (stacked_pair_sum(1, 2, 3, 4, 5, 6, 7, pair, 8) != 80) +
            (external_sum10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) != 55) +
            (external_call_sum10(sum10) != 55) +
+           (external_pair_sum(1, pair, 2) != 47) +
+           (external_small_pair_sum(1, small_pair, 2) != 44) +
+           (external_call_pair(pair_sum) != 44) +
+           (external_stacked_pair_sum(1, 2, 3, 4, 5, 6, 7, pair, 8) != 80) +
+           (external_call_stacked_pair(stacked_pair_sum) != 77) +
            (control_flow(10) != 18) +
            (control_flow(5) != 0) +
            (nested_flow() != 13) +

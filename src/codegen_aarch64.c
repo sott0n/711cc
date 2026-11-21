@@ -192,11 +192,36 @@ static void store_bitfield(Node *node) {
     top--;
 }
 
+static int struct_arg_regs(Type *ty) {
+    return align_to(ty->size, 8) / 8;
+}
+
+static void load_struct_arg(Var *arg, int idx) {
+    mov_imm("x17", arg->offset);
+    println("  sub x17, x29, x17");
+
+    int nregs = struct_arg_regs(arg->ty);
+    for (int i = 0; i < nregs; i++) {
+        int chunk_size = arg->ty->size - i * 8;
+        if (chunk_size > 8)
+            chunk_size = 8;
+
+        println("  mov x%d, xzr", idx + i);
+        for (int j = 0; j < chunk_size; j++) {
+            println("  ldrb w15, [x17, #%d]", i * 8 + j);
+            println("  orr x%d, x%d, x15, lsl #%d", idx + i, idx + i,
+                    j * 8);
+        }
+    }
+}
+
 static void load_arg(Var *arg, int idx) {
     if (is_flonum(arg->ty))
         error_tok(arg->tok, "floating-point arguments are not yet supported on AArch64");
-    if (arg->ty->kind == TY_STRUCT)
-        error_tok(arg->tok, "struct arguments are not yet supported on AArch64");
+    if (arg->ty->kind == TY_STRUCT) {
+        load_struct_arg(arg, idx);
+        return;
+    }
 
     mov_imm("x17", arg->offset);
     println("  sub x17, x29, x17");
@@ -223,11 +248,32 @@ static void load_arg(Var *arg, int idx) {
     }
 }
 
+static void store_struct_param(Var *param, int idx) {
+    mov_imm("x17", param->offset);
+    println("  sub x17, x29, x17");
+
+    int nregs = struct_arg_regs(param->ty);
+    for (int i = 0; i < nregs; i++) {
+        int chunk_size = param->ty->size - i * 8;
+        if (chunk_size > 8)
+            chunk_size = 8;
+
+        println("  mov x15, x%d", idx + i);
+        for (int j = 0; j < chunk_size; j++) {
+            println("  strb w15, [x17, #%d]", i * 8 + j);
+            if (j + 1 < chunk_size)
+                println("  lsr x15, x15, #8");
+        }
+    }
+}
+
 static void store_param(Var *param, int idx) {
     if (is_flonum(param->ty))
         error_tok(param->tok, "floating-point parameters are not yet supported on AArch64");
-    if (param->ty->kind == TY_STRUCT)
-        error_tok(param->tok, "struct parameters are not yet supported on AArch64");
+    if (param->ty->kind == TY_STRUCT) {
+        store_struct_param(param, idx);
+        return;
+    }
 
     mov_imm("x17", param->offset);
     println("  sub x17, x29, x17");
@@ -245,11 +291,33 @@ static void store_param(Var *param, int idx) {
 }
 
 static void store_stack_arg(Var *arg, int offset) {
+    if (arg->ty->kind == TY_STRUCT) {
+        mov_imm("x17", arg->offset);
+        println("  sub x17, x29, x17");
+        for (int i = 0; i < arg->ty->size; i++) {
+            println("  ldrb w15, [x17, #%d]", i);
+            println("  strb w15, [sp, #%d]", offset + i);
+        }
+        return;
+    }
+
     load_arg(arg, 9);
     println("  str x9, [sp, #%d]", offset);
 }
 
 static void store_stack_param(Var *param, int offset) {
+    if (param->ty->kind == TY_STRUCT) {
+        mov_imm("x14", 16 + offset);
+        println("  add x14, x29, x14");
+        mov_imm("x17", param->offset);
+        println("  sub x17, x29, x17");
+        for (int i = 0; i < param->ty->size; i++) {
+            println("  ldrb w15, [x14, #%d]", i);
+            println("  strb w15, [x17, #%d]", i);
+        }
+        return;
+    }
+
     mov_imm("x17", 16 + offset);
     println("  add x17, x29, x17");
     println("  ldr x9, [x17]");
@@ -379,18 +447,43 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         println("  mov x16, %s", reg(--top));
 
-        int stack_args = node->nargs > 8 ? node->nargs - 8 : 0;
-        int stack_size = align_to(stack_args * 8, 16);
+        int gp = 0;
+        int stack_bytes = 0;
+        for (int i = 0; i < node->nargs; i++) {
+            Var *arg = node->args[i];
+            int nregs = arg->ty->kind == TY_STRUCT
+                ? struct_arg_regs(arg->ty) : 1;
+            if (gp + nregs <= 8) {
+                gp += nregs;
+            } else {
+                gp = 8;
+                stack_bytes += arg->ty->kind == TY_STRUCT
+                    ? align_to(arg->ty->size, 8) : 8;
+            }
+        }
+
+        int stack_size = align_to(stack_bytes, 16);
         if (stack_size) {
             mov_imm("x17", stack_size);
             println("  sub sp, sp, x17");
         }
 
-        int reg_args = node->nargs < 8 ? node->nargs : 8;
-        for (int i = 0; i < reg_args; i++)
-            load_arg(node->args[i], i);
-        for (int i = 8; i < node->nargs; i++)
-            store_stack_arg(node->args[i], (i - 8) * 8);
+        gp = 0;
+        int stack_offset = 0;
+        for (int i = 0; i < node->nargs; i++) {
+            Var *arg = node->args[i];
+            int nregs = arg->ty->kind == TY_STRUCT
+                ? struct_arg_regs(arg->ty) : 1;
+            if (gp + nregs <= 8) {
+                load_arg(arg, gp);
+                gp += nregs;
+            } else {
+                gp = 8;
+                store_stack_arg(arg, stack_offset);
+                stack_offset += arg->ty->kind == TY_STRUCT
+                    ? align_to(arg->ty->size, 8) : 8;
+            }
+        }
 
         println("  blr x16");
         if (stack_size) {
@@ -723,11 +816,21 @@ static void emit_text(Program *prog) {
         int param_idx = nparams;
         for (Var *param = fn->params; param; param = param->next)
             params[--param_idx] = param;
+        int gp = 0;
+        int stack_offset = 0;
         for (int i = 0; i < nparams; i++) {
-            if (i < 8)
-                store_param(params[i], i);
-            else
-                store_stack_param(params[i], (i - 8) * 8);
+            Var *param = params[i];
+            int nregs = param->ty->kind == TY_STRUCT
+                ? struct_arg_regs(param->ty) : 1;
+            if (gp + nregs <= 8) {
+                store_param(param, gp);
+                gp += nregs;
+            } else {
+                gp = 8;
+                store_stack_param(param, stack_offset);
+                stack_offset += param->ty->kind == TY_STRUCT
+                    ? align_to(param->ty->size, 8) : 8;
+            }
         }
 
         gen_stmt(fn->body);
@@ -750,6 +853,31 @@ static void emit_text(Program *prog) {
 }
 
 static void validate_expr(Node *node);
+
+static bool contains_flonum(Type *ty) {
+    if (is_flonum(ty))
+        return true;
+    if (ty->kind == TY_ARRAY)
+        return contains_flonum(ty->base);
+    if (ty->kind != TY_STRUCT)
+        return false;
+
+    for (Member *mem = ty->members; mem; mem = mem->next)
+        if (contains_flonum(mem->ty))
+            return true;
+    return false;
+}
+
+static void validate_struct_arg(Token *tok, Type *ty, char *context) {
+    if (ty->size > 16)
+        error_tok(tok,
+                  "struct %s larger than 16 bytes are not supported by the AArch64 backend",
+                  context);
+    if (contains_flonum(ty))
+        error_tok(tok,
+                  "floating-point struct %s are not supported by the AArch64 backend",
+                  context);
+}
 
 static void validate_value_type(Node *node, char *context) {
     if (is_flonum(node->ty))
@@ -837,12 +965,12 @@ static void validate_expr(Node *node) {
         validate_expr(node->lhs);
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
+            Token *tok = arg->tok ? arg->tok : node->tok;
             if (is_flonum(arg->ty))
-                error_tok(arg->tok,
+                error_tok(tok,
                           "floating-point arguments are not supported by the AArch64 backend");
             if (arg->ty->kind == TY_STRUCT)
-                error_tok(arg->tok,
-                          "struct arguments are not supported by the AArch64 backend");
+                validate_struct_arg(tok, arg->ty, "arguments");
         }
         validate_value_type(node, "return value");
         return;
@@ -850,9 +978,6 @@ static void validate_expr(Node *node) {
         if (is_flonum(node->lhs->ty) || is_flonum(node->ty))
             error_tok(node->tok,
                       "floating-point casts are not supported by the AArch64 backend");
-        if (node->ty->kind == TY_STRUCT)
-            error_tok(node->tok,
-                      "struct casts are not supported by the AArch64 backend");
         validate_expr(node->lhs);
         return;
     case ND_NOT:
@@ -949,12 +1074,12 @@ static void validate_program(Program *prog) {
                       "this function return type is not supported by the AArch64 backend");
 
         for (Var *param = fn->params; param; param = param->next) {
+            Token *tok = param->tok ? param->tok : fn->var->tok;
             if (is_flonum(param->ty))
-                error_tok(param->tok,
+                error_tok(tok,
                           "floating-point parameters are not supported by the AArch64 backend");
             if (param->ty->kind == TY_STRUCT)
-                error_tok(param->tok,
-                          "struct parameters are not supported by the AArch64 backend");
+                validate_struct_arg(tok, param->ty, "parameters");
         }
         validate_stmt(fn->body);
     }
