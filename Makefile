@@ -84,6 +84,12 @@ test-aarch64-validation: 711cc
 	@! ./711cc --feature=aarch64 -S -c -o tmp-aarch64-float-struct.s tests/aarch64_float_struct_arg.c 2>tmp-aarch64-float-struct.err
 	@grep -q "floating-point struct arguments are not supported by the AArch64 backend" tmp-aarch64-float-struct.err
 	@test ! -s tmp-aarch64-float-struct.s
+	@! ./711cc --feature=aarch64 -S -c -o tmp-aarch64-large-return.s tests/aarch64_large_struct_return.c 2>tmp-aarch64-large-return.err
+	@grep -q "struct return values larger than 16 bytes are not supported by the AArch64 backend" tmp-aarch64-large-return.err
+	@test ! -s tmp-aarch64-large-return.s
+	@! ./711cc --feature=aarch64 -S -c -o tmp-aarch64-float-return.s tests/aarch64_float_struct_return.c 2>tmp-aarch64-float-return.err
+	@grep -q "floating-point struct return values are not supported by the AArch64 backend" tmp-aarch64-float-return.err
+	@test ! -s tmp-aarch64-float-return.s
 
 test-all: test test-nopic test-stage2 test-stage3 test-riscv test-aarch64-smoke test-aarch64-validation
 

@@ -36,6 +36,9 @@ long external_stacked_pair_sum(long, long, long, long, long, long, long,
                                struct Pair, long);
 long external_call_stacked_pair(long (*)(long, long, long, long, long, long,
                                           long, struct Pair, long));
+struct Pair external_make_pair(int, long);
+struct SmallPair external_make_small_pair(int, int);
+long external_call_pair_maker(struct Pair (*)(int, long));
 
 static int add2(int a, int b) {
     return a + b;
@@ -68,6 +71,16 @@ static long small_pair_sum(int prefix, struct SmallPair pair, int suffix) {
 static long stacked_pair_sum(long a, long b, long c, long d, long e,
                              long f, long g, struct Pair pair, long tail) {
     return a + b + c + d + e + f + g + pair.left + pair.right + tail;
+}
+
+static struct Pair make_pair(int left, long right) {
+    struct Pair result = {left, right};
+    return result;
+}
+
+static struct SmallPair make_small_pair(int left, int right) {
+    struct SmallPair result = {left, right};
+    return result;
 }
 
 static int control_flow(int limit) {
@@ -178,6 +191,10 @@ int main(void) {
     int values[3] = {10, 20, 30};
     struct Pair pair = {11, 31};
     struct SmallPair small_pair = {20, 21};
+    struct Pair returned_pair = make_pair(20, 22);
+    struct SmallPair returned_small_pair = make_small_pair(19, 23);
+    struct Pair external_pair = external_make_pair(18, 24);
+    struct SmallPair external_small_pair = external_make_small_pair(17, 25);
     struct Pair *pair_ptr = &pair;
     struct Pair pair_copy = pair;
     struct Pair pair_assigned = {0, 0};
@@ -220,6 +237,17 @@ int main(void) {
            ((pair_assigned = pair).right != 32) +
            (pair_indirect.left != 12) +
            (pair_indirect.right != 32) +
+           (returned_pair.left != 20) +
+           (returned_pair.right != 22) +
+           (returned_small_pair.left != 19) +
+           (returned_small_pair.right != 23) +
+           (make_pair(16, 26).left != 16) +
+           (make_pair(16, 26).right != 26) +
+           (external_pair.left != 18) +
+           (external_pair.right != 24) +
+           (external_small_pair.left != 17) +
+           (external_small_pair.right != 25) +
+           (external_call_pair_maker(make_pair) != 42) +
            (wide.values[1] != 99) +
            (wide_copy.values[0] != 10) +
            (wide_copy.values[1] != 20) +

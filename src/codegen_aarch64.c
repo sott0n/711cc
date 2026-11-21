@@ -196,23 +196,26 @@ static int struct_arg_regs(Type *ty) {
     return align_to(ty->size, 8) / 8;
 }
 
-static void load_struct_arg(Var *arg, int idx) {
-    mov_imm("x17", arg->offset);
-    println("  sub x17, x29, x17");
-
-    int nregs = struct_arg_regs(arg->ty);
+static void load_struct_regs(Type *ty, char *addr, int idx) {
+    int nregs = struct_arg_regs(ty);
     for (int i = 0; i < nregs; i++) {
-        int chunk_size = arg->ty->size - i * 8;
+        int chunk_size = ty->size - i * 8;
         if (chunk_size > 8)
             chunk_size = 8;
 
         println("  mov x%d, xzr", idx + i);
         for (int j = 0; j < chunk_size; j++) {
-            println("  ldrb w15, [x17, #%d]", i * 8 + j);
+            println("  ldrb w15, [%s, #%d]", addr, i * 8 + j);
             println("  orr x%d, x%d, x15, lsl #%d", idx + i, idx + i,
                     j * 8);
         }
     }
+}
+
+static void load_struct_arg(Var *arg, int idx) {
+    mov_imm("x17", arg->offset);
+    println("  sub x17, x29, x17");
+    load_struct_regs(arg->ty, "x17", idx);
 }
 
 static void load_arg(Var *arg, int idx) {
@@ -441,7 +444,7 @@ static void gen_expr(Node *node) {
         return;
     }
     case ND_FUNCALL: {
-        if (is_flonum(node->ty) || node->ty->kind == TY_STRUCT)
+        if (is_flonum(node->ty))
             error_tok(node->tok, "this function return type is not yet supported on AArch64");
 
         gen_expr(node->lhs);
@@ -490,9 +493,16 @@ static void gen_expr(Node *node) {
             mov_imm("x17", stack_size);
             println("  add sp, sp, x17");
         }
-        println("  mov %s, x0", reg(top));
-        normalize_int(node->ty, reg(top));
-        top++;
+        if (node->ret_buffer) {
+            store_struct_param(node->ret_buffer, 0);
+            mov_imm(reg(top), node->ret_buffer->offset);
+            println("  sub %s, x29, %s", reg(top), reg(top));
+            top++;
+        } else {
+            println("  mov %s, x0", reg(top));
+            normalize_int(node->ty, reg(top));
+            top++;
+        }
         return;
     }
     case ND_NUM:
@@ -734,7 +744,12 @@ static void gen_stmt(Node *node) {
     case ND_RETURN:
         if (node->lhs) {
             gen_expr(node->lhs);
-            println("  mov x0, %s", reg(--top));
+            if (node->lhs->ty->kind == TY_STRUCT) {
+                char *src = reg(--top);
+                load_struct_regs(node->lhs->ty, src, 0);
+            } else {
+                println("  mov x0, %s", reg(--top));
+            }
         }
         println("  b .L.return.%s", current_fn->name);
         return;
@@ -868,7 +883,7 @@ static bool contains_flonum(Type *ty) {
     return false;
 }
 
-static void validate_struct_arg(Token *tok, Type *ty, char *context) {
+static void validate_small_struct(Token *tok, Type *ty, char *context) {
     if (ty->size > 16)
         error_tok(tok,
                   "struct %s larger than 16 bytes are not supported by the AArch64 backend",
@@ -970,9 +985,12 @@ static void validate_expr(Node *node) {
                 error_tok(tok,
                           "floating-point arguments are not supported by the AArch64 backend");
             if (arg->ty->kind == TY_STRUCT)
-                validate_struct_arg(tok, arg->ty, "arguments");
+                validate_small_struct(tok, arg->ty, "arguments");
         }
-        validate_value_type(node, "return value");
+        if (node->ty->kind == TY_STRUCT)
+            validate_small_struct(node->tok, node->ty, "return values");
+        else
+            validate_value_type(node, "return value");
         return;
     case ND_CAST:
         if (is_flonum(node->lhs->ty) || is_flonum(node->ty))
@@ -1068,10 +1086,12 @@ static void validate_program(Program *prog) {
         if (fn->is_variadic)
             error_tok(fn->var->tok,
                       "variadic definitions are not supported by the AArch64 backend");
-        if (is_flonum(fn->var->ty->return_ty) ||
-            fn->var->ty->return_ty->kind == TY_STRUCT)
+        if (is_flonum(fn->var->ty->return_ty))
             error_tok(fn->var->tok,
                       "this function return type is not supported by the AArch64 backend");
+        if (fn->var->ty->return_ty->kind == TY_STRUCT)
+            validate_small_struct(fn->var->tok, fn->var->ty->return_ty,
+                                  "return values");
 
         for (Var *param = fn->params; param; param = param->next) {
             Token *tok = param->tok ? param->tok : fn->var->tok;
@@ -1079,7 +1099,7 @@ static void validate_program(Program *prog) {
                 error_tok(tok,
                           "floating-point parameters are not supported by the AArch64 backend");
             if (param->ty->kind == TY_STRUCT)
-                validate_struct_arg(tok, param->ty, "parameters");
+                validate_small_struct(tok, param->ty, "parameters");
         }
         validate_stmt(fn->body);
     }

@@ -41,3 +41,18 @@ long external_call_stacked_pair(long (*fn)(long, long, long, long, long, long,
     struct Pair pair = {20, 21};
     return fn(1, 2, 3, 4, 5, 6, 7, pair, 8);
 }
+
+struct Pair external_make_pair(int left, long right) {
+    struct Pair result = {left, right};
+    return result;
+}
+
+struct SmallPair external_make_small_pair(int left, int right) {
+    struct SmallPair result = {left, right};
+    return result;
+}
+
+long external_call_pair_maker(struct Pair (*fn)(int, long)) {
+    struct Pair result = fn(20, 22);
+    return result.left + result.right;
+}
