@@ -13,9 +13,9 @@ for x86-64 and RISC-V 64-bit targets, plus an experimental AArch64 backend.
   expressions, local and global variables, arrays, scalar struct-member
   access, assignments, control flow (including switch and goto), and integer
   function calls, including stack-passed arguments. Local struct copies and
-  integer-only struct arguments and return values up to 16 bytes are supported;
-  larger struct values, floating-point, and variadic definitions are not yet
-  supported.
+  integer-only struct arguments of any size and return values up to 16 bytes
+  are supported; larger struct return values, floating-point, and variadic
+  definitions are not yet supported.
 - The frontend supports C11 features plus a growing set of GNU extensions.
 - The x86-64 backend can compile and run pinned releases of Git, CPython, and
   PostgreSQL. 711cc compiles their C translation units while the system C

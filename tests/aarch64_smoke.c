@@ -39,6 +39,13 @@ long external_call_stacked_pair(long (*)(long, long, long, long, long, long,
 struct Pair external_make_pair(int, long);
 struct SmallPair external_make_small_pair(int, int);
 long external_call_pair_maker(struct Pair (*)(int, long));
+long external_wide_sum(int, struct Wide, int);
+long external_call_wide_sum(long (*)(int, struct Wide, int));
+long external_stacked_wide_sum(long, long, long, long, long, long, long,
+                               long, struct Wide, long);
+long external_call_stacked_wide_sum(long (*)(long, long, long, long, long,
+                                              long, long, long, struct Wide,
+                                              long));
 
 static int add2(int a, int b) {
     return a + b;
@@ -81,6 +88,20 @@ static struct Pair make_pair(int left, long right) {
 static struct SmallPair make_small_pair(int left, int right) {
     struct SmallPair result = {left, right};
     return result;
+}
+
+static long wide_sum(int prefix, struct Wide value, int suffix) {
+    value.values[1] += 1;
+    return prefix + value.values[0] + value.values[1] + value.values[2] +
+           value.tag + suffix;
+}
+
+static long stacked_wide_sum(long a, long b, long c, long d, long e,
+                             long f, long g, long h, struct Wide value,
+                             long tail) {
+    value.values[1] += 1;
+    return a + b + c + d + e + f + g + h + value.values[0] +
+           value.values[1] + value.values[2] + value.tag + tail;
 }
 
 static int control_flow(int limit) {
@@ -213,6 +234,15 @@ int main(void) {
     pair_assigned = pair;
     *pair_indirect_ptr = pair_assigned;
     wide.values[1] = 99;
+    long wide_result = wide_sum(1, wide, 2);
+    long stacked_wide_result =
+        stacked_wide_sum(1, 2, 3, 4, 5, 6, 7, 8, wide, 9);
+    long external_wide_result = external_wide_sum(1, wide, 2);
+    long external_wide_callback_result = external_call_wide_sum(wide_sum);
+    long external_stacked_wide_result =
+        external_stacked_wide_sum(1, 2, 3, 4, 5, 6, 7, 8, wide, 9);
+    long external_stacked_wide_callback_result =
+        external_call_stacked_wide_sum(stacked_wide_sum);
     global_zero = 9;
     global_values[1] += global_value;
     bits.first = 7;
@@ -249,6 +279,12 @@ int main(void) {
            (external_small_pair.right != 25) +
            (external_call_pair_maker(make_pair) != 42) +
            (wide.values[1] != 99) +
+           (wide_result != 183) +
+           (stacked_wide_result != 225) +
+           (external_wide_result != 183) +
+           (external_wide_callback_result != 104) +
+           (external_stacked_wide_result != 225) +
+           (external_stacked_wide_callback_result != 146) +
            (wide_copy.values[0] != 10) +
            (wide_copy.values[1] != 20) +
            (wide_copy.values[2] != 30) +

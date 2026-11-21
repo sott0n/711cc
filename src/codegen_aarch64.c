@@ -196,6 +196,26 @@ static int struct_arg_regs(Type *ty) {
     return align_to(ty->size, 8) / 8;
 }
 
+static bool pass_struct_indirect(Type *ty) {
+    return ty->kind == TY_STRUCT && ty->size > 16;
+}
+
+static int arg_gp_regs(Type *ty) {
+    if (pass_struct_indirect(ty))
+        return 1;
+    if (ty->kind == TY_STRUCT)
+        return struct_arg_regs(ty);
+    return 1;
+}
+
+static int arg_stack_size(Type *ty) {
+    if (pass_struct_indirect(ty))
+        return 8;
+    if (ty->kind == TY_STRUCT)
+        return align_to(ty->size, 8);
+    return 8;
+}
+
 static void load_struct_regs(Type *ty, char *addr, int idx) {
     int nregs = struct_arg_regs(ty);
     for (int i = 0; i < nregs; i++) {
@@ -215,6 +235,10 @@ static void load_struct_regs(Type *ty, char *addr, int idx) {
 static void load_struct_arg(Var *arg, int idx) {
     mov_imm("x17", arg->offset);
     println("  sub x17, x29, x17");
+    if (pass_struct_indirect(arg->ty)) {
+        println("  mov x%d, x17", idx);
+        return;
+    }
     load_struct_regs(arg->ty, "x17", idx);
 }
 
@@ -251,7 +275,28 @@ static void load_arg(Var *arg, int idx) {
     }
 }
 
+static void copy_indirect_struct_param(Var *param) {
+    if (!param->ty->size)
+        return;
+
+    int c = count();
+    mov_imm("x17", param->offset);
+    println("  sub x17, x29, x17");
+    mov_imm("x15", param->ty->size);
+    println(".L.copy_param.%d:", c);
+    println("  ldrb w13, [x14], #1");
+    println("  strb w13, [x17], #1");
+    println("  subs x15, x15, #1");
+    println("  b.ne .L.copy_param.%d", c);
+}
+
 static void store_struct_param(Var *param, int idx) {
+    if (pass_struct_indirect(param->ty)) {
+        println("  mov x14, x%d", idx);
+        copy_indirect_struct_param(param);
+        return;
+    }
+
     mov_imm("x17", param->offset);
     println("  sub x17, x29, x17");
 
@@ -297,6 +342,10 @@ static void store_stack_arg(Var *arg, int offset) {
     if (arg->ty->kind == TY_STRUCT) {
         mov_imm("x17", arg->offset);
         println("  sub x17, x29, x17");
+        if (pass_struct_indirect(arg->ty)) {
+            println("  str x17, [sp, #%d]", offset);
+            return;
+        }
         for (int i = 0; i < arg->ty->size; i++) {
             println("  ldrb w15, [x17, #%d]", i);
             println("  strb w15, [sp, #%d]", offset + i);
@@ -312,6 +361,11 @@ static void store_stack_param(Var *param, int offset) {
     if (param->ty->kind == TY_STRUCT) {
         mov_imm("x14", 16 + offset);
         println("  add x14, x29, x14");
+        if (pass_struct_indirect(param->ty)) {
+            println("  ldr x14, [x14]");
+            copy_indirect_struct_param(param);
+            return;
+        }
         mov_imm("x17", param->offset);
         println("  sub x17, x29, x17");
         for (int i = 0; i < param->ty->size; i++) {
@@ -454,14 +508,12 @@ static void gen_expr(Node *node) {
         int stack_bytes = 0;
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
-            int nregs = arg->ty->kind == TY_STRUCT
-                ? struct_arg_regs(arg->ty) : 1;
+            int nregs = arg_gp_regs(arg->ty);
             if (gp + nregs <= 8) {
                 gp += nregs;
             } else {
                 gp = 8;
-                stack_bytes += arg->ty->kind == TY_STRUCT
-                    ? align_to(arg->ty->size, 8) : 8;
+                stack_bytes += arg_stack_size(arg->ty);
             }
         }
 
@@ -475,16 +527,14 @@ static void gen_expr(Node *node) {
         int stack_offset = 0;
         for (int i = 0; i < node->nargs; i++) {
             Var *arg = node->args[i];
-            int nregs = arg->ty->kind == TY_STRUCT
-                ? struct_arg_regs(arg->ty) : 1;
+            int nregs = arg_gp_regs(arg->ty);
             if (gp + nregs <= 8) {
                 load_arg(arg, gp);
                 gp += nregs;
             } else {
                 gp = 8;
                 store_stack_arg(arg, stack_offset);
-                stack_offset += arg->ty->kind == TY_STRUCT
-                    ? align_to(arg->ty->size, 8) : 8;
+                stack_offset += arg_stack_size(arg->ty);
             }
         }
 
@@ -835,16 +885,14 @@ static void emit_text(Program *prog) {
         int stack_offset = 0;
         for (int i = 0; i < nparams; i++) {
             Var *param = params[i];
-            int nregs = param->ty->kind == TY_STRUCT
-                ? struct_arg_regs(param->ty) : 1;
+            int nregs = arg_gp_regs(param->ty);
             if (gp + nregs <= 8) {
                 store_param(param, gp);
                 gp += nregs;
             } else {
                 gp = 8;
                 store_stack_param(param, stack_offset);
-                stack_offset += param->ty->kind == TY_STRUCT
-                    ? align_to(param->ty->size, 8) : 8;
+                stack_offset += arg_stack_size(param->ty);
             }
         }
 
@@ -883,8 +931,9 @@ static bool contains_flonum(Type *ty) {
     return false;
 }
 
-static void validate_small_struct(Token *tok, Type *ty, char *context) {
-    if (ty->size > 16)
+static void validate_struct_value(Token *tok, Type *ty, char *context,
+                                  bool allow_large) {
+    if (!allow_large && ty->size > 16)
         error_tok(tok,
                   "struct %s larger than 16 bytes are not supported by the AArch64 backend",
                   context);
@@ -985,10 +1034,10 @@ static void validate_expr(Node *node) {
                 error_tok(tok,
                           "floating-point arguments are not supported by the AArch64 backend");
             if (arg->ty->kind == TY_STRUCT)
-                validate_small_struct(tok, arg->ty, "arguments");
+                validate_struct_value(tok, arg->ty, "arguments", true);
         }
         if (node->ty->kind == TY_STRUCT)
-            validate_small_struct(node->tok, node->ty, "return values");
+            validate_struct_value(node->tok, node->ty, "return values", false);
         else
             validate_value_type(node, "return value");
         return;
@@ -1090,8 +1139,8 @@ static void validate_program(Program *prog) {
             error_tok(fn->var->tok,
                       "this function return type is not supported by the AArch64 backend");
         if (fn->var->ty->return_ty->kind == TY_STRUCT)
-            validate_small_struct(fn->var->tok, fn->var->ty->return_ty,
-                                  "return values");
+            validate_struct_value(fn->var->tok, fn->var->ty->return_ty,
+                                  "return values", false);
 
         for (Var *param = fn->params; param; param = param->next) {
             Token *tok = param->tok ? param->tok : fn->var->tok;
@@ -1099,7 +1148,7 @@ static void validate_program(Program *prog) {
                 error_tok(tok,
                           "floating-point parameters are not supported by the AArch64 backend");
             if (param->ty->kind == TY_STRUCT)
-                validate_small_struct(tok, param->ty, "parameters");
+                validate_struct_value(tok, param->ty, "parameters", true);
         }
         validate_stmt(fn->body);
     }
